@@ -1,142 +1,443 @@
-<!DOCTYPE html>
+<!doctype html>
+<!-- Admin portal shell: institution overview and management sections. -->
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AttendIQ administrator portal">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="AttendIQ administrator portal" />
     <title>AttendIQ | Admin Portal</title>
-    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="admin.css" />
     <script src="admin.js" defer></script>
-</head>
-<body>
+  </head>
+  <body>
     <div class="app-shell">
-        <header class="topbar">
-            <div class="topbar-left">
-                <button class="menu-button" id="menuButton" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
-                <a class="brand" href="../landing page/landing.html"><span class="brand-mark">A</span><span>AttendIQ</span></a>
-            </div>
-            <div class="topbar-right">
-                <button class="icon-button" type="button" aria-label="Notifications">♢<span class="notification-dot"></span></button>
-                <span class="admin-badge">◇ Admin</span>
-                <div class="profile">
-                    <span class="avatar">AS</span>
-                    <span class="profile-copy"><strong>Admin Staff</strong><small>System Administrator</small></span>
-                </div>
-            </div>
-        </header>
-
-        <div class="layout">
-            <aside class="sidebar" id="sidebar">
-                <div class="sidebar-heading">ADMIN CONSOLE</div>
-                <nav class="side-nav" aria-label="Admin navigation">
-                    <button class="nav-item active" data-tab="dashboard"><span>⌂</span> Dashboard</button>
-                    <button class="nav-item" data-tab="students"><span>♙</span> Students</button>
-                    <button class="nav-item" data-tab="faculty"><span>♧</span> Faculty</button>
-                    <button class="nav-item" data-tab="courses"><span>▣</span> Courses</button>
-                    <button class="nav-item" data-tab="leaves"><span>▤</span> Leave Requests <b class="nav-count">2</b></button>
-                    <button class="nav-item" data-tab="settings"><span>⚙</span> Settings</button>
-                </nav>
-                <div class="sidebar-footer">
-                    <div class="status-indicator"><i></i><span>All systems operational</span></div>
-                    <a href="../login/login.html">↪ Sign out</a>
-                </div>
-            </aside>
-
-            <main class="main-content">
-                <div class="page-header">
-                    <div>
-                        <p class="breadcrumb">ADMIN CONSOLE / <span id="breadcrumbPage">OVERVIEW</span></p>
-                        <h1 id="pageTitle">Admin Overview</h1>
-                        <p>University of Technology · Academic Year 2024-25</p>
-                    </div>
-                    <button class="button button-primary" id="headerAction" type="button">＋ Add student</button>
-                </div>
-
-                <section class="tab-panel active" data-panel="dashboard">
-                    <div class="metric-grid">
-                        <article class="metric-card"><span class="metric-icon blue">♙</span><strong>240</strong><small>Total Students</small><em>↑ 12 this semester</em></article>
-                        <article class="metric-card"><span class="metric-icon purple">♧</span><strong>5</strong><small>Faculty Members</small><em>All departments</em></article>
-                        <article class="metric-card"><span class="metric-icon yellow">▣</span><strong>5</strong><small>Active Subjects</small><em>Semester 7 · CSE</em></article>
-                        <article class="metric-card"><span class="metric-icon green">↗</span><strong>82%</strong><small>Average Attendance</small><em class="positive">↑ 3.2% from last month</em></article>
-                        <article class="metric-card"><span class="metric-icon red">!</span><strong>2</strong><small>At-Risk Students</small><em class="negative">Below 75% threshold</em></article>
-                    </div>
-
-                    <div class="content-grid dashboard-grid">
-                        <article class="card chart-card">
-                            <div class="card-heading"><div><h2>Department Attendance</h2><p>Average attendance percentage by department</p></div><button class="more-button" type="button">•••</button></div>
-                            <div class="bar-chart" aria-label="Department attendance chart">
-                                <div class="chart-row"><span>CSE</span><i><b style="width:82%"></b></i><strong>82%</strong></div>
-                                <div class="chart-row"><span>ECE</span><i><b style="width:78%"></b></i><strong>78%</strong></div>
-                                <div class="chart-row warning"><span>ME</span><i><b style="width:71%"></b></i><strong>71%</strong></div>
-                                <div class="chart-row"><span>Civil</span><i><b style="width:85%"></b></i><strong>85%</strong></div>
-                                <div class="chart-row"><span>MBA</span><i><b style="width:88%"></b></i><strong>88%</strong></div>
-                            </div>
-                            <div class="chart-axis"><span>0%</span><span>50%</span><span>75%</span><span>100%</span></div>
-                        </article>
-                        <article class="card quick-card">
-                            <div class="card-heading"><div><h2>Quick Actions</h2><p>Common administrator tasks</p></div></div>
-                            <div class="quick-actions">
-                                <button type="button" data-action="report"><span>⇩</span> Generate attendance report</button>
-                                <button type="button" data-action="notify"><span>♢</span> Send mass notification</button>
-                                <button type="button" data-action="student"><span>＋</span> Add new student</button>
-                                <button type="button" data-action="course"><span>▣</span> Add new course</button>
-                            </div>
-                        </article>
-                    </div>
-
-                    <article class="card">
-                        <div class="card-heading"><div><h2>Recent Leave Requests</h2><p>Review the latest applications from students</p></div><button class="text-link" type="button" data-jump="leaves">View all →</button></div>
-                        <div class="request-list" id="dashboardRequests"></div>
-                    </article>
-                </section>
-
-                <section class="tab-panel" data-panel="students">
-                    <div class="card">
-                        <div class="toolbar"><div><h2>Student Directory</h2><p>Manage enrolled students and attendance status</p></div><button class="button button-primary" type="button" data-action="student">＋ Add student</button></div>
-                        <div class="filter-row"><label class="search-box">⌕<input id="studentSearch" type="search" placeholder="Search by name or roll number"></label><select><option>All departments</option><option>CSE</option><option>ECE</option></select><select><option>All statuses</option><option>Active</option><option>Warned</option></select></div>
-                        <div class="table-wrap"><table><thead><tr><th>Student</th><th>Roll number</th><th>Department</th><th>Attendance</th><th>Status</th><th>Action</th></tr></thead><tbody id="studentRows"></tbody></table></div>
-                    </div>
-                </section>
-
-                <section class="tab-panel" data-panel="faculty">
-                    <div class="card">
-                        <div class="toolbar"><div><h2>Faculty Directory</h2><p>Manage faculty members and assigned subjects</p></div><button class="button button-primary" type="button" data-action="faculty">＋ Add faculty</button></div>
-                        <div class="table-wrap"><table><thead><tr><th>Faculty member</th><th>Faculty ID</th><th>Department</th><th>Subject</th><th>Classes</th><th>Status</th></tr></thead><tbody id="facultyRows"></tbody></table></div>
-                    </div>
-                </section>
-
-                <section class="tab-panel" data-panel="courses">
-                    <div class="card">
-                        <div class="toolbar"><div><h2>Course Management</h2><p>Active subjects for the current academic semester</p></div><button class="button button-primary" type="button" data-action="course">＋ Add course</button></div>
-                        <div class="course-grid" id="courseCards"></div>
-                    </div>
-                </section>
-
-                <section class="tab-panel" data-panel="leaves">
-                    <div class="card">
-                        <div class="toolbar"><div><h2>Leave Requests</h2><p>Review and manage student leave applications</p></div><div class="filter-tabs"><button class="selected" data-filter="all">All</button><button data-filter="pending">Pending <b>2</b></button><button data-filter="approved">Approved</button><button data-filter="rejected">Rejected</button></div></div>
-                        <div class="request-list full-list" id="leaveRequests"></div>
-                    </div>
-                </section>
-
-                <section class="tab-panel" data-panel="settings">
-                    <div class="settings-stack">
-                        <article class="card settings-card">
-                            <div class="card-heading"><div><h2>Attendance Rules</h2><p>Configure minimum attendance and alert thresholds.</p></div></div>
-                            <div class="setting-row"><div><strong>Minimum attendance threshold</strong><small>Students below this percentage are marked at risk.</small></div><output id="thresholdValue">75%</output></div>
-                            <input class="range-input" id="threshold" type="range" min="50" max="90" step="5" value="75">
-                            <div class="range-labels"><span>50%</span><span>90%</span></div>
-                            <div class="setting-row separated"><div><strong>Auto-notify students below threshold</strong><small>Send an alert when attendance drops below <span id="thresholdCopy">75%</span>.</small></div><button class="switch on" id="notifySwitch" type="button" aria-pressed="true"><i></i></button></div>
-                            <div class="setting-row separated"><div><strong>Leave approval workflow</strong><small>Choose who reviews leave applications first.</small></div><select><option>Teacher → Admin</option><option>Admin only</option><option>Auto-approve</option></select></div>
-                        </article>
-                        <article class="card settings-card"><div class="card-heading"><div><h2>Academic Calendar</h2><p>Important dates for the current semester.</p></div></div><div class="date-grid"><label>Semester start<input type="date" value="2025-07-01"></label><label>Semester end<input type="date" value="2025-11-30"></label><label>Exam period start<input type="date" value="2025-11-10"></label><label>Result declaration<input type="date" value="2025-12-15"></label></div></article>
-                        <article class="card danger-zone"><div class="card-heading"><div><h2>Danger Zone</h2><p>Actions here can affect institutional records.</p></div></div><div class="danger-action"><div><strong>Reset attendance data</strong><small>Clears attendance records for the current semester.</small></div><button type="button" data-action="reset">Reset</button></div><div class="danger-action"><div><strong>Archive semester</strong><small>Locks records and archives the current semester data.</small></div><button type="button" data-action="archive">Archive</button></div></article>
-                        <button class="button button-primary save-button" id="saveSettings" type="button">✓ Save settings</button>
-                    </div>
-                </section>
-            </main>
+      <!-- Administrator identity and global actions. -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button
+            class="menu-button"
+            id="menuButton"
+            type="button"
+            aria-label="Open navigation"
+            aria-expanded="false"
+          >
+            ☰
+          </button>
+          <a class="brand" href="../landing page/landing.html"
+            ><span class="brand-mark">A</span><span>AttendIQ</span></a
+          >
         </div>
+        <div class="topbar-right">
+          <button class="icon-button" type="button" aria-label="Notifications">
+            ♢<span class="notification-dot"></span>
+          </button>
+          <span class="admin-badge">◇ Admin</span>
+          <div class="profile">
+            <span class="avatar">AS</span>
+            <span class="profile-copy"
+              ><strong>Admin Staff</strong
+              ><small>System Administrator</small></span
+            >
+          </div>
+        </div>
+      </header>
+
+      <!-- Sidebar navigation and active administrator view. -->
+      <div class="layout">
+        <aside class="sidebar" id="sidebar">
+          <div class="sidebar-heading">ADMIN CONSOLE</div>
+          <nav class="side-nav" aria-label="Admin navigation">
+            <button class="nav-item active" data-tab="dashboard">
+              <span>⌂</span> Dashboard
+            </button>
+            <button class="nav-item" data-tab="students">
+              <span>♙</span> Students
+            </button>
+            <button class="nav-item" data-tab="faculty">
+              <span>♧</span> Faculty
+            </button>
+            <button class="nav-item" data-tab="courses">
+              <span>▣</span> Courses
+            </button>
+            <button class="nav-item" data-tab="leaves">
+              <span>▤</span> Leave Requests <b class="nav-count">2</b>
+            </button>
+            <button class="nav-item" data-tab="settings">
+              <span>⚙</span> Settings
+            </button>
+          </nav>
+          <div class="sidebar-footer">
+            <div class="status-indicator">
+              <i></i><span>All systems operational</span>
+            </div>
+            <a href="../login/login.html">↪ Sign out</a>
+          </div>
+        </aside>
+
+        <main class="main-content">
+          <!-- Page heading and context are updated by admin.js. -->
+          <div class="page-header">
+            <div>
+              <p class="breadcrumb">
+                ADMIN CONSOLE / <span id="breadcrumbPage">OVERVIEW</span>
+              </p>
+              <h1 id="pageTitle">Admin Overview</h1>
+              <p>University of Technology · Academic Year 2024-25</p>
+            </div>
+            <button
+              class="button button-primary"
+              id="headerAction"
+              type="button"
+            >
+              ＋ Add student
+            </button>
+          </div>
+
+          <!-- Institution-wide attendance overview. -->
+          <section class="tab-panel active" data-panel="dashboard">
+            <div class="metric-grid">
+              <article class="metric-card">
+                <span class="metric-icon blue">♙</span><strong>240</strong
+                ><small>Total Students</small><em>↑ 12 this semester</em>
+              </article>
+              <article class="metric-card">
+                <span class="metric-icon purple">♧</span><strong>5</strong
+                ><small>Faculty Members</small><em>All departments</em>
+              </article>
+              <article class="metric-card">
+                <span class="metric-icon yellow">▣</span><strong>5</strong
+                ><small>Active Subjects</small><em>Semester 7 · CSE</em>
+              </article>
+              <article class="metric-card">
+                <span class="metric-icon green">↗</span><strong>82%</strong
+                ><small>Average Attendance</small
+                ><em class="positive">↑ 3.2% from last month</em>
+              </article>
+              <article class="metric-card">
+                <span class="metric-icon red">!</span><strong>2</strong
+                ><small>At-Risk Students</small
+                ><em class="negative">Below 75% threshold</em>
+              </article>
+            </div>
+
+            <div class="content-grid dashboard-grid">
+              <article class="card chart-card">
+                <div class="card-heading">
+                  <div>
+                    <h2>Department Attendance</h2>
+                    <p>Average attendance percentage by department</p>
+                  </div>
+                  <button class="more-button" type="button">•••</button>
+                </div>
+                <div class="bar-chart" aria-label="Department attendance chart">
+                  <div class="chart-row">
+                    <span>CSE</span><i><b style="width: 82%"></b></i
+                    ><strong>82%</strong>
+                  </div>
+                  <div class="chart-row">
+                    <span>ECE</span><i><b style="width: 78%"></b></i
+                    ><strong>78%</strong>
+                  </div>
+                  <div class="chart-row warning">
+                    <span>ME</span><i><b style="width: 71%"></b></i
+                    ><strong>71%</strong>
+                  </div>
+                  <div class="chart-row">
+                    <span>Civil</span><i><b style="width: 85%"></b></i
+                    ><strong>85%</strong>
+                  </div>
+                  <div class="chart-row">
+                    <span>MBA</span><i><b style="width: 88%"></b></i
+                    ><strong>88%</strong>
+                  </div>
+                </div>
+                <div class="chart-axis">
+                  <span>0%</span><span>50%</span><span>75%</span
+                  ><span>100%</span>
+                </div>
+              </article>
+              <article class="card quick-card">
+                <div class="card-heading">
+                  <div>
+                    <h2>Quick Actions</h2>
+                    <p>Common administrator tasks</p>
+                  </div>
+                </div>
+                <div class="quick-actions">
+                  <button type="button" data-action="report">
+                    <span>⇩</span> Generate attendance report
+                  </button>
+                  <button type="button" data-action="notify">
+                    <span>♢</span> Send mass notification
+                  </button>
+                  <button type="button" data-action="student">
+                    <span>＋</span> Add new student
+                  </button>
+                  <button type="button" data-action="course">
+                    <span>▣</span> Add new course
+                  </button>
+                </div>
+              </article>
+            </div>
+
+            <article class="card">
+              <div class="card-heading">
+                <div>
+                  <h2>Recent Leave Requests</h2>
+                  <p>Review the latest applications from students</p>
+                </div>
+                <button class="text-link" type="button" data-jump="leaves">
+                  View all →
+                </button>
+              </div>
+              <div class="request-list" id="dashboardRequests"></div>
+            </article>
+          </section>
+
+          <!-- Student directory and attendance status management. -->
+          <section class="tab-panel" data-panel="students">
+            <div class="card">
+              <div class="toolbar">
+                <div>
+                  <h2>Student Directory</h2>
+                  <p>Manage enrolled students and attendance status</p>
+                </div>
+                <button
+                  class="button button-primary"
+                  type="button"
+                  data-action="student"
+                >
+                  ＋ Add student
+                </button>
+              </div>
+              <div class="filter-row">
+                <label class="search-box"
+                  >⌕<input
+                    id="studentSearch"
+                    type="search"
+                    placeholder="Search by name or roll number" /></label
+                ><select>
+                  <option>All departments</option>
+                  <option>CSE</option>
+                  <option>ECE</option></select
+                ><select>
+                  <option>All statuses</option>
+                  <option>Active</option>
+                  <option>Warned</option>
+                </select>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Roll number</th>
+                      <th>Department</th>
+                      <th>Attendance</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="studentRows"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Faculty directory and teaching assignments. -->
+          <section class="tab-panel" data-panel="faculty">
+            <div class="card">
+              <div class="toolbar">
+                <div>
+                  <h2>Faculty Directory</h2>
+                  <p>Manage faculty members and assigned subjects</p>
+                </div>
+                <button
+                  class="button button-primary"
+                  type="button"
+                  data-action="faculty"
+                >
+                  ＋ Add faculty
+                </button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Faculty member</th>
+                      <th>Faculty ID</th>
+                      <th>Department</th>
+                      <th>Subject</th>
+                      <th>Classes</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="facultyRows"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Active course cards for the current semester. -->
+          <section class="tab-panel" data-panel="courses">
+            <div class="card">
+              <div class="toolbar">
+                <div>
+                  <h2>Course Management</h2>
+                  <p>Active subjects for the current academic semester</p>
+                </div>
+                <button
+                  class="button button-primary"
+                  type="button"
+                  data-action="course"
+                >
+                  ＋ Add course
+                </button>
+              </div>
+              <div class="course-grid" id="courseCards"></div>
+            </div>
+          </section>
+
+          <!-- Leave approval queue. -->
+          <section class="tab-panel" data-panel="leaves">
+            <div class="card">
+              <div class="toolbar">
+                <div>
+                  <h2>Leave Requests</h2>
+                  <p>Review and manage student leave applications</p>
+                </div>
+                <div class="filter-tabs">
+                  <button class="selected" data-filter="all">All</button
+                  ><button data-filter="pending">Pending <b>2</b></button
+                  ><button data-filter="approved">Approved</button
+                  ><button data-filter="rejected">Rejected</button>
+                </div>
+              </div>
+              <div class="request-list full-list" id="leaveRequests"></div>
+            </div>
+          </section>
+
+          <!-- Threshold, notification, calendar, and danger-zone settings. -->
+          <section class="tab-panel" data-panel="settings">
+            <div class="settings-stack">
+              <article class="card settings-card">
+                <div class="card-heading">
+                  <div>
+                    <h2>Attendance Rules</h2>
+                    <p>Configure minimum attendance and alert thresholds.</p>
+                  </div>
+                </div>
+                <div class="setting-row">
+                  <div>
+                    <strong>Minimum attendance threshold</strong
+                    ><small
+                      >Students below this percentage are marked at risk.</small
+                    >
+                  </div>
+                  <output id="thresholdValue">75%</output>
+                </div>
+                <input
+                  class="range-input"
+                  id="threshold"
+                  type="range"
+                  min="50"
+                  max="90"
+                  step="5"
+                  value="75"
+                />
+                <div class="range-labels"><span>50%</span><span>90%</span></div>
+                <div class="setting-row separated">
+                  <div>
+                    <strong>Auto-notify students below threshold</strong
+                    ><small
+                      >Send an alert when attendance drops below
+                      <span id="thresholdCopy">75%</span>.</small
+                    >
+                  </div>
+                  <button
+                    class="switch on"
+                    id="notifySwitch"
+                    type="button"
+                    aria-pressed="true"
+                  >
+                    <i></i>
+                  </button>
+                </div>
+                <div class="setting-row separated">
+                  <div>
+                    <strong>Leave approval workflow</strong
+                    ><small>Choose who reviews leave applications first.</small>
+                  </div>
+                  <select>
+                    <option>Teacher → Admin</option>
+                    <option>Admin only</option>
+                    <option>Auto-approve</option>
+                  </select>
+                </div>
+              </article>
+              <article class="card settings-card">
+                <div class="card-heading">
+                  <div>
+                    <h2>Academic Calendar</h2>
+                    <p>Important dates for the current semester.</p>
+                  </div>
+                </div>
+                <div class="date-grid">
+                  <label
+                    >Semester start<input
+                      type="date"
+                      value="2025-07-01" /></label
+                  ><label
+                    >Semester end<input type="date" value="2025-11-30" /></label
+                  ><label
+                    >Exam period start<input
+                      type="date"
+                      value="2025-11-10" /></label
+                  ><label
+                    >Result declaration<input type="date" value="2025-12-15"
+                  /></label>
+                </div>
+              </article>
+              <article class="card danger-zone">
+                <div class="card-heading">
+                  <div>
+                    <h2>Danger Zone</h2>
+                    <p>Actions here can affect institutional records.</p>
+                  </div>
+                </div>
+                <div class="danger-action">
+                  <div>
+                    <strong>Reset attendance data</strong
+                    ><small
+                      >Clears attendance records for the current
+                      semester.</small
+                    >
+                  </div>
+                  <button type="button" data-action="reset">Reset</button>
+                </div>
+                <div class="danger-action">
+                  <div>
+                    <strong>Archive semester</strong
+                    ><small
+                      >Locks records and archives the current semester
+                      data.</small
+                    >
+                  </div>
+                  <button type="button" data-action="archive">Archive</button>
+                </div>
+              </article>
+              <button
+                class="button button-primary save-button"
+                id="saveSettings"
+                type="button"
+              >
+                ✓ Save settings
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
     </div>
     <div class="toast" id="toast" role="status"></div>
-</body>
+  </body>
 </html>

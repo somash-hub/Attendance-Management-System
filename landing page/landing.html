@@ -1,177 +1,392 @@
-<!DOCTYPE html>
+<!doctype html>
+<!-- Public AttendIQ landing page and portal entry points. -->
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AttendIQ makes student attendance simple for students, teachers, and administrators.">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="AttendIQ makes student attendance simple for students, teachers, and administrators."
+    />
     <title>AttendIQ | Attendance, finally effortless</title>
-    <link rel="stylesheet" href="landing.css">
+    <link rel="stylesheet" href="landing.css" />
     <script src="landing.js" defer></script>
-</head>
-<body>
+  </head>
+  <body>
+    <!-- Sticky navigation with desktop and mobile variants. -->
     <header class="site-header">
-        <nav class="nav container" aria-label="Main navigation">
-            <a class="brand" href="#top" aria-label="AttendIQ home">
-                <span class="brand-mark" aria-hidden="true">A</span>
-                <span>AttendIQ</span>
-            </a>
+      <nav class="nav container" aria-label="Main navigation">
+        <a class="brand" href="#top" aria-label="AttendIQ home">
+          <span class="brand-mark" aria-hidden="true">A</span>
+          <span>AttendIQ</span>
+        </a>
 
-            <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="mobileMenu">
-                <span class="sr-only">Toggle navigation</span>
-                <span class="menu-icon"></span>
-            </button>
+        <button
+          class="menu-toggle"
+          id="menuToggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="mobileMenu"
+        >
+          <span class="sr-only">Toggle navigation</span>
+          <span class="menu-icon"></span>
+        </button>
 
-            <div class="desktop-nav">
-                <a href="#features">Features</a>
-                <a href="#how-it-works">How it works</a>
-                <a href="#portals">Portals</a>
-                <a href="#reviews">Reviews</a>
-            </div>
-
-            <div class="desktop-actions">
-                <a class="text-button" href="../login/login.html">Log in</a>
-                <a class="button button-primary button-small" href="../login/login.html">Get started <span aria-hidden="true">→</span></a>
-            </div>
-        </nav>
-
-        <div class="mobile-menu" id="mobileMenu">
-            <a href="#features">Features</a>
-            <a href="#how-it-works">How it works</a>
-            <a href="#portals">Portals</a>
-            <a href="#reviews">Reviews</a>
-            <a class="button button-primary" href="../login/login.html">Get started <span aria-hidden="true">→</span></a>
+        <div class="desktop-nav">
+          <a href="#features">Features</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="#portals">Portals</a>
+          <a href="#reviews">Reviews</a>
         </div>
+
+        <div class="desktop-actions">
+          <a class="text-button" href="../login/login.html">Log in</a>
+          <a
+            class="button button-primary button-small"
+            href="../login/login.html"
+            >Get started <span aria-hidden="true">→</span></a
+          >
+        </div>
+      </nav>
+
+      <div class="mobile-menu" id="mobileMenu">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#portals">Portals</a>
+        <a href="#reviews">Reviews</a>
+        <a class="button button-primary" href="../login/login.html"
+          >Get started <span aria-hidden="true">→</span></a
+        >
+      </div>
     </header>
 
     <main id="top">
-        <section class="hero section">
-            <div class="hero-glow hero-glow-one" aria-hidden="true"></div>
-            <div class="hero-glow hero-glow-two" aria-hidden="true"></div>
-            <div class="container hero-grid">
-                <div class="hero-copy">
-                    <p class="eyebrow pill"><span class="spark" aria-hidden="true">✦</span> Academic Year 2024-25 · Now live</p>
-                    <h1>Attendance,<br><span>finally</span> effortless.</h1>
-                    <p class="hero-text">AttendIQ gives students real-time visibility, teachers one-click marking, and administrators institution-wide control - all from a single platform.</p>
-                    <div class="hero-actions">
-                        <a class="button button-primary" href="../login/login.html">Student Portal <span aria-hidden="true">→</span></a>
-                        <a class="button button-outline" href="../login/login.html">Teacher Portal</a>
-                        <a class="button button-outline" href="../login/login.html">Admin Portal</a>
-                    </div>
-                </div>
-
-                <div class="dashboard-preview" aria-label="Preview of the AttendIQ student dashboard">
-                    <div class="preview-window">
-                        <div class="preview-topbar">
-                            <span class="window-dot dot-red"></span>
-                            <span class="window-dot dot-yellow"></span>
-                            <span class="window-dot dot-green"></span>
-                            <span class="preview-address">attendiq.univ.edu</span>
-                        </div>
-                        <div class="preview-stats">
-                            <div><strong class="success-text">84%</strong><span>Overall</span></div>
-                            <div><strong class="primary-text">171</strong><span>Present</span></div>
-                            <div><strong class="danger-text">1 sub</strong><span>At risk</span></div>
-                        </div>
-                        <div class="subject-list">
-                            <div class="subject-row"><span>CS401</span><i><b style="width: 90%"></b></i><strong>90%</strong></div>
-                            <div class="subject-row"><span>CS402</span><i><b class="bar-green" style="width: 85%"></b></i><strong>85%</strong></div>
-                            <div class="subject-row"><span>CS403</span><i><b class="bar-yellow" style="width: 73%"></b></i><strong class="danger-text">73%</strong></div>
-                            <div class="subject-row"><span>CS404</span><i><b class="bar-purple" style="width: 93%"></b></i><strong>93%</strong></div>
-                        </div>
-                        <div class="preview-alert"><span aria-hidden="true">!</span> CS403 attendance at 73% - below threshold</div>
-                    </div>
-                    <div class="floating-card">
-                        <span class="check-icon" aria-hidden="true">✓</span>
-                        <span><strong>Leave approved</strong><small>Jul 10-11 · Medical</small></span>
-                    </div>
-                </div>
+      <!-- Product introduction and dashboard preview. -->
+      <section class="hero section">
+        <div class="hero-glow hero-glow-one" aria-hidden="true"></div>
+        <div class="hero-glow hero-glow-two" aria-hidden="true"></div>
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow pill">
+              <span class="spark" aria-hidden="true">✦</span> Academic Year
+              2024-25 · Now live
+            </p>
+            <h1>Attendance,<br /><span>finally</span> effortless.</h1>
+            <p class="hero-text">
+              AttendIQ gives students real-time visibility, teachers one-click
+              marking, and administrators institution-wide control - all from a
+              single platform.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="../login/login.html"
+                >Student Portal <span aria-hidden="true">→</span></a
+              >
+              <a class="button button-outline" href="../login/login.html"
+                >Teacher Portal</a
+              >
+              <a class="button button-outline" href="../login/login.html"
+                >Admin Portal</a
+              >
             </div>
-        </section>
+          </div>
 
-        <section class="stats-band" aria-label="AttendIQ statistics">
-            <div class="container stats-grid">
-                <div><strong>98%</strong><span>Attendance accuracy</span></div>
-                <div><strong>240+</strong><span>Students tracked</span></div>
-                <div><strong>5</strong><span>Departments</span></div>
-                <div><strong>&lt; 1min</strong><span>To mark a class</span></div>
+          <div
+            class="dashboard-preview"
+            aria-label="Preview of the AttendIQ student dashboard"
+          >
+            <div class="preview-window">
+              <div class="preview-topbar">
+                <span class="window-dot dot-red"></span>
+                <span class="window-dot dot-yellow"></span>
+                <span class="window-dot dot-green"></span>
+                <span class="preview-address">attendiq.univ.edu</span>
+              </div>
+              <div class="preview-stats">
+                <div>
+                  <strong class="success-text">84%</strong><span>Overall</span>
+                </div>
+                <div>
+                  <strong class="primary-text">171</strong><span>Present</span>
+                </div>
+                <div>
+                  <strong class="danger-text">1 sub</strong><span>At risk</span>
+                </div>
+              </div>
+              <div class="subject-list">
+                <div class="subject-row">
+                  <span>CS401</span><i><b style="width: 90%"></b></i
+                  ><strong>90%</strong>
+                </div>
+                <div class="subject-row">
+                  <span>CS402</span
+                  ><i><b class="bar-green" style="width: 85%"></b></i
+                  ><strong>85%</strong>
+                </div>
+                <div class="subject-row">
+                  <span>CS403</span
+                  ><i><b class="bar-yellow" style="width: 73%"></b></i
+                  ><strong class="danger-text">73%</strong>
+                </div>
+                <div class="subject-row">
+                  <span>CS404</span
+                  ><i><b class="bar-purple" style="width: 93%"></b></i
+                  ><strong>93%</strong>
+                </div>
+              </div>
+              <div class="preview-alert">
+                <span aria-hidden="true">!</span> CS403 attendance at 73% -
+                below threshold
+              </div>
             </div>
-        </section>
+            <div class="floating-card">
+              <span class="check-icon" aria-hidden="true">✓</span>
+              <span
+                ><strong>Leave approved</strong
+                ><small>Jul 10-11 · Medical</small></span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
 
-        <section class="section" id="features">
-            <div class="container">
-                <div class="section-heading">
-                    <p class="eyebrow">Features</p>
-                    <h2>Everything the institution needs</h2>
-                    <p>From individual student records to department-wide analytics, AttendIQ covers the full attendance lifecycle.</p>
-                </div>
-                <div class="feature-grid">
-                    <article class="feature-card"><div class="feature-icon icon-blue">✓</div><h3>One-click Attendance</h3><p>Teachers mark present, absent, or late for every student in seconds. No paper registers, no manual entry errors.</p></article>
-                    <article class="feature-card"><div class="feature-icon icon-green">↗</div><h3>Live Analytics</h3><p>Students see their attendance percentage per subject in real time. Warnings fire automatically at 75%.</p></article>
-                    <article class="feature-card"><div class="feature-icon icon-yellow">▤</div><h3>Leave Management</h3><p>Students apply for leave with a reason and document. Teachers and admins approve or reject with one click.</p></article>
-                    <article class="feature-card"><div class="feature-icon icon-purple">◇</div><h3>Role-based Access</h3><p>Separate dashboards for students, teachers, and administrators - each seeing exactly what they need.</p></article>
-                    <article class="feature-card"><div class="feature-icon icon-pink">●</div><h3>Smart Notifications</h3><p>Automated alerts for low attendance, approved leaves, and rescheduled classes delivered instantly.</p></article>
-                    <article class="feature-card"><div class="feature-icon icon-sky">▣</div><h3>Secure &amp; Compliant</h3><p>Role-gated data access ensures students only see their own records. Admins control all thresholds.</p></article>
-                </div>
-            </div>
-        </section>
+      <!-- High-level platform statistics. -->
+      <section class="stats-band" aria-label="AttendIQ statistics">
+        <div class="container stats-grid">
+          <div><strong>98%</strong><span>Attendance accuracy</span></div>
+          <div><strong>240+</strong><span>Students tracked</span></div>
+          <div><strong>5</strong><span>Departments</span></div>
+          <div><strong>&lt; 1min</strong><span>To mark a class</span></div>
+        </div>
+      </section>
 
-        <section class="section how-section" id="how-it-works">
-            <div class="container">
-                <div class="section-heading">
-                    <p class="eyebrow">How it works</p>
-                    <h2>Three roles, one platform</h2>
-                </div>
-                <div class="steps-grid">
-                    <article class="step-card"><span class="step-number step-blue">01</span><h3>Admin sets up</h3><p>Configure subjects, faculty assignments, and attendance thresholds from the admin panel.</p></article>
-                    <article class="step-card"><span class="step-number step-green">02</span><h3>Teacher marks</h3><p>Each session the teacher selects the date and subject, then taps each student's attendance status.</p></article>
-                    <article class="step-card"><span class="step-number step-yellow">03</span><h3>Student tracks</h3><p>Students view their real-time percentage, request leaves, and get alerted before falling below 75%.</p></article>
-                </div>
-            </div>
-        </section>
+      <!-- Core platform capabilities. -->
+      <section class="section" id="features">
+        <div class="container">
+          <div class="section-heading">
+            <p class="eyebrow">Features</p>
+            <h2>Everything the institution needs</h2>
+            <p>
+              From individual student records to department-wide analytics,
+              AttendIQ covers the full attendance lifecycle.
+            </p>
+          </div>
+          <div class="feature-grid">
+            <article class="feature-card">
+              <div class="feature-icon icon-blue">✓</div>
+              <h3>One-click Attendance</h3>
+              <p>
+                Teachers mark present, absent, or late for every student in
+                seconds. No paper registers, no manual entry errors.
+              </p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon icon-green">↗</div>
+              <h3>Live Analytics</h3>
+              <p>
+                Students see their attendance percentage per subject in real
+                time. Warnings fire automatically at 75%.
+              </p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon icon-yellow">▤</div>
+              <h3>Leave Management</h3>
+              <p>
+                Students apply for leave with a reason and document. Teachers
+                and admins approve or reject with one click.
+              </p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon icon-purple">◇</div>
+              <h3>Role-based Access</h3>
+              <p>
+                Separate dashboards for students, teachers, and administrators -
+                each seeing exactly what they need.
+              </p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon icon-pink">●</div>
+              <h3>Smart Notifications</h3>
+              <p>
+                Automated alerts for low attendance, approved leaves, and
+                rescheduled classes delivered instantly.
+              </p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon icon-sky">▣</div>
+              <h3>Secure &amp; Compliant</h3>
+              <p>
+                Role-gated data access ensures students only see their own
+                records. Admins control all thresholds.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
 
-        <section class="section" id="portals">
-            <div class="container">
-                <div class="section-heading">
-                    <p class="eyebrow">Portals</p>
-                    <h2>Tailored for every role</h2>
-                </div>
-                <div class="portal-grid">
-                    <article class="portal-card"><div class="portal-heading"><span class="portal-icon portal-blue">S</span><h3>Student Portal</h3></div><ul><li>Real-time attendance percentage per subject</li><li>Automatic warning when below 75%</li><li>Leave application with status tracking</li><li>Weekly class schedule at a glance</li></ul><a href="../login/login.html">Enter Student Portal <span aria-hidden="true">→</span></a></article>
-                    <article class="portal-card"><div class="portal-heading"><span class="portal-icon portal-green">T</span><h3>Teacher Portal</h3></div><ul><li>One-click attendance marking per session</li><li>Class reports and at-risk student lists</li><li>Leave approval with full context</li><li>Exportable attendance data</li></ul><a href="../login/login.html">Enter Teacher Portal <span aria-hidden="true">→</span></a></article>
-                    <article class="portal-card"><div class="portal-heading"><span class="portal-icon portal-yellow">A</span><h3>Admin Portal</h3></div><ul><li>Institution-wide attendance overview</li><li>Manage students, faculty, and courses</li><li>Configure thresholds and policies</li><li>Audit logs and system settings</li></ul><a href="../login/login.html">Enter Admin Portal <span aria-hidden="true">→</span></a></article>
-                </div>
-            </div>
-        </section>
+      <!-- Three-step workflow explanation. -->
+      <section class="section how-section" id="how-it-works">
+        <div class="container">
+          <div class="section-heading">
+            <p class="eyebrow">How it works</p>
+            <h2>Three roles, one platform</h2>
+          </div>
+          <div class="steps-grid">
+            <article class="step-card">
+              <span class="step-number step-blue">01</span>
+              <h3>Admin sets up</h3>
+              <p>
+                Configure subjects, faculty assignments, and attendance
+                thresholds from the admin panel.
+              </p>
+            </article>
+            <article class="step-card">
+              <span class="step-number step-green">02</span>
+              <h3>Teacher marks</h3>
+              <p>
+                Each session the teacher selects the date and subject, then taps
+                each student's attendance status.
+              </p>
+            </article>
+            <article class="step-card">
+              <span class="step-number step-yellow">03</span>
+              <h3>Student tracks</h3>
+              <p>
+                Students view their real-time percentage, request leaves, and
+                get alerted before falling below 75%.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
 
-        <section class="section reviews-section" id="reviews">
-            <div class="container">
-                <div class="section-heading dark-heading">
-                    <p class="eyebrow">Reviews</p>
-                    <h2>What people are saying</h2>
-                </div>
-                <div class="review-grid">
-                    <blockquote><div class="stars">★★★★★</div><p>"Marking attendance used to eat 10 minutes of every class. Now it takes 30 seconds and the data is instant."</p><footer><b>Dr. Priya Mehta</b><span>Faculty, CSE</span></footer></blockquote>
-                    <blockquote><div class="stars">★★★★★</div><p>"I can see exactly which subjects need attention before it affects my exam eligibility. That visibility is invaluable."</p><footer><b>Aryan Kumar</b><span>Student, Sem 7</span></footer></blockquote>
-                    <blockquote><div class="stars">★★★★★</div><p>"The admin panel gives me a complete picture of department-wide attendance without chasing individual teachers for reports."</p><footer><b>Prof. R. Gupta</b><span>HOD, CSE Dept</span></footer></blockquote>
-                </div>
-            </div>
-        </section>
+      <!-- Role-specific portal summaries. -->
+      <section class="section" id="portals">
+        <div class="container">
+          <div class="section-heading">
+            <p class="eyebrow">Portals</p>
+            <h2>Tailored for every role</h2>
+          </div>
+          <div class="portal-grid">
+            <article class="portal-card">
+              <div class="portal-heading">
+                <span class="portal-icon portal-blue">S</span>
+                <h3>Student Portal</h3>
+              </div>
+              <ul>
+                <li>Real-time attendance percentage per subject</li>
+                <li>Automatic warning when below 75%</li>
+                <li>Leave application with status tracking</li>
+                <li>Weekly class schedule at a glance</li>
+              </ul>
+              <a href="../login/login.html"
+                >Enter Student Portal <span aria-hidden="true">→</span></a
+              >
+            </article>
+            <article class="portal-card">
+              <div class="portal-heading">
+                <span class="portal-icon portal-green">T</span>
+                <h3>Teacher Portal</h3>
+              </div>
+              <ul>
+                <li>One-click attendance marking per session</li>
+                <li>Class reports and at-risk student lists</li>
+                <li>Leave approval with full context</li>
+                <li>Exportable attendance data</li>
+              </ul>
+              <a href="../login/login.html"
+                >Enter Teacher Portal <span aria-hidden="true">→</span></a
+              >
+            </article>
+            <article class="portal-card">
+              <div class="portal-heading">
+                <span class="portal-icon portal-yellow">A</span>
+                <h3>Admin Portal</h3>
+              </div>
+              <ul>
+                <li>Institution-wide attendance overview</li>
+                <li>Manage students, faculty, and courses</li>
+                <li>Configure thresholds and policies</li>
+                <li>Audit logs and system settings</li>
+              </ul>
+              <a href="../login/login.html"
+                >Enter Admin Portal <span aria-hidden="true">→</span></a
+              >
+            </article>
+          </div>
+        </div>
+      </section>
 
-        <section class="section cta-section">
-            <div class="container cta-content">
-                <h2>Ready to modernise your attendance?</h2>
-                <p>Get started in minutes. No spreadsheets, no paper, no confusion - just clean, reliable attendance data for everyone.</p>
-                <div class="hero-actions centered"><a class="button button-primary" href="../login/login.html">Student Portal <span aria-hidden="true">→</span></a><a class="button button-outline" href="../login/login.html">Teacher Portal</a><a class="button button-outline" href="../login/login.html">Admin Portal</a></div>
-            </div>
-        </section>
+      <!-- Social proof and testimonials. -->
+      <section class="section reviews-section" id="reviews">
+        <div class="container">
+          <div class="section-heading dark-heading">
+            <p class="eyebrow">Reviews</p>
+            <h2>What people are saying</h2>
+          </div>
+          <div class="review-grid">
+            <blockquote>
+              <div class="stars">★★★★★</div>
+              <p>
+                "Marking attendance used to eat 10 minutes of every class. Now
+                it takes 30 seconds and the data is instant."
+              </p>
+              <footer><b>Dr. Priya Mehta</b><span>Faculty, CSE</span></footer>
+            </blockquote>
+            <blockquote>
+              <div class="stars">★★★★★</div>
+              <p>
+                "I can see exactly which subjects need attention before it
+                affects my exam eligibility. That visibility is invaluable."
+              </p>
+              <footer><b>Aryan Kumar</b><span>Student, Sem 7</span></footer>
+            </blockquote>
+            <blockquote>
+              <div class="stars">★★★★★</div>
+              <p>
+                "The admin panel gives me a complete picture of department-wide
+                attendance without chasing individual teachers for reports."
+              </p>
+              <footer><b>Prof. R. Gupta</b><span>HOD, CSE Dept</span></footer>
+            </blockquote>
+          </div>
+        </div>
+      </section>
+
+      <!-- Final portal call to action. -->
+      <section class="section cta-section">
+        <div class="container cta-content">
+          <h2>Ready to modernise your attendance?</h2>
+          <p>
+            Get started in minutes. No spreadsheets, no paper, no confusion -
+            just clean, reliable attendance data for everyone.
+          </p>
+          <div class="hero-actions centered">
+            <a class="button button-primary" href="../login/login.html"
+              >Student Portal <span aria-hidden="true">→</span></a
+            ><a class="button button-outline" href="../login/login.html"
+              >Teacher Portal</a
+            ><a class="button button-outline" href="../login/login.html"
+              >Admin Portal</a
+            >
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="site-footer">
-        <div class="container footer-content">
-            <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">A</span><span>AttendIQ</span></a>
-            <p>© 2025 University of Technology · Academic Year 2024-25 · All rights reserved.</p>
-            <div><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></div>
+      <div class="container footer-content">
+        <a class="brand" href="#top"
+          ><span class="brand-mark" aria-hidden="true">A</span
+          ><span>AttendIQ</span></a
+        >
+        <p>
+          © 2025 University of Technology · Academic Year 2024-25 · All rights
+          reserved.
+        </p>
+        <div>
+          <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a>
         </div>
+      </div>
     </footer>
-</body>
+  </body>
 </html>
