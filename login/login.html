@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendIQ - Login</title>
+    <!-- HTML loads the CSS file for appearance and JavaScript for behavior. -->
+    <link rel="stylesheet" href="login.css">
+    <!-- defer waits until HTML is parsed before running login.js. -->
+    <script src="login.js" defer></script>
+</head>
+<body>
+    <!-- main container -->
+    <div class="container">
+
+        <!-- Login Form wrapper -->
+        <div class="login-wrapper">
+
+            <!-- Header Section -->
+             <div class="login-header">
+                <!-- class values are styling hooks used by login.css. -->
+                <div class="brand">AttendIQ</div>
+                <div class="role-tabs" role="tablist" aria-label="Account role">
+                    <button type="button" class="role-tab active" data-role="student">Student</button>
+                    <button type="button" class="role-tab" data-role="teacher">Teacher</button>
+                    <button type="button" class="role-tab" data-role="admin">Admin</button>
+                </div>
+                <!-- id values are unique JavaScript hooks updated when the role changes. -->
+                <h1 id="pageTitle">Student Login</h1>
+                <p class="subtitle" id="pageSubtitle">Sign in with your @student.tu.edu.np address</p>
+             </div>
+
+             <!-- Error/Success Message -->
+              <!-- JavaScript writes validation feedback into this element. -->
+              <div id="message" class="message"></div>
+
+              <!-- Login Form -->
+               <!-- login.js listens for submit events on this form id. -->
+               <form id="loginForm" class="login-form">
+
+                <!-- Email/Username Field -->
+                 <div class="form-group">
+                    <label for="email">Institutional Email</label>
+                    <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="you@student.tu.edu.np"
+                    required
+                    >
+                    <span class="error-text" id="emailError"></span>
+                 </div>
+
+                 <!-- password field -->
+                 <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-field">
+                        <input 
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        required
+                        >
+
+                        <!-- login.js finds this button and changes the input type. -->
+                        <button 
+                        type="button" 
+                        class="toggle-password"
+                        id="togglePassword"
+                        aria-label="Toggle password Visibility"
+                        >
+                        Show
+                        </button>
+                    </div>
+                 </div>
+
+                 <!-- Remember me checkbox -->
+                 <div class="login-options">
+                 <div class="form-group checkbox-group">
+                    <input
+                    type="checkbox"
+                    id="rememberMe"
+                    name="rememberMe"
+                    >
+                    <label for="rememberMe">Remember me</label>
+                 </div>
+
+                 <!-- Forgot Password -->
+                  <div class="forgot-password">
+                        <a href="#forgot">Forgot password?</a>
+                  </div>
+                  </div>
+
+                  <!-- Submmit Button -->
+                   <button type="submit" class="login-button">Sign in</button>
+               </form>
+
+               <!-- Divider -->
+                <!-- Sign Up Link -->
+            <div class="signup-link">
+                <p>New here? <a href="../signup/signup.html">Create an account</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

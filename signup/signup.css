@@ -1,0 +1,81 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap");
+
+/* Shared design tokens used by the signup HTML elements below. */
+:root {
+    --ink: #202433;
+    --muted: #737887;
+    --indigo: #3d38f5;
+    --indigo-dark: #2f2ac9;
+    --surface: #fffdfa;
+    --page: #f8f6f0;
+    --line: #e6e4df;
+}
+
+/* Reset defaults so the layout is predictable in every browser. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f4f5f7;
+    color: var(--ink);
+    font-family: "Inter", sans-serif;
+}
+
+.container { width: 100%; padding: 20px; }
+
+/* The HTML .login-wrapper is the signup card. */
+.login-wrapper {
+    max-width: 484px;
+    margin: 0 auto;
+    padding: 32px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 16px 40px rgba(26, 27, 46, 0.08);
+}
+
+.login-header { text-align: center; margin-bottom: 24px; }
+.brand { color: var(--indigo); font-size: 22px; font-weight: 800; margin-bottom: 22px; }
+.role-tabs { display: flex; gap: 4px; padding: 4px; margin-bottom: 22px; border-radius: 12px; background: #f0efff; }
+/* .role-tab styles the role controls; .active marks the current role. */
+.role-tab { flex: 1; padding: 9px 5px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; }
+.role-tab.active { background: var(--surface); color: var(--indigo); box-shadow: 0 2px 8px rgba(32, 36, 51, .08); }
+.eyebrow { color: var(--indigo); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 12px; }
+.login-header h1 { font: 500 28.125px/33.75px "DM Serif Display", Georgia, serif; letter-spacing: 0; }
+.subtitle, .signup-link p { color: #6b7280; font-size: 11.25px; line-height: 15px; }
+.subtitle { margin-top: 10px; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; margin-bottom: 5.625px; font-size: 11.25px; line-height: 15px; font-weight: 500; color: #6b7280; }
+.form-group input { width: 100%; height: 40px; padding: 9.375px 11.25px; border: 1px solid rgba(26, 27, 46, .1); border-radius: 7.5px; background: #f4f5f7; color: #1a1b2e; font: 400 13.125px/18.75px "Inter", sans-serif; }
+.form-group input:focus { outline: none; border-color: var(--indigo); box-shadow: 0 0 0 4px rgba(61, 56, 245, .12); }
+.login-button { width: 100%; height: 41px; margin: 4px 0 24px; padding: 11.25px 0; border: 0; border-radius: 11.5px; background: #3b4fd8; color: white; cursor: pointer; font: 500 13.125px/18.75px "Inter", sans-serif; }
+.login-button:hover { background: #3346c2; }
+.signup-link { text-align: center; }
+.signup-link a { color: var(--indigo); font-weight: 700; text-decoration: none; }
+.message { display: none; margin-bottom: 18px; padding: 10px; border-radius: 10px; text-align: center; }
+.message.error { display: block; background: #fff0ee; color: #b42318; }
+.message.success { display: block; background: #edf8f1; color: #237a55; }
+/* signup.js toggles .active on these progress and content elements. */
+.steps { display: flex; justify-content: space-between; margin-bottom: 24px; }
+.step { color: var(--muted); font-size: 13px; font-weight: 700; text-align: center; }
+.step.active { color: var(--indigo); }
+.step small { display: block; margin-top: 4px; font-size: 10px; font-weight: 500; }
+.signup-step { display: none; }
+.signup-step.active { display: block; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+.form-group select { width: 100%; height: 40px; padding: 9.375px 11.25px; border: 1px solid rgba(26, 27, 46, .1); border-radius: 7.5px; background: #f4f5f7; color: #1a1b2e; font: 400 13.125px/18.75px "Inter", sans-serif; }
+.step-actions { display: flex; align-items: center; gap: 14px; }
+.step-actions .login-button { flex: 1; margin: 4px 0 24px; }
+.secondary-button { margin: 4px 0 24px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; font: 500 11.25px/15px "Inter", sans-serif; white-space: nowrap; }
+.secondary-button:hover { color: var(--indigo); }
+.back-home { display: block; margin-top: 20px; color: var(--muted); font-size: 13px; text-align: center; text-decoration: none; }
+
+@media (max-width: 600px) {
+    .login-wrapper { padding: 30px 24px; }
+    .login-header h1 { font-size: 30px; }
+    .form-row { grid-template-columns: 1fr; gap: 0; }
+}

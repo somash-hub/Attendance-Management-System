@@ -1,0 +1,363 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap");
+
+/* CSS variables keep the visual theme consistent across all components. */
+:root {
+    --ink: #202433;
+    --muted: #737887;
+    --indigo: #3d38f5;
+    --indigo-dark: #2f2ac9;
+    --lavender: #b9b8ff;
+    --surface: #fffdfa;
+    --page: #f8f6f0;
+    --line: #e6e4df;
+    --success: #237a55;
+    --error: #b42318;
+}
+
+/* Reset browser defaults before applying the page design. */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* body controls the full-page canvas; .container centers the card inside it. */
+body {
+    font-family: "Inter", sans-serif;
+    background: #f4f5f7;
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Main Container - Centers everything */
+.container {
+    width: 100%;
+    padding: 20px;
+}
+
+/* .login-wrapper is the card containing the login HTML. */
+.login-wrapper {
+    background: #ffffff;
+    border: 0;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(26, 27, 46, 0.08);
+    padding: 32px;
+    max-width: 484px;
+    margin: 0 auto;
+}
+
+/* Header Section - Welcome text */
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.brand {
+    color: var(--indigo);
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 22px;
+}
+
+.role-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 28px;
+    border-radius: 12px;
+    background: #f0efff;
+}
+
+/* .role-tab styles every role button; .active styles the selected one. */
+.role-tab {
+    flex: 1;
+    border: 0;
+    border-radius: 9px;
+    padding: 9px 5px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.role-tab.active {
+    background: var(--surface);
+    color: var(--indigo);
+    box-shadow: 0 2px 8px rgba(32, 36, 51, 0.08);
+}
+
+.login-header h1 {
+    color: var(--ink);
+    font-family: "DM Serif Display", Georgia, serif;
+    font-size: 28.125px;
+    line-height: 33.75px;
+    font-weight: 500;
+    letter-spacing: 0;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: var(--muted);
+    font-size: 11.25px;
+    line-height: 15px;
+}
+
+/* JavaScript adds .error or .success to the HTML message element. */
+.message {
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    display: none;
+    text-align: center;
+}
+
+.message.error {
+    background: #fff0ee;
+    color: var(--error);
+    display: block;
+}
+
+.message.success {
+    background: #edf8f1;
+    color: var(--success);
+    display: block;
+}
+
+/* The form and its .form-group children control vertical field spacing. */
+.login-form {
+    width: 100%;
+}
+
+/* Form Group - Each input section */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 11.25px;
+    line-height: 15px;
+    margin-bottom: 5.625px;
+}
+
+/* These selectors target HTML inputs by their type attribute. */
+.form-group input[type="email"],
+.form-group input[type="password"] {
+    width: 100%;
+    height: 40px;
+    padding: 9.375px 11.25px;
+    border: 1px solid rgba(26, 27, 46, 0.1);
+    border-radius: 7.5px;
+    background: #f4f5f7;
+    color: #1a1b2e;
+    font-size: 13.125px;
+    line-height: 18.75px;
+    transition: all 0.3s ease;
+}
+
+.form-group input[type="email"],
+.password-field input {
+    width: 100%;
+    height: 40px;
+    padding: 9.375px 11.25px;
+    border: 1px solid rgba(26, 27, 46, 0.1);
+    border-radius: 7.5px;
+    background: #f4f5f7;
+    color: #1a1b2e;
+    font-family: "Inter", sans-serif;
+    font-size: 13.125px;
+    line-height: 18.75px;
+    box-sizing: border-box;
+}
+
+.password-field input {
+    padding-right: 42px;
+}
+
+.form-group input[type="email"]:focus,
+.form-group input[type="password"]:focus {
+    outline: none;
+    border-color: var(--indigo);
+    box-shadow: 0 0 0 4px rgba(61, 56, 245, 0.12);
+}
+
+.password-field {
+    position: relative;
+    width: 100%;
+}
+
+.password-field input {
+    width: 100%;
+}
+
+/* The button is positioned inside .password-field beside the input. */
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 11.25px;
+    padding: 0;
+}
+
+.toggle-password:hover {
+    opacity: 0.7;
+}
+
+/* Error Text - Red message under input */
+.error-text {
+    color: #c62828;
+    font-size: 12px;
+    display: block;
+    margin-top: 5px;
+}
+
+/* Checkbox Group - Remember me section */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.checkbox-group label {
+    margin-bottom: 0;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+/* Forgot Password Link */
+.forgot-password {
+    text-align: right;
+    margin-bottom: 20px;
+}
+
+.login-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.login-options .form-group,
+.login-options .forgot-password {
+    margin-bottom: 0;
+}
+
+.forgot-password a {
+    color: var(--indigo);
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.forgot-password a:hover {
+    text-decoration: underline;
+}
+
+/* .login-button is the primary action used by the HTML form. */
+.login-button {
+    width: 100%;
+    height: 41px;
+    padding: 11.25px 0;
+    background: #3b4fd8;
+    color: white;
+    border: none;
+    border-radius: 11.5px;
+    font-size: 13.125px;
+    line-height: 18.75px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.login-button:hover {
+    background: var(--indigo-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.login-button:active {
+    transform: translateY(0);
+}
+
+/* Divider - "or" line */
+.divider {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+    color: var(--muted);
+}
+
+.divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--line);
+}
+
+.divider span {
+    background: var(--surface);
+    padding: 0 10px;
+    position: relative;
+}
+
+/* Sign Up Link - Create account link */
+.signup-link {
+    text-align: center;
+}
+
+.signup-link p {
+    color: var(--muted);
+    font-size: 11.25px;
+    line-height: 15px;
+}
+
+.signup-link a {
+    color: var(--indigo);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.signup-link a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Design - For mobile phones */
+@media (max-width: 600px) {
+    .login-wrapper {
+        padding: 25px;
+    }
+
+    .login-header h1 {
+        font-size: 24px;
+    }
+
+    .form-group input[type="email"],
+    .form-group input[type="password"] {
+        padding: 9.375px 11.25px;
+        font-size: 13.125px;
+    }
+}

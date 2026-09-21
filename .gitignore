@@ -1,0 +1,8 @@
+# Operating-system files
+Thumbs.db
+Desktop.ini
+
+# Editor and local workspace files
+.idea/
+*.swp
+*.swo
