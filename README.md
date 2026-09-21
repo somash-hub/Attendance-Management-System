@@ -64,6 +64,14 @@ will add the authenticated application shell and role-specific screens:
 │   ├── admin.html
 │   ├── admin.css
 │   └── admin.js
+├── student panel/
+│   ├── student.html
+│   ├── student.css
+│   └── student.js
+├── teacher panel/
+│   ├── teacher.html
+│   ├── teacher.css
+│   └── teacher.js
 ├── login/
 │   ├── login.html
 │   ├── login.css
@@ -84,14 +92,23 @@ installation.
 1. Open `landing page/landing.html` in a web browser to view the public
    landing page.
 2. Open `admin panel/admin.html` to view the administrator portal prototype.
-3. Use a portal button to open `login/login.html`.
-4. Select the account role and test the login validation.
-5. Use **Create an account** to try the multi-step signup flow.
+3. Open `student panel/student.html` to view the student portal prototype.
+4. Open `teacher panel/teacher.html` to view the teacher portal prototype.
+5. Use a portal button to open `login/login.html`.
+6. Select the account role and test the login validation.
+7. Use **Create an account** to try the multi-step signup flow.
 
 The administrator prototype includes dashboard metrics, department attendance
 visualization, student and faculty directories, course cards, leave-request
 approval, attendance settings, an academic calendar, and responsive mobile
 navigation. Its data is currently demo data stored in JavaScript.
+
+The student prototype includes attendance overview cards, subject percentages,
+attendance records with search and status filtering, a weekly class schedule,
+notifications, and a leave-request form. The teacher prototype includes class
+metrics, subject averages, at-risk students, interactive attendance marking,
+attendance reports, and leave-request approval. These portals currently use
+demo data and browser-only state.
 
 The forms currently perform client-side validation only. A backend will be
 needed for authentication, account persistence, attendance data, reports, and
