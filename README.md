@@ -60,6 +60,10 @@ will add the authenticated application shell and role-specific screens:
 │   ├── landing.html
 │   ├── landing.css
 │   └── landing.js
+├── admin panel/
+│   ├── admin.html
+│   ├── admin.css
+│   └── admin.js
 ├── login/
 │   ├── login.html
 │   ├── login.css
@@ -79,9 +83,15 @@ installation.
 
 1. Open `landing page/landing.html` in a web browser to view the public
    landing page.
-2. Use a portal button to open `login/login.html`.
-3. Select the account role and test the login validation.
-4. Use **Create an account** to try the multi-step signup flow.
+2. Open `admin panel/admin.html` to view the administrator portal prototype.
+3. Use a portal button to open `login/login.html`.
+4. Select the account role and test the login validation.
+5. Use **Create an account** to try the multi-step signup flow.
+
+The administrator prototype includes dashboard metrics, department attendance
+visualization, student and faculty directories, course cards, leave-request
+approval, attendance settings, an academic calendar, and responsive mobile
+navigation. Its data is currently demo data stored in JavaScript.
 
 The forms currently perform client-side validation only. A backend will be
 needed for authentication, account persistence, attendance data, reports, and
