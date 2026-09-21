@@ -56,6 +56,10 @@ will add the authenticated application shell and role-specific screens:
 
 ```text
 .
+├── landing page/
+│   ├── landing.html
+│   ├── landing.css
+│   └── landing.js
 ├── login/
 │   ├── login.html
 │   ├── login.css
@@ -73,10 +77,11 @@ will add the authenticated application shell and role-specific screens:
 This is a static frontend and does not require a build step or package
 installation.
 
-1. Open `login/login.html` in a web browser, or serve the project directory
-   with a local static web server.
-2. Select the account role and test the login validation.
-3. Use **Create an account** to try the multi-step signup flow.
+1. Open `landing page/landing.html` in a web browser to view the public
+   landing page.
+2. Use a portal button to open `login/login.html`.
+3. Select the account role and test the login validation.
+4. Use **Create an account** to try the multi-step signup flow.
 
 The forms currently perform client-side validation only. A backend will be
 needed for authentication, account persistence, attendance data, reports, and
