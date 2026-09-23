@@ -62,35 +62,6 @@ body {
   margin-bottom: 22px;
 }
 
-.role-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  margin-bottom: 28px;
-  border-radius: 12px;
-  background: #f0efff;
-}
-
-/* .role-tab styles every role button; .active styles the selected one. */
-.role-tab {
-  flex: 1;
-  border: 0;
-  border-radius: 9px;
-  padding: 9px 5px;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.role-tab.active {
-  background: var(--surface);
-  color: var(--indigo);
-  box-shadow: 0 2px 8px rgba(32, 36, 51, 0.08);
-}
-
 .login-header h1 {
   color: var(--ink);
   font-family: "DM Serif Display", Georgia, serif;
@@ -322,27 +293,6 @@ body {
   background: var(--surface);
   padding: 0 10px;
   position: relative;
-}
-
-/* Sign Up Link - Create account link */
-.signup-link {
-  text-align: center;
-}
-
-.signup-link p {
-  color: var(--muted);
-  font-size: 11.25px;
-  line-height: 15px;
-}
-
-.signup-link a {
-  color: var(--indigo);
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.signup-link a:hover {
-  text-decoration: underline;
 }
 
 /* Responsive Design - For mobile phones */
