@@ -33,7 +33,11 @@ plain HTML, CSS, and JavaScript.
 - Role-based redirect after login to the student, teacher, or administrator
   portal
 - Session persistence so a signed-in user stays signed in after a refresh
-- Student email-domain validation using `@student.tu.edu.np`
+- Student email-domain validation using the college domain `@kct.edu.np`
+- Administrator-controlled attendance threshold (defaults to 80%, the TU
+  requirement, and can be adjusted in Settings)
+- Demo data aligned with TU BSc CSIT: Semester 7 subjects (CSC419–CSC425),
+  Bikram Sambat dates, and Nepali roll numbers
 - Password visibility toggle
 - Client-side validation for email and password requirements
 - Responsive styling for the login screen and all portals
@@ -97,22 +101,24 @@ installation.
 
 ### Demo Accounts
 
-| Role          | Email                       | Password       |
-| ------------- | --------------------------- | -------------- |
-| Administrator | `admin@attendiq.edu`        | `Admin@2025`   |
-| Teacher       | `priya.mehta@univ.edu`      | `Teacher@2025` |
-| Student       | `aryan.k@student.tu.edu.np` | `Student@2025` |
+| Role          | Email                    | Password       |
+| ------------- | ------------------------ | -------------- |
+| Administrator | `admin@kct.edu.np`       | `Admin@2025`   |
+| Teacher       | `priya.mehta@kct.edu.np` | `Teacher@2025` |
+| Student       | `aryan.k@kct.edu.np`     | `Student@2025` |
 
-Accounts and sessions are stored in the browser via `localStorage`. The demo
-accounts are restored automatically whenever the account list is empty, so an
-administrator can always sign in. Passwords are kept in plain text because
-this is a frontend prototype; backend authentication with hashing is planned.
+Accounts and attendance settings are stored in the browser via `localStorage`.
+The demo accounts are restored automatically whenever the account list is
+empty, so an administrator can always sign in. The attendance threshold is
+shared through the same store, so warnings and at-risk lists stay in sync
+across every portal. Passwords are kept in plain text because this is a
+frontend prototype; backend authentication with hashing is planned.
 
-The administrator prototype includes dashboard metrics, department attendance
+The administrator prototype includes dashboard metrics, program attendance
 visualization, student and faculty directories, course cards, leave-request
-approval, attendance settings, an academic calendar, user accounts, and
-responsive mobile navigation. Its data is currently demo data stored in
-JavaScript.
+approval, attendance settings (with the shared threshold), an academic
+calendar, user accounts, and responsive mobile navigation. Its data is
+currently demo data stored in JavaScript.
 
 The student prototype includes attendance overview cards, subject percentages,
 attendance records with search and status filtering, a weekly class schedule,
