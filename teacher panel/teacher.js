@@ -6,24 +6,27 @@ if (!session) {
   location.replace("../" + AttendIQ.ROLE_PANELS[session.role]);
 }
 
+// Portal-wide attendance settings (threshold) shared by every panel.
+const settings = AttendIQ.getSettings();
+
 // Demo class roster and leave data used by the teacher portal.
 const students = [
-  ["Aryan Kumar", "2021CS0042", 84, "present"],
-  ["Sneha Patel", "2021CS0043", 91, "present"],
-  ["Riya Desai", "2021CS0044", 72, "absent"],
-  ["Karan Singh", "2021CS0045", 68, "present"],
-  ["Pooja Iyer", "2021CS0046", 88, "present"],
-  ["Dev Malhotra", "2021CS0047", 55, "late"],
-  ["Ananya Nair", "2021CS0048", 79, "present"],
-  ["Vivek Rao", "2021CS0049", 94, "present"],
+  ["Aryan Kumar", "2079CSIT042", 84, "present"],
+  ["Sneha Patel", "2079CSIT043", 91, "present"],
+  ["Riya Desai", "2079CSIT044", 72, "absent"],
+  ["Karan Singh", "2079CSIT045", 68, "present"],
+  ["Pooja Iyer", "2079CSIT046", 88, "present"],
+  ["Dev Malhotra", "2079CSIT047", 55, "late"],
+  ["Ananya Nair", "2079CSIT048", 79, "present"],
+  ["Vivek Rao", "2079CSIT049", 94, "present"],
 ];
 const leaves = [
   {
     id: 1,
     name: "Aryan Kumar",
-    roll: "2021CS0042",
+    roll: "2079CSIT042",
     type: "Medical",
-    date: "Jul 10 → Jul 11",
+    date: "Ashadh 26 → 27, 2082",
     reason: "Fever and doctor visit",
     status: "pending",
     doc: true,
@@ -31,9 +34,9 @@ const leaves = [
   {
     id: 2,
     name: "Riya Desai",
-    roll: "2021CS0044",
+    roll: "2079CSIT044",
     type: "Personal",
-    date: "Jul 09",
+    date: "Ashadh 25, 2082",
     reason: "Family function",
     status: "pending",
     doc: false,
@@ -41,9 +44,9 @@ const leaves = [
   {
     id: 3,
     name: "Dev Malhotra",
-    roll: "2021CS0047",
+    roll: "2079CSIT047",
     type: "Medical",
-    date: "Jul 07 → Jul 08",
+    date: "Ashadh 23 → 24, 2082",
     reason: "Hospital visit",
     status: "approved",
     doc: true,
@@ -100,7 +103,7 @@ function renderReports() {
         present = Math.round((total * s[2]) / 100),
         late = 1,
         absent = total - present - late;
-      return `<tr><td class="mono">${s[1]}</td><td><strong>${s[0]}</strong></td><td>${total}</td><td class="positive">${present}</td><td class="danger">${absent}</td><td class="late-text">${late}</td><td><div class="progress"><i class="${s[2] < 75 ? "red-bar" : ""}" style="width:${s[2]}%"></i></div><b>${s[2]}%</b></td><td>${status(s[2] < 75 ? "at-risk" : "safe")}</td></tr>`;
+      return `<tr><td class="mono">${s[1]}</td><td><strong>${s[0]}</strong></td><td>${total}</td><td class="positive">${present}</td><td class="danger">${absent}</td><td class="late-text">${late}</td><td><div class="progress"><i class="${s[2] < settings.threshold ? "red-bar" : ""}" style="width:${s[2]}%"></i></div><b>${s[2]}%</b></td><td>${status(s[2] < settings.threshold ? "at-risk" : "safe")}</td></tr>`;
     })
     .join("");
 }
@@ -116,6 +119,26 @@ function renderLeaves() {
           .join(
             "",
           )}</span><div><div><strong>${l.name}</strong> <small class="mono">${l.roll}</small> ${status(l.status)}</div><p>${l.type} · ${l.date} · ${l.reason}</p>${l.doc ? '<small class="document">✓ Supporting document attached</small>' : ""}</div></div>${l.status === "pending" ? `<div class="leave-actions"><button class="approve" data-leave="${l.id}" data-state="approved">Approve</button><button class="reject" data-leave="${l.id}" data-state="rejected">Reject</button></div>` : `<button class="undo" data-leave="${l.id}" data-state="pending">Undo</button>`}</div>`,
+    )
+    .join("");
+}
+
+// Keep the at-risk metric, the section heading, and the risk list aligned
+// with the shared attendance threshold.
+function renderThreshold() {
+  const atRisk = students
+    .filter((student) => student[2] < settings.threshold)
+    .sort((a, b) => a[2] - b[2]);
+  $("#belowLabel").textContent = `Below ${settings.threshold}%`;
+  $("#belowCount").textContent = atRisk.length;
+  $("#riskLabel").textContent = `(<${settings.threshold}%)`;
+  $("#riskList").innerHTML = atRisk
+    .map(
+      (student) =>
+        `<div><span class="student-avatar">${student[0]
+          .split(" ")
+          .map((part) => part[0])
+          .join("")}</span><strong>${student[0]}<small>${student[1]}</small></strong><b class="danger">${student[2]}%</b><button class="link">Notify</button></div>`,
     )
     .join("");
 }
@@ -192,3 +215,4 @@ $("#signOut").addEventListener("click", () => AttendIQ.clearSession());
 renderAttendance();
 renderReports();
 renderLeaves();
+renderThreshold();

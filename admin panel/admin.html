@@ -83,7 +83,10 @@
                 ADMIN CONSOLE / <span id="breadcrumbPage">OVERVIEW</span>
               </p>
               <h1 id="pageTitle">Admin Overview</h1>
-              <p>University of Technology · Academic Year 2024-25</p>
+              <p>
+                Kathmandu College of Technology · Tribhuvan University ·
+                Academic Year 2082/83 BS
+              </p>
             </div>
             <button
               class="button button-primary"
@@ -107,7 +110,7 @@
               </article>
               <article class="metric-card">
                 <span class="metric-icon yellow">▣</span><strong>5</strong
-                ><small>Active Subjects</small><em>Semester 7 · CSE</em>
+                ><small>Active Subjects</small><em>Semester 7 · BSc CSIT</em>
               </article>
               <article class="metric-card">
                 <span class="metric-icon green">↗</span><strong>82%</strong
@@ -115,9 +118,10 @@
                 ><em class="positive">↑ 3.2% from last month</em>
               </article>
               <article class="metric-card">
-                <span class="metric-icon red">!</span><strong>2</strong
+                <span class="metric-icon red">!</span
+                ><strong id="atRiskCount">3</strong
                 ><small>At-Risk Students</small
-                ><em class="negative">Below 75% threshold</em>
+                ><em class="negative" id="atRiskCopy">Below 80% threshold</em>
               </article>
             </div>
 
@@ -126,30 +130,22 @@
                 <div class="card-heading">
                   <div>
                     <h2>Department Attendance</h2>
-                    <p>Average attendance percentage by department</p>
+                    <p>Average attendance percentage by program</p>
                   </div>
                   <button class="more-button" type="button">•••</button>
                 </div>
-                <div class="bar-chart" aria-label="Department attendance chart">
+                <div class="bar-chart" aria-label="Program attendance chart">
                   <div class="chart-row">
-                    <span>CSE</span><i><b style="width: 82%"></b></i
+                    <span>CSIT</span><i><b style="width: 82%"></b></i
                     ><strong>82%</strong>
                   </div>
-                  <div class="chart-row">
-                    <span>ECE</span><i><b style="width: 78%"></b></i
+                  <div class="chart-row warning">
+                    <span>BCA</span><i><b style="width: 78%"></b></i
                     ><strong>78%</strong>
                   </div>
-                  <div class="chart-row warning">
-                    <span>ME</span><i><b style="width: 71%"></b></i
-                    ><strong>71%</strong>
-                  </div>
                   <div class="chart-row">
-                    <span>Civil</span><i><b style="width: 85%"></b></i
+                    <span>BBS</span><i><b style="width: 85%"></b></i
                     ><strong>85%</strong>
-                  </div>
-                  <div class="chart-row">
-                    <span>MBA</span><i><b style="width: 88%"></b></i
-                    ><strong>88%</strong>
                   </div>
                 </div>
                 <div class="chart-axis">
@@ -218,9 +214,10 @@
                     type="search"
                     placeholder="Search by name or roll number" /></label
                 ><select>
-                  <option>All departments</option>
-                  <option>CSE</option>
-                  <option>ECE</option></select
+                  <option>All programs</option>
+                  <option>BSc CSIT</option>
+                  <option>BCA</option>
+                  <option>BBS</option></select
                 ><select>
                   <option>All statuses</option>
                   <option>Active</option>
@@ -332,10 +329,11 @@
                   <div>
                     <strong>Minimum attendance threshold</strong
                     ><small
-                      >Students below this percentage are marked at risk.</small
+                      >Students below this percentage are marked at risk. TU
+                      requires 80%.</small
                     >
                   </div>
-                  <output id="thresholdValue">75%</output>
+                  <output id="thresholdValue">80%</output>
                 </div>
                 <input
                   class="range-input"
@@ -344,7 +342,7 @@
                   min="50"
                   max="90"
                   step="5"
-                  value="75"
+                  value="80"
                 />
                 <div class="range-labels"><span>50%</span><span>90%</span></div>
                 <div class="setting-row separated">
@@ -352,7 +350,7 @@
                     <strong>Auto-notify students below threshold</strong
                     ><small
                       >Send an alert when attendance drops below
-                      <span id="thresholdCopy">75%</span>.</small
+                      <span id="thresholdCopy">80%</span>.</small
                     >
                   </div>
                   <button
@@ -428,7 +426,7 @@
                 <div class="card-heading">
                   <div>
                     <h2>Academic Calendar</h2>
-                    <p>Important dates for the current semester.</p>
+                    <p>Important dates for the current semester (2082 BS).</p>
                   </div>
                 </div>
                 <div class="date-grid">
@@ -441,7 +439,7 @@
                   ><label
                     >Exam period start<input
                       type="date"
-                      value="2025-11-10" /></label
+                      value="2025-12-01" /></label
                   ><label
                     >Result declaration<input type="date" value="2025-12-15"
                   /></label>

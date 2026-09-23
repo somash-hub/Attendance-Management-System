@@ -29,7 +29,7 @@
           ><span class="avatar" id="userAvatar">AK</span
           ><span class="user-copy"
             ><strong id="userName">Aryan Kumar</strong
-            ><small>2021CS0042 · Sem 7 CSE</small></span
+            ><small>2079CSIT042 · Sem 7 BSc CSIT</small></span
           >
         </div>
       </div>
@@ -61,16 +61,16 @@
               STUDENT PORTAL / <span id="crumb">OVERVIEW</span>
             </p>
             <h1 id="title">Attendance Overview</h1>
-            <p>Academic Year 2024-25 · Semester 7</p>
+            <p>Academic Year 2082/83 BS · Semester 7</p>
           </div>
-          <span class="semester">Semester 7 · CSE</span>
+          <span class="semester">Semester 7 · BSc CSIT</span>
         </div>
         <!-- Attendance overview with metrics and subject breakdown. -->
         <section class="panel active" data-panel="dashboard">
-          <div class="warning">
+          <div class="warning" id="warning">
             <strong>! Attendance Warning</strong
-            ><span
-              >Your attendance in Database Management is below the 75%
+            ><span id="warningText"
+              >Your attendance in Principles of Management is below the 80%
               threshold.</span
             >
           </div>
@@ -102,26 +102,26 @@
               </div>
               <div class="subject-bars">
                 <div>
-                  <span>CS401</span><i><b style="width: 90%"></b></i
+                  <span>CSC419</span><i><b style="width: 90%"></b></i
                   ><strong>90%</strong>
                 </div>
                 <div>
-                  <span>CS402</span
+                  <span>CSC420</span
                   ><i><b class="bar-green" style="width: 85%"></b></i
                   ><strong>85%</strong>
                 </div>
                 <div>
-                  <span>CS403</span
+                  <span>CSC421</span
                   ><i><b class="bar-red" style="width: 73%"></b></i
                   ><strong class="danger">73%</strong>
                 </div>
                 <div>
-                  <span>CS404</span
+                  <span>CSC422</span
                   ><i><b class="bar-purple" style="width: 93%"></b></i
                   ><strong>93%</strong>
                 </div>
                 <div>
-                  <span>CS405</span
+                  <span>CSC425</span
                   ><i><b class="bar-yellow" style="width: 83%"></b></i
                   ><strong>83%</strong>
                 </div>
@@ -165,24 +165,24 @@
                 </thead>
                 <tbody>
                   <tr>
-                    <td class="mono">CS401</td>
-                    <td>Data Structures</td>
+                    <td class="mono">CSC419</td>
+                    <td>Advanced Java Programming</td>
                     <td>Dr. Priya Mehta</td>
                     <td>38 / 42</td>
                     <td>90%</td>
                     <td><span class="safe">Safe</span></td>
                   </tr>
                   <tr>
-                    <td class="mono">CS402</td>
-                    <td>Operating Systems</td>
+                    <td class="mono">CSC420</td>
+                    <td>Data Warehousing and Data Mining</td>
                     <td>Prof. Arjun Sharma</td>
                     <td>34 / 40</td>
                     <td>85%</td>
                     <td><span class="safe">Safe</span></td>
                   </tr>
                   <tr>
-                    <td class="mono">CS403</td>
-                    <td>Database Management</td>
+                    <td class="mono">CSC421</td>
+                    <td>Principles of Management</td>
                     <td>Dr. Sunita Rao</td>
                     <td>28 / 38</td>
                     <td class="danger">73%</td>
@@ -248,7 +248,7 @@
                 <div class="choice-row">
                   <button type="button" class="choice selected">Medical</button
                   ><button type="button" class="choice">Personal</button
-                  ><button type="button" class="choice">Academic Event</button>
+                  ><button type="button" class="choice">College Event</button>
                 </div></label
               >
               <div class="form-grid">
@@ -258,8 +258,8 @@
               <label
                 >Subject<select required>
                   <option value="">Select a subject</option>
-                  <option>CS401 · Data Structures</option>
-                  <option>CS403 · Database Management</option>
+                  <option>CSC419 · Advanced Java Programming</option>
+                  <option>CSC421 · Principles of Management</option>
                 </select></label
               ><label
                 >Reason<textarea
@@ -279,7 +279,7 @@
     </div>
     <div class="notification-pop" id="notificationPop">
       <strong>Notifications</strong>
-      <p>CS403 attendance dropped below 75%.</p>
+      <p>CSC421 attendance dropped below the 80% threshold.</p>
       <p>Your leave request was approved.</p>
     </div>
     <div class="toast" id="toast"></div>

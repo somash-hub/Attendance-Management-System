@@ -7,6 +7,13 @@
 
   var USERS_KEY = "attendiq.users";
   var SESSION_KEY = "attendiq.session";
+  var SETTINGS_KEY = "attendiq.settings";
+
+  // TU requires 80% attendance per subject; administrators can adjust it.
+  var DEFAULT_THRESHOLD = 80;
+
+  // Student accounts use the college-issued email domain.
+  var STUDENT_EMAIL_DOMAIN = "@kct.edu.np";
 
   // Roles the login redirect and the admin user manager understand.
   var ROLES = ["student", "teacher", "admin"];
@@ -16,21 +23,21 @@
     {
       id: "u-admin",
       name: "System Administrator",
-      email: "admin@attendiq.edu",
+      email: "admin@kct.edu.np",
       password: "Admin@2025",
       role: "admin",
     },
     {
       id: "u-teacher",
       name: "Dr. Priya Mehta",
-      email: "priya.mehta@univ.edu",
+      email: "priya.mehta@kct.edu.np",
       password: "Teacher@2025",
       role: "teacher",
     },
     {
       id: "u-student",
       name: "Aryan Kumar",
-      email: "aryan.k@student.tu.edu.np",
+      email: "aryan.k@kct.edu.np",
       password: "Student@2025",
       role: "student",
     },
@@ -102,8 +109,8 @@
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       return "Enter a valid email address.";
     if (ROLES.indexOf(role) === -1) return "Choose a valid role.";
-    if (role === "student" && !email.endsWith("@student.tu.edu.np"))
-      return "Student accounts must use an @student.tu.edu.np email.";
+    if (role === "student" && !email.endsWith(STUDENT_EMAIL_DOMAIN))
+      return "Student accounts must use an " + STUDENT_EMAIL_DOMAIN + " email.";
     if (findUserByEmail(email))
       return "An account with this email already exists.";
     if (password.length < 8) return "Password must be at least 8 characters.";
@@ -155,10 +162,11 @@
       return item.id === id;
     });
     if (!user) return { ok: false, error: "Account not found." };
-    if (role === "student" && !user.email.endsWith("@student.tu.edu.np"))
+    if (role === "student" && !user.email.endsWith(STUDENT_EMAIL_DOMAIN))
       return {
         ok: false,
-        error: "Student accounts must use an @student.tu.edu.np email.",
+        error:
+          "Student accounts must use an " + STUDENT_EMAIL_DOMAIN + " email.",
       };
 
     user.role = role;
@@ -226,10 +234,41 @@
     }
   }
 
+  // Attendance settings are shared by every portal; administrators control
+  // the threshold here and each panel reads the same value.
+  function getSettings() {
+    var stored = read(SETTINGS_KEY, null);
+    var threshold = stored ? Number(stored.threshold) : NaN;
+    if (!isFinite(threshold) || threshold < 40 || threshold > 100)
+      threshold = DEFAULT_THRESHOLD;
+    return { threshold: threshold };
+  }
+
+  // Persist a settings change such as the attendance threshold.
+  function saveSettings(patch) {
+    var merged = Object.assign(getSettings(), patch || {});
+    var threshold = Number(merged.threshold);
+    if (!isFinite(threshold) || threshold < 40 || threshold > 100)
+      return {
+        ok: false,
+        error: "Attendance threshold must be between 40 and 100.",
+      };
+    if (!write(SETTINGS_KEY, { threshold: threshold }))
+      return {
+        ok: false,
+        error: "Browser storage is unavailable, so the settings were not saved.",
+      };
+    return { ok: true, settings: { threshold: threshold } };
+  }
+
   var api = {
     ROLES: ROLES,
     ROLE_PANELS: ROLE_PANELS,
     SEED_USERS: SEED_USERS,
+    DEFAULT_THRESHOLD: DEFAULT_THRESHOLD,
+    STUDENT_EMAIL_DOMAIN: STUDENT_EMAIL_DOMAIN,
+    getSettings: getSettings,
+    saveSettings: saveSettings,
     getUsers: getUsers,
     findUserByEmail: findUserByEmail,
     validateUser: validateUser,

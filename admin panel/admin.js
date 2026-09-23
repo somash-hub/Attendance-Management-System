@@ -6,55 +6,52 @@ if (!session) {
   location.replace("../" + AttendIQ.ROLE_PANELS[session.role]);
 }
 
+// Portal-wide attendance settings (threshold) shared by every panel.
+let settings = AttendIQ.getSettings();
+
 // Demo records used by the administrator portal before backend integration.
 const students = [
   {
     name: "Aryan Kumar",
-    email: "aryan.k@univ.edu",
-    roll: "2021CS0042",
-    dept: "CSE",
+    email: "aryan.k@kct.edu.np",
+    roll: "2079CSIT042",
+    dept: "BSc CSIT",
     attendance: 84,
-    status: "Active",
   },
   {
     name: "Sneha Patel",
-    email: "sneha.p@univ.edu",
-    roll: "2021CS0043",
-    dept: "CSE",
+    email: "sneha.p@kct.edu.np",
+    roll: "2079CSIT043",
+    dept: "BSc CSIT",
     attendance: 91,
-    status: "Active",
   },
   {
     name: "Riya Desai",
-    email: "riya.d@univ.edu",
-    roll: "2021CS0044",
-    dept: "CSE",
+    email: "riya.d@kct.edu.np",
+    roll: "2079CSIT044",
+    dept: "BSc CSIT",
     attendance: 72,
-    status: "Warned",
   },
   {
     name: "Karan Singh",
-    email: "karan.s@univ.edu",
-    roll: "2021CS0045",
-    dept: "CSE",
+    email: "karan.s@kct.edu.np",
+    roll: "2079CSIT045",
+    dept: "BSc CSIT",
     attendance: 68,
-    status: "Warned",
   },
   {
     name: "Pooja Iyer",
-    email: "pooja.i@univ.edu",
-    roll: "2021CS0046",
-    dept: "CSE",
+    email: "pooja.i@kct.edu.np",
+    roll: "2079CSIT046",
+    dept: "BSc CSIT",
     attendance: 88,
-    status: "Active",
   },
   {
     name: "Ananya Nair",
-    email: "ananya.n@univ.edu",
-    roll: "2021CS0047",
-    dept: "ECE",
+    email: "ananya.n@kct.edu.np",
+    roll: "2079CSIT048",
+    dept: "BSc CSIT",
     attendance: 79,
-    status: "Active",
   },
 ];
 
@@ -62,32 +59,53 @@ const faculty = [
   [
     "Dr. Priya Mehta",
     "FAC001",
-    "CSE",
-    "Data Structures & Algorithms",
+    "BSc CSIT",
+    "Advanced Java Programming",
     "6",
     "Active",
   ],
-  ["Prof. Arjun Sharma", "FAC002", "CSE", "Operating Systems", "5", "Active"],
-  ["Dr. Sunita Rao", "FAC003", "CSE", "Database Management", "4", "Active"],
-  ["Prof. Rahul Gupta", "FAC004", "CSE", "Computer Networks", "6", "Active"],
-  ["Dr. Neha Verma", "FAC005", "CSE", "Software Engineering", "3", "On leave"],
+  [
+    "Prof. Arjun Sharma",
+    "FAC002",
+    "BSc CSIT",
+    "Data Warehousing and Data Mining",
+    "5",
+    "Active",
+  ],
+  [
+    "Dr. Sunita Rao",
+    "FAC003",
+    "BSc CSIT",
+    "Principles of Management",
+    "4",
+    "Active",
+  ],
+  ["Prof. Rahul Gupta", "FAC004", "BSc CSIT", "Project Work", "6", "Active"],
+  [
+    "Dr. Neha Verma",
+    "FAC005",
+    "BSc CSIT",
+    "Software Project Management",
+    "3",
+    "On leave",
+  ],
 ];
 
 const courses = [
-  ["CS401", "Data Structures & Algorithms", "Dr. Priya Mehta", 42, 90],
-  ["CS402", "Operating Systems", "Prof. Arjun Sharma", 40, 85],
-  ["CS403", "Database Management", "Dr. Sunita Rao", 38, 73],
-  ["CS404", "Computer Networks", "Prof. Rahul Gupta", 44, 93],
-  ["CS405", "Software Engineering", "Dr. Neha Verma", 36, 83],
+  ["CSC419", "Advanced Java Programming", "Dr. Priya Mehta", 42, 90],
+  ["CSC420", "Data Warehousing and Data Mining", "Prof. Arjun Sharma", 40, 85],
+  ["CSC421", "Principles of Management", "Dr. Sunita Rao", 38, 73],
+  ["CSC422", "Project Work", "Prof. Rahul Gupta", 44, 93],
+  ["CSC425", "Software Project Management", "Dr. Neha Verma", 36, 83],
 ];
 
 const leaves = [
   {
     id: 1,
     name: "Aryan Kumar",
-    roll: "2021CS0042",
+    roll: "2079CSIT042",
     type: "Medical",
-    dates: "Jul 10 → Jul 11",
+    dates: "Ashadh 26 → 27, 2082",
     reason: "Fever and doctor visit",
     status: "pending",
     doc: true,
@@ -95,9 +113,9 @@ const leaves = [
   {
     id: 2,
     name: "Riya Desai",
-    roll: "2021CS0044",
+    roll: "2079CSIT044",
     type: "Personal",
-    dates: "Jul 09",
+    dates: "Ashadh 25, 2082",
     reason: "Family function",
     status: "pending",
     doc: false,
@@ -105,9 +123,9 @@ const leaves = [
   {
     id: 3,
     name: "Dev Malhotra",
-    roll: "2021CS0047",
+    roll: "2079CSIT047",
     type: "Medical",
-    dates: "Jul 07 → Jul 08",
+    dates: "Ashadh 23 → 24, 2082",
     reason: "Hospital visit",
     status: "approved",
     doc: true,
@@ -115,9 +133,9 @@ const leaves = [
   {
     id: 4,
     name: "Karan Singh",
-    roll: "2021CS0045",
+    roll: "2079CSIT045",
     type: "Personal",
-    dates: "Jul 05",
+    dates: "Ashadh 21, 2082",
     reason: "Personal emergency",
     status: "rejected",
     doc: false,
@@ -141,10 +159,11 @@ function renderStudents(query = "") {
     .filter((student) =>
       `${student.name} ${student.roll}`.toLowerCase().includes(normalized),
     )
-    .map(
-      (student) =>
-        `<tr><td><strong>${student.name}</strong><small>${student.email}</small></td><td class="mono">${student.roll}</td><td>${student.dept}</td><td><strong class="${student.attendance < 75 ? "danger-text" : ""}">${student.attendance}%</strong></td><td>${statusBadge(student.status)}</td><td><button class="row-action" type="button">•••</button></td></tr>`,
-    )
+    .map((student) => {
+      // The warned status is derived from the administrator's threshold.
+      const warned = student.attendance < settings.threshold;
+      return `<tr><td><strong>${student.name}</strong><small>${student.email}</small></td><td class="mono">${student.roll}</td><td>${student.dept}</td><td><strong class="${warned ? "danger-text" : ""}">${student.attendance}%</strong></td><td>${statusBadge(warned ? "Warned" : "Active")}</td><td><button class="row-action" type="button">•••</button></td></tr>`;
+    })
     .join("");
 }
 
@@ -152,7 +171,7 @@ function renderFaculty() {
   $("#facultyRows").innerHTML = faculty
     .map(
       (member) =>
-        `<tr><td><strong>${member[0]}</strong><small>${member[1].toLowerCase()}@univ.edu</small></td><td class="mono">${member[1]}</td><td>${member[2]}</td><td>${member[3]}</td><td>${member[4]}</td><td>${statusBadge(member[5])}</td></tr>`,
+        `<tr><td><strong>${member[0]}</strong><small>${member[1].toLowerCase()}@kct.edu.np</small></td><td class="mono">${member[1]}</td><td>${member[2]}</td><td>${member[3]}</td><td>${member[4]}</td><td>${statusBadge(member[5])}</td></tr>`,
     )
     .join("");
 }
@@ -194,6 +213,18 @@ function showToast(message) {
   toast.textContent = message;
   toast.classList.add("visible");
   setTimeout(() => toast.classList.remove("visible"), 2600);
+}
+
+// Keep the rules form and the at-risk dashboard metric aligned with the
+// shared attendance settings.
+function renderThreshold() {
+  $("#threshold").value = settings.threshold;
+  $("#thresholdValue").textContent = `${settings.threshold}%`;
+  $("#thresholdCopy").textContent = `${settings.threshold}%`;
+  $("#atRiskCopy").textContent = `Below ${settings.threshold}% threshold`;
+  $("#atRiskCount").textContent = students.filter(
+    (student) => student.attendance < settings.threshold,
+  ).length;
 }
 
 // Role labels shared by the user table and its feedback messages.
@@ -340,9 +371,16 @@ $("#notifySwitch").addEventListener("click", (event) => {
   const enabled = event.currentTarget.classList.toggle("on");
   event.currentTarget.setAttribute("aria-pressed", String(enabled));
 });
-$("#saveSettings").addEventListener("click", () =>
-  showToast("Settings saved for this session."),
-);
+$("#saveSettings").addEventListener("click", () => {
+  const result = AttendIQ.saveSettings({
+    threshold: Number($("#threshold").value),
+  });
+  if (!result.ok) return showToast(result.error);
+  settings = result.settings;
+  renderThreshold();
+  renderStudents();
+  showToast("Attendance threshold saved.");
+});
 $("#headerAction").addEventListener("click", () =>
   showToast("This form will connect to the backend."),
 );
@@ -366,3 +404,4 @@ renderCourses();
 renderLeaves();
 renderLeaves("#dashboardRequests", true);
 renderUsers();
+renderThreshold();

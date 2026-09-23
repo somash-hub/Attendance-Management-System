@@ -6,45 +6,78 @@ if (!session) {
   location.replace("../" + AttendIQ.ROLE_PANELS[session.role]);
 }
 
+// Portal-wide attendance settings (threshold) shared by every panel.
+const settings = AttendIQ.getSettings();
+
 // Demo attendance data used until the student portal is connected to an API.
 const records = [
-  ["Jul 08, 2025", "Tuesday", "CS401", "09:00 AM", "Present"],
-  ["Jul 08, 2025", "Tuesday", "CS402", "11:00 AM", "Present"],
-  ["Jul 08, 2025", "Tuesday", "CS403", "02:00 PM", "Absent"],
-  ["Jul 07, 2025", "Monday", "CS404", "10:00 AM", "Present"],
-  ["Jul 07, 2025", "Monday", "CS405", "12:00 PM", "Present"],
-  ["Jul 07, 2025", "Monday", "CS401", "09:00 AM", "Late"],
-  ["Jul 04, 2025", "Friday", "CS402", "11:00 AM", "Absent"],
-  ["Jul 04, 2025", "Friday", "CS403", "02:00 PM", "Present"],
+  ["Ashadh 24, 2082", "Tuesday", "CSC419", "09:00 AM", "Present"],
+  ["Ashadh 24, 2082", "Tuesday", "CSC420", "11:00 AM", "Present"],
+  ["Ashadh 24, 2082", "Tuesday", "CSC421", "02:00 PM", "Absent"],
+  ["Ashadh 23, 2082", "Monday", "CSC422", "10:00 AM", "Present"],
+  ["Ashadh 23, 2082", "Monday", "CSC425", "12:00 PM", "Present"],
+  ["Ashadh 23, 2082", "Monday", "CSC419", "09:00 AM", "Late"],
+  ["Ashadh 20, 2082", "Friday", "CSC420", "11:00 AM", "Absent"],
+  ["Ashadh 20, 2082", "Friday", "CSC421", "02:00 PM", "Present"],
 ];
+// Nepali colleges run Sunday through Friday; Saturday is the weekly holiday.
 const schedule = {
+  Sunday: [
+    ["09:00-10:00", "CSC419", "Advanced Java Programming", "LH-201"],
+    ["11:00-12:00", "CSC420", "Data Warehousing and Data Mining", "LH-104"],
+  ],
   Monday: [
-    ["09:00-10:00", "CS401", "Data Structures", "LH-201"],
-    ["10:00-11:00", "CS404", "Computer Networks", "LH-103"],
-    ["12:00-13:00", "CS405", "Software Engineering", "LH-302"],
+    ["09:00-10:00", "CSC419", "Advanced Java Programming", "LH-201"],
+    ["10:00-11:00", "CSC422", "Project Work", "LH-103"],
+    ["12:00-13:00", "CSC425", "Software Project Management", "LH-302"],
   ],
   Tuesday: [
-    ["09:00-10:00", "CS401", "Data Structures", "LH-201"],
-    ["11:00-12:00", "CS402", "Operating Systems", "LH-104"],
-    ["14:00-15:00", "CS403", "Database Management", "Lab-3"],
+    ["09:00-10:00", "CSC419", "Advanced Java Programming", "LH-201"],
+    ["11:00-12:00", "CSC420", "Data Warehousing and Data Mining", "LH-104"],
+    ["14:00-15:00", "CSC421", "Principles of Management", "Lab-3"],
   ],
   Wednesday: [
-    ["09:00-10:00", "CS401", "Data Structures", "LH-201"],
-    ["11:00-12:00", "CS402", "Operating Systems", "LH-104"],
+    ["09:00-10:00", "CSC419", "Advanced Java Programming", "LH-201"],
+    ["11:00-12:00", "CSC420", "Data Warehousing and Data Mining", "LH-104"],
   ],
   Thursday: [
-    ["10:00-11:00", "CS404", "Computer Networks", "LH-103"],
-    ["12:00-13:00", "CS405", "Software Engineering", "LH-302"],
+    ["10:00-11:00", "CSC422", "Project Work", "LH-103"],
+    ["12:00-13:00", "CSC425", "Software Project Management", "LH-302"],
   ],
   Friday: [
-    ["11:00-12:00", "CS402", "Operating Systems", "LH-104"],
-    ["14:00-15:00", "CS403", "Database Management", "Lab-3"],
+    ["11:00-12:00", "CSC420", "Data Warehousing and Data Mining", "LH-104"],
+    ["14:00-15:00", "CSC421", "Principles of Management", "Lab-3"],
   ],
 };
 
 // Small DOM helpers keep selectors concise throughout this file.
 const $ = (s) => document.querySelector(s),
   $$ = (s) => [...document.querySelectorAll(s)];
+
+// Subject percentages are the source for the threshold warning banner.
+const subjectAttendance = [
+  ["CSC419", "Advanced Java Programming", 90],
+  ["CSC420", "Data Warehousing and Data Mining", 85],
+  ["CSC421", "Principles of Management", 73],
+  ["CSC422", "Project Work", 93],
+  ["CSC425", "Software Project Management", 83],
+];
+
+// Point the warning banner at the weakest subject while it is below the
+// administrator's threshold, and hide the banner when every subject passes.
+function renderWarning() {
+  const below = subjectAttendance
+    .filter((subject) => subject[2] < settings.threshold)
+    .sort((a, b) => a[2] - b[2]);
+  const banner = $("#warning");
+
+  if (!below.length) {
+    banner.style.display = "none";
+    return;
+  }
+  banner.style.display = "";
+  $("#warningText").textContent = `Your attendance in ${below[0][1]} is below the ${settings.threshold}% threshold.`;
+}
 
 // Render a reusable status badge for attendance records.
 function badge(status) {
@@ -63,7 +96,7 @@ function renderRecords() {
     )
     .map(
       (r) =>
-        `<tr><td class="mono">${r[0]}</td><td>${r[1]}</td><td><strong>${r[2]}</strong><small>${{ CS401: "Data Structures", CS402: "Operating Systems", CS403: "Database Management", CS404: "Computer Networks", CS405: "Software Engineering" }[r[2]]}</small></td><td>${r[3]}</td><td>${badge(r[4])}</td></tr>`,
+        `<tr><td class="mono">${r[0]}</td><td>${r[1]}</td><td><strong>${r[2]}</strong><small>${{ CSC419: "Advanced Java Programming", CSC420: "Data Warehousing and Data Mining", CSC421: "Principles of Management", CSC422: "Project Work", CSC425: "Software Project Management" }[r[2]]}</small></td><td>${r[3]}</td><td>${badge(r[4])}</td></tr>`,
     )
     .join("");
 }
@@ -155,5 +188,6 @@ if (session) {
 }
 $("#signOut").addEventListener("click", () => AttendIQ.clearSession());
 
+renderWarning();
 renderRecords();
 renderSchedule();
