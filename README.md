@@ -27,30 +27,28 @@ plain HTML, CSS, and JavaScript.
 
 ## Current Features
 
-- Role selection for student, teacher, and administrator login
+- Single login page for every role: the account decides which portal opens
+- Administrator-managed accounts: create users and assign roles from
+  **Settings → User Accounts**
+- Role-based redirect after login to the student, teacher, or administrator
+  portal
+- Session persistence so a signed-in user stays signed in after a refresh
 - Student email-domain validation using `@student.tu.edu.np`
 - Password visibility toggle
 - Client-side validation for email and password requirements
-- Three-step student registration form
-- TU symbol number and student email validation
-- Password confirmation during account creation
-- Responsive styling for login and signup screens
+- Responsive styling for the login screen and all portals
 
 ## Planned Frontend Work
 
-The login and signup flows are the foundation. The next frontend iterations
-will add the authenticated application shell and role-specific screens:
+The authentication foundation is in place. The next iterations will make the
+portals work on shared data and finish the remaining actions:
 
-1. Build reusable layout, navigation, card, table, badge, modal, and form
-   patterns in HTML/CSS/JavaScript.
-2. Add the student dashboard, attendance log, schedule, notifications, and
-   leave-request views.
-3. Add teacher attendance marking, reports, at-risk student views, and leave
-   approvals.
-4. Add administrator management screens for students, teachers, courses,
-   leaves, and settings.
-5. Replace demo data with backend/API integration after the frontend flows are
-   stable.
+1. Build a shared data store so the student, teacher, and administrator
+   portals read and write the same attendance, leave, and course records.
+2. Replace demo actions with real behavior: CSV export, add/edit forms,
+   persisted settings, and notifications.
+3. Consolidate duplicated panel helpers and styles into shared files.
+4. Replace browser-only accounts and demo data with backend/API integration.
 
 ## Project Structure
 
@@ -76,10 +74,8 @@ will add the authenticated application shell and role-specific screens:
 │   ├── login.html
 │   ├── login.css
 │   └── login.js
-├── signup/
-│   ├── signup.html
-│   ├── signup.css
-│   └── signup.js
+├── shared/
+│   └── store.js
 └── .vscode/
     └── settings.json
 ```
@@ -91,17 +87,31 @@ installation.
 
 1. Open `landing page/landing.html` in a web browser to view the public
    landing page.
-2. Open `admin panel/admin.html` to view the administrator portal prototype.
-3. Open `student panel/student.html` to view the student portal prototype.
-4. Open `teacher panel/teacher.html` to view the teacher portal prototype.
-5. Use a portal button to open `login/login.html`.
-6. Select the account role and test the login validation.
-7. Use **Create an account** to try the multi-step signup flow.
+2. Use any portal button to open `login/login.html`.
+3. Sign in with one of the demo accounts below; the account role decides
+   which portal opens.
+4. Administrators can open **Settings → User Accounts** to create new users
+   and assign roles. New accounts can sign in immediately.
+5. Opening a portal while signed out redirects back to the login page.
+
+### Demo Accounts
+
+| Role          | Email                       | Password       |
+| ------------- | --------------------------- | -------------- |
+| Administrator | `admin@attendiq.edu`        | `Admin@2025`   |
+| Teacher       | `priya.mehta@univ.edu`      | `Teacher@2025` |
+| Student       | `aryan.k@student.tu.edu.np` | `Student@2025` |
+
+Accounts and sessions are stored in the browser via `localStorage`. The demo
+accounts are restored automatically whenever the account list is empty, so an
+administrator can always sign in. Passwords are kept in plain text because
+this is a frontend prototype; backend authentication with hashing is planned.
 
 The administrator prototype includes dashboard metrics, department attendance
 visualization, student and faculty directories, course cards, leave-request
-approval, attendance settings, an academic calendar, and responsive mobile
-navigation. Its data is currently demo data stored in JavaScript.
+approval, attendance settings, an academic calendar, user accounts, and
+responsive mobile navigation. Its data is currently demo data stored in
+JavaScript.
 
 The student prototype includes attendance overview cards, subject percentages,
 attendance records with search and status filtering, a weekly class schedule,
@@ -110,6 +120,6 @@ metrics, subject averages, at-risk students, interactive attendance marking,
 attendance reports, and leave-request approval. These portals currently use
 demo data and browser-only state.
 
-The forms currently perform client-side validation only. A backend will be
-needed for authentication, account persistence, attendance data, reports, and
+The portals currently run on demo data and browser-only accounts. A backend
+will be needed for real authentication, shared attendance data, reports, and
 role-based permissions.
