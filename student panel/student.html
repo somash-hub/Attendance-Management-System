@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AttendIQ | Student Portal</title>
     <link rel="stylesheet" href="student.css" />
+    <script src="../shared/store.js" defer></script>
     <script src="student.js" defer></script>
   </head>
   <body>
@@ -25,9 +26,9 @@
               placeholder="Search records" /></label
           ><button class="notification" id="notification" type="button">
             ♢<b>2</b></button
-          ><span class="avatar">AK</span
+          ><span class="avatar" id="userAvatar">AK</span
           ><span class="user-copy"
-            ><strong>Aryan Kumar</strong
+            ><strong id="userName">Aryan Kumar</strong
             ><small>2021CS0042 · Sem 7 CSE</small></span
           >
         </div>
@@ -49,7 +50,7 @@
           </button>
         </nav>
         <div class="sidebar-bottom">
-          <a href="../login/login.html">↪ Sign out</a>
+          <a href="../login/login.html" id="signOut">↪ Sign out</a>
         </div>
       </aside>
       <main class="main">

@@ -1,3 +1,11 @@
+// Access control: only signed-in teachers may use this portal.
+const session = AttendIQ.getSession();
+if (!session) {
+  location.replace("../login/login.html");
+} else if (session.role !== "teacher") {
+  location.replace("../" + AttendIQ.ROLE_PANELS[session.role]);
+}
+
 // Demo class roster and leave data used by the teacher portal.
 const students = [
   ["Aryan Kumar", "2021CS0042", 84, "present"],
@@ -168,6 +176,19 @@ $("#saveAttendance").addEventListener("click", () => {
 $("#exportReport").addEventListener("click", () =>
   toast("CSV report prepared."),
 );
+// Reflect the signed-in teacher in the topbar and support sign-out.
+if (session) {
+  $("#userName").textContent = session.name;
+  $("#userAvatar").textContent = session.name
+    .split(" ")
+    .filter((part) => !part.endsWith("."))
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+$("#signOut").addEventListener("click", () => AttendIQ.clearSession());
+
 renderAttendance();
 renderReports();
 renderLeaves();

@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AttendIQ | Teacher Portal</title>
     <link rel="stylesheet" href="teacher.css" />
+    <script src="../shared/store.js" defer></script>
     <script src="teacher.js" defer></script>
   </head>
   <body>
@@ -18,9 +19,9 @@
       <div class="top-actions">
         <span class="date">Wednesday, 9 Jul 2025</span
         ><button class="notification">♢<b>2</b></button
-        ><span class="avatar">PM</span
+        ><span class="avatar" id="userAvatar">PM</span
         ><span class="user-copy"
-          ><strong>Dr. Priya Mehta</strong
+          ><strong id="userName">Dr. Priya Mehta</strong
           ><small>FAC001 · CSE Department</small></span
         >
       </div>
@@ -41,7 +42,7 @@
           </button>
         </nav>
         <div class="sidebar-bottom">
-          <a href="../login/login.html">↪ Sign out</a>
+          <a href="../login/login.html" id="signOut">↪ Sign out</a>
         </div>
       </aside>
       <main class="main">

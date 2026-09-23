@@ -1,3 +1,11 @@
+// Access control: only signed-in students may use this portal.
+const session = AttendIQ.getSession();
+if (!session) {
+  location.replace("../login/login.html");
+} else if (session.role !== "student") {
+  location.replace("../" + AttendIQ.ROLE_PANELS[session.role]);
+}
+
 // Demo attendance data used until the student portal is connected to an API.
 const records = [
   ["Jul 08, 2025", "Tuesday", "CS401", "09:00 AM", "Present"],
@@ -134,5 +142,18 @@ $("#leaveForm").addEventListener("submit", (e) => {
     `<div class="success-state"><span>✓</span><h2>Request Submitted</h2><p>Your leave application has been forwarded to your class advisor for approval.</p><button class="button primary" id="another">Submit another request</button></div>`;
   $("#another").addEventListener("click", () => location.reload());
 });
+// Reflect the signed-in student in the topbar and support sign-out.
+if (session) {
+  $("#userName").textContent = session.name;
+  $("#userAvatar").textContent = session.name
+    .split(" ")
+    .filter((part) => !part.endsWith("."))
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+$("#signOut").addEventListener("click", () => AttendIQ.clearSession());
+
 renderRecords();
 renderSchedule();
