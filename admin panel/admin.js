@@ -1,3 +1,11 @@
+// Access control: only signed-in administrators may use this portal.
+const session = AttendIQ.getSession();
+if (!session) {
+  location.replace("../login/login.html");
+} else if (session.role !== "admin") {
+  location.replace("../" + AttendIQ.ROLE_PANELS[session.role]);
+}
+
 // Demo records used by the administrator portal before backend integration.
 const students = [
   {
@@ -188,6 +196,65 @@ function showToast(message) {
   setTimeout(() => toast.classList.remove("visible"), 2600);
 }
 
+// Role labels shared by the user table and its feedback messages.
+const ROLE_LABELS = {
+  student: "Student",
+  teacher: "Teacher",
+  admin: "Administrator",
+};
+
+// Draw the account list with a role selector and remove control per user.
+function renderUsers() {
+  $("#userRows").innerHTML = AttendIQ.getUsers()
+    .map(
+      (user) =>
+        `<tr><td><strong>${user.name}</strong><small>${user.email}</small></td><td><select class="role-select" data-user-id="${user.id}" aria-label="Role for ${user.name}">${AttendIQ.ROLES.map((role) => `<option value="${role}"${role === user.role ? " selected" : ""}>${ROLE_LABELS[role]}</option>`).join("")}</select></td><td><button class="user-remove" type="button" data-remove-user="${user.id}">Remove</button></td></tr>`,
+    )
+    .join("");
+}
+
+// Create accounts from the settings form, reporting validation errors.
+$("#userForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const result = AttendIQ.addUser({
+    name: $("#newUserName").value,
+    email: $("#newUserEmail").value,
+    role: $("#newUserRole").value,
+    password: $("#newUserPassword").value,
+  });
+  if (!result.ok) return showToast(result.error);
+  event.target.reset();
+  renderUsers();
+  showToast(`${result.user.name} added as ${ROLE_LABELS[result.user.role]}.`);
+});
+
+// Delegated events update roles and remove accounts from rendered rows.
+document.addEventListener("change", (event) => {
+  const select = event.target.closest("[data-user-id]");
+  if (!select) return;
+  const result = AttendIQ.assignRole(select.dataset.userId, select.value);
+  if (!result.ok) {
+    showToast(result.error);
+    renderUsers();
+    return;
+  }
+  showToast(`${result.user.name} is now ${ROLE_LABELS[result.user.role]}.`);
+});
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-remove-user]");
+  if (!button) return;
+  if (session && button.dataset.removeUser === session.id)
+    return showToast("You cannot remove your own account.");
+  const user = AttendIQ.getUsers().find(
+    (item) => item.id === button.dataset.removeUser,
+  );
+  if (!user) return;
+  if (!window.confirm(`Remove the account for ${user.name}?`)) return;
+  AttendIQ.removeUser(user.id);
+  renderUsers();
+  showToast("Account removed.");
+});
+
 // Update the visible admin section and page heading.
 function openTab(tab) {
   $$(".nav-item").forEach((item) =>
@@ -280,8 +347,22 @@ $("#headerAction").addEventListener("click", () =>
   showToast("This form will connect to the backend."),
 );
 
+// Reflect the signed-in administrator in the topbar and support sign-out.
+if (session) {
+  $("#profileName").textContent = session.name;
+  $("#userAvatar").textContent = session.name
+    .split(" ")
+    .filter((part) => !part.endsWith("."))
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+$("#signOut").addEventListener("click", () => AttendIQ.clearSession());
+
 renderStudents();
 renderFaculty();
 renderCourses();
 renderLeaves();
 renderLeaves("#dashboardRequests", true);
+renderUsers();

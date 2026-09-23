@@ -957,3 +957,36 @@ td small {
     max-width: calc(100% - 10px);
   }
 }
+
+/* User account form extends the shared date-grid layout. */
+.date-grid select {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-size: 11px;
+  padding: 9px;
+}
+.user-form button {
+  grid-column: span 2;
+  justify-self: start;
+}
+.user-form small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.role-select {
+  background: #f4f4f7;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  font-size: 11px;
+  padding: 8px 10px;
+}
+.user-remove {
+  background: transparent;
+  border: 0;
+  color: var(--red);
+  font-size: 11px;
+  font-weight: 600;
+}
+

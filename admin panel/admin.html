@@ -7,6 +7,7 @@
     <meta name="description" content="AttendIQ administrator portal" />
     <title>AttendIQ | Admin Portal</title>
     <link rel="stylesheet" href="admin.css" />
+    <script src="../shared/store.js" defer></script>
     <script src="admin.js" defer></script>
   </head>
   <body>
@@ -33,9 +34,9 @@
           </button>
           <span class="admin-badge">◇ Admin</span>
           <div class="profile">
-            <span class="avatar">AS</span>
+            <span class="avatar" id="userAvatar">AS</span>
             <span class="profile-copy"
-              ><strong>Admin Staff</strong
+              ><strong id="profileName">Admin Staff</strong
               ><small>System Administrator</small></span
             >
           </div>
@@ -70,7 +71,7 @@
             <div class="status-indicator">
               <i></i><span>All systems operational</span>
             </div>
-            <a href="../login/login.html">↪ Sign out</a>
+            <a href="../login/login.html" id="signOut">↪ Sign out</a>
           </div>
         </aside>
 
@@ -373,6 +374,54 @@
                     <option>Admin only</option>
                     <option>Auto-approve</option>
                   </select>
+                </div>
+              </article>
+              <!-- Administrator-only account creation and role assignment. -->
+              <article class="card settings-card">
+                <div class="card-heading">
+                  <div>
+                    <h2>User Accounts</h2>
+                    <p>
+                      Create accounts for students, teachers, and administrators.
+                    </p>
+                  </div>
+                </div>
+                <form id="userForm" class="date-grid user-form">
+                  <label
+                    >Full name<input id="newUserName" type="text" required
+                  /></label>
+                  <label
+                    >Email<input id="newUserEmail" type="email" required
+                  /></label>
+                  <label
+                    >Role<select id="newUserRole">
+                      <option value="student">Student</option>
+                      <option value="teacher">Teacher</option>
+                      <option value="admin">Administrator</option>
+                    </select></label
+                  >
+                  <label
+                    >Password<input id="newUserPassword" type="password" required
+                    /><small
+                      >Min 8 characters with uppercase, lowercase, number, and
+                      symbol.</small
+                    ></label
+                  >
+                  <button class="button button-primary" type="submit">
+                    ＋ Create account
+                  </button>
+                </form>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="userRows"></tbody>
+                  </table>
                 </div>
               </article>
               <article class="card settings-card">
