@@ -70,6 +70,41 @@
     }
   }
 
+  // Older versions of the store shipped different demo emails. Whenever a
+  // stored account carries a seed id, refresh it to the current seed details
+  // so the documented demo logins keep working; accounts created by an
+  // administrator use their own ids and are never touched. A seed email that
+  // is already used by another account is left alone to avoid duplicates.
+  function syncSeedUsers(users) {
+    var changed = false;
+    SEED_USERS.forEach(function (seed) {
+      var stored = users.find(function (user) {
+        return user.id === seed.id;
+      });
+      if (!stored) return;
+      var taken = users.some(function (user) {
+        return (
+          user.id !== stored.id &&
+          normalizeEmail(user.email) === normalizeEmail(seed.email)
+        );
+      });
+      if (taken) return;
+      if (
+        stored.name !== seed.name ||
+        stored.email !== seed.email ||
+        stored.password !== seed.password ||
+        stored.role !== seed.role
+      ) {
+        stored.name = seed.name;
+        stored.email = seed.email;
+        stored.password = seed.password;
+        stored.role = seed.role;
+        changed = true;
+      }
+    });
+    return changed;
+  }
+
   // The user list is seeded whenever it is missing or empty, which also acts
   // as a safeguard: an administrator can never lock everyone out for good.
   function getUsers() {
@@ -79,7 +114,10 @@
         return Object.assign({}, seed);
       });
       write(USERS_KEY, users);
+      return users;
     }
+    // Keep stored copies of the demo accounts aligned with the seed data.
+    if (syncSeedUsers(users)) write(USERS_KEY, users);
     return users;
   }
 

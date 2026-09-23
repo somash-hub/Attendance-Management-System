@@ -109,10 +109,11 @@ installation.
 
 Accounts and attendance settings are stored in the browser via `localStorage`.
 The demo accounts are restored automatically whenever the account list is
-empty, so an administrator can always sign in. The attendance threshold is
-shared through the same store, so warnings and at-risk lists stay in sync
-across every portal. Passwords are kept in plain text because this is a
-frontend prototype; backend authentication with hashing is planned.
+empty, and stored copies are refreshed automatically, so browsers that saved
+an earlier demo email still sign in with the current one. The attendance
+threshold is shared through the same store, so warnings and at-risk lists
+stay in sync across every portal. Passwords are kept in plain text because
+this is a frontend prototype; backend authentication with hashing is planned.
 
 The administrator prototype includes dashboard metrics, program attendance
 visualization, student and faculty directories, course cards, leave-request
