@@ -57,3 +57,30 @@ togglePassword.addEventListener("click", function () {
   passwordInput.type = isPasswordHidden ? "text" : "password";
   togglePassword.textContent = isPasswordHidden ? "Hide" : "Show";
 });
+
+// Demo account shortcuts fill the form with the seeded credentials so the
+// role-based redirect can be tried quickly. The accounts come from the shared
+// store, which keeps this list in sync with the seed data.
+const roleNames = {
+  student: "Student",
+  teacher: "Teacher",
+  admin: "Administrator",
+};
+const demoAccounts = document.getElementById("demoAccounts");
+
+AttendIQ.SEED_USERS.forEach((account) => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "demo-chip";
+  button.innerHTML = `<strong>${roleNames[account.role]}</strong><small>${account.email}</small>`;
+
+  button.addEventListener("click", () => {
+    emailInput.value = account.email;
+    passwordInput.value = account.password;
+    message.textContent = `Filled the demo ${roleNames[account.role].toLowerCase()} login — press Sign in.`;
+    message.className = "message info";
+    document.querySelector(".login-button").focus();
+  });
+
+  demoAccounts.appendChild(button);
+});

@@ -88,8 +88,9 @@ installation.
 1. Open `landing page/landing.html` in a web browser to view the public
    landing page.
 2. Use any portal button to open `login/login.html`.
-3. Sign in with one of the demo accounts below; the account role decides
-   which portal opens.
+3. Sign in with one of the demo accounts below, or click a demo chip on the
+   login page to auto-fill the credentials; the account role decides which
+   portal opens.
 4. Administrators can open **Settings → User Accounts** to create new users
    and assign roles. New accounts can sign in immediately.
 5. Opening a portal while signed out redirects back to the login page.
