@@ -23,8 +23,13 @@ Create the three Auth users first, then choose one of these methods.
 
 ### Supabase Dashboard
 
-**SQL Editor → New query** → paste the whole of
-`supabase/migrations/20260924000100_initial_attendance_schema.sql` → **Run**.
+Apply the migrations in order from `supabase/migrations/`:
+
+1. `20260924000100_initial_attendance_schema.sql`
+2. `20260924000200_phase1_security_integrity.sql`
+3. `20260924000300_phase2_academic_data_model.sql`
+
+Use separate SQL Editor queries, or paste them in order and run each query.
 
 ### Supabase CLI
 
@@ -40,15 +45,17 @@ Do not commit the access token created by `supabase login`.
 It creates:
 
 - Tables: `profiles`, `settings`, `subjects`, `students`, `attendance`,
-  `leaves`, `faculty`, and `audit_logs`
+  `leaves`, `faculty`, `audit_logs`, `academic_years`, `semesters`,
+  `sections`, `enrollments`, and `course_offerings`
 - Role helpers (`role_of`, `is_admin`, `is_staff`, `student_id_of`) and all
   row level security policies
 - Teacher attendance access restricted to assigned subjects, and student leave
   submissions forced to begin as pending
-- Teacher/admin leave-document access restricted to the teacher's assigned
-  program roster until section-level offerings are added in Phase 2
+- Relationship-aware access now uses current sections and course offerings;
+  teachers can read students and academic records connected to their assigned
+  offerings, while students can read their own academic relationships
 - The private `leave-documents` storage bucket; students can upload and read
-  their own documents, while staff can review every leave document
+  their own documents, while assigned staff can review related documents
 - Demo seeds: 5 subjects (CSC419–CSC425), the 2079 batch roster, Aryan's
   attendance history, and the 4 demo leave requests
 
@@ -107,24 +114,35 @@ select count(*) from public.subjects;    -- 5
 select count(*) from public.students;    -- 8
 select count(*) from public.attendance;  -- 8 (Aryan's history)
 select count(*) from public.leaves;      -- 4
+select count(*) from public.academic_years; -- 1 current year
+select count(*) from public.semesters;     -- 1 current semester
+select count(*) from public.sections;      -- 1 current section
+select count(*) from public.course_offerings; -- 5 active offerings
+select count(*) from public.enrollments;   -- 8 active enrollments
 ```
 
 ## Access rules at a glance
 
-| Table        | Student                  | Teacher                       | Admin |
-| ------------ | ------------------------ | ----------------------------- | ----- |
-| `attendance` | read own rows            | read/write own subject rows   | all   |
-| `leaves`     | insert + read own        | read + approve/reject         | all   |
-| `students`   | read (roster)            | read                          | write |
-| `subjects`   | read                     | read                          | write |
-| `settings`   | read                     | read                          | update |
-| `profiles`   | read own                 | read own                      | all   |
+| Table                 | Student                         | Teacher                              | Admin |
+| --------------------- | ------------------------------- | ------------------------------------ | ----- |
+| `attendance`          | read own rows                   | read/write assigned offering rows   | all   |
+| `leaves`              | insert + read own               | read/review assigned students       | all   |
+| `students`            | read own row                    | read assigned section roster        | all   |
+| `subjects`            | read catalogue                  | read assigned offerings              | all   |
+| `enrollments`         | read own enrollment             | read assigned section relationships | all   |
+| `course_offerings`    | read enrolled offerings         | read assigned offerings              | all   |
+| `academic_years`      | read                            | read                                 | all   |
+| `semesters`           | read                            | read                                 | all   |
+| `sections`            | read                            | read                                 | all   |
+| `settings`            | read                            | read                                 | update |
+| `profiles`            | read own                        | read own                             | all   |
 
 ## Still to do later (not part of this setup)
 
 - Extra teacher accounts for the faculty directory (currently one teacher
   account exists; the rest of the directory stays demo data until then).
-- Administrator forms for students, subjects, and faculty assignments.
 - Remaining demo panels: dashboard charts, class schedule, notifications,
   faculty/course cards, and monthly trend.
+- Administrator CRUD forms for students, faculty, subjects, course offerings,
+  enrollments, and academic structure.
 - Leave-document viewing for reviewers.

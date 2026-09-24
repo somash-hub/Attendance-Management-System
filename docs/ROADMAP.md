@@ -5,7 +5,7 @@
 - Frontend: plain HTML, CSS, and JavaScript.
 - Backend: Supabase Auth, Postgres, Row Level Security, Storage, and Deno Edge Functions.
 - Existing core flows: authentication, role redirects, attendance marking, student dashboard, leave review, settings, and CSV exports.
-- All nine frontend JavaScript files pass `node --check`.
+- All ten frontend JavaScript files pass `node --check`.
 - The hosted Supabase project is connected. The current repository revision is the source of truth for this roadmap.
 
 ## Phase 0 — Foundation and decisions
@@ -66,7 +66,9 @@ section-level course offerings remain the next prerequisite.
 
 ## Phase 2 — Academic data model
 
-Add the minimum relational structure needed by the product:
+**Status: complete**
+
+Phase 2 adds the minimum relational structure needed by the product:
 
 - `academic_years`
 - `semesters`
@@ -74,9 +76,17 @@ Add the minimum relational structure needed by the product:
 - `enrollments`
 - `course_offerings`
 
-Migrate existing subjects, students, teacher assignments, attendance, and leave rows without deleting legacy data.
+The migration is `supabase/migrations/20260924000300_phase2_academic_data_model.sql`.
+It backfills the current academic year, Semester 7, BSc CSIT Section A, five
+active course offerings, eight active enrollments, and links existing
+attendance and leave rows without deleting legacy data. Relationship-aware RLS
+now limits student, teacher, admin, and leave-document access to the academic
+connections represented by the new tables.
 
-**Exit gate:** an administrator can represent a current academic year, semester, section, subject, teacher assignment, and student enrollment in the database.
+**Exit gate passed:** an administrator can represent a current academic year,
+semester, section, subject, teacher assignment, and student enrollment in the
+database; the remote migration is applied, schema lint passes, and live role
+checks confirm the expected visibility boundaries.
 
 ## Phase 3 — Administrator CRUD, one vertical slice at a time
 

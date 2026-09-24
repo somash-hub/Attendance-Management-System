@@ -37,8 +37,8 @@ plain HTML, CSS, and JavaScript.
 - Student email-domain validation using the college domain `@kct.edu.np`
 - Administrator-controlled attendance threshold persisted in the `settings`
   table (defaults to 80%, the TU requirement, and can be adjusted in Settings)
-- Teacher attendance marking backed by `students`, `subjects`, and
-  `attendance`, including AD/BS dates and database-enforced uniqueness
+- Teacher attendance marking backed by students, subjects, course offerings,
+  and attendance, including AD/BS dates and database-enforced uniqueness
 - Student dashboard and attendance log computed from the signed-in student's
   own marks, with subject percentages and threshold warnings
 - Leave workflow: student submission with optional private document upload,
@@ -48,6 +48,8 @@ plain HTML, CSS, and JavaScript.
   Bikram Sambat dates, and Nepali roll numbers
 - Supabase schema with row-level security, demo seeds, a private document
   storage bucket, and admin-only account-management edge functions
+- Academic data model for years, semesters, sections, enrollments, and course
+  offerings, with existing demo records linked into the current structure
 - Supabase browser SDK loading and a public publishable-key guard; the
   service-role key is never included in frontend files
 - Password visibility toggle, client-side validation, and responsive styling
@@ -55,14 +57,17 @@ plain HTML, CSS, and JavaScript.
 
 ## Supabase status
 
-The hosted project `yvvgvteijtxnuwtncfio` is connected. The initial migration
-and the Phase 1 security migration are applied, the `admin-create-user`,
-`admin-delete-user`, and `upload-leave-document` Edge Functions are deployed,
-and `shared/supabase.js` contains only the public publishable key.
-The frontend calls the backend through `shared/supabase-store.js`; a configured
-client never silently falls back to localStorage after a request error. The
-local store is available only in explicit demo mode (`?demo=1`). See
-`supabase/SETUP.md` for the setup and security notes.
+The hosted project `yvvgvteijtxnuwtncfio` is connected. The initial migration,
+Phase 1 security migration, and Phase 2 academic data-model migration are
+applied. The `admin-create-user`, `admin-delete-user`, and
+`upload-leave-document` Edge Functions are deployed, and `shared/supabase.js`
+contains only the public publishable key. The Phase 2 migration backfills the
+current academic year, Semester 7, BSc CSIT Section A, five course offerings,
+and eight active student enrollments while preserving legacy attendance and
+leave rows. The frontend calls the backend through `shared/supabase-store.js`;
+a configured client never silently falls back to localStorage after a request
+error. The local store is available only in explicit demo mode (`?demo=1`).
+See `supabase/SETUP.md` for the setup and security notes.
 
 ## Planned Frontend Work
 
@@ -117,7 +122,8 @@ report flows are connected. Remaining iterations are:
 │   │   └── upload-leave-document/index.ts
 │   └── migrations/
 │       ├── 20260924000100_initial_attendance_schema.sql
-│       └── 20260924000200_phase1_security_integrity.sql
+│       ├── 20260924000200_phase1_security_integrity.sql
+│       └── 20260924000300_phase2_academic_data_model.sql
 └── .vscode/
     ├── mcp.json
     └── settings.json
