@@ -111,46 +111,59 @@ alter table public.leaves enable row level security;
 
 -- Profiles: users read their own row; administrators read and manage all.
 -- Account creation and deletion happen in the admin edge functions instead.
+drop policy if exists "profiles read own" on public.profiles;
 create policy "profiles read own" on public.profiles
   for select using (id = auth.uid());
+drop policy if exists "profiles admin read" on public.profiles;
 create policy "profiles admin read" on public.profiles
   for select using (public.is_admin());
+drop policy if exists "profiles admin update" on public.profiles;
 create policy "profiles admin update" on public.profiles
   for update using (public.is_admin()) with check (public.is_admin());
 
 -- Settings: readable by every signed-in user; only administrators change them.
+drop policy if exists "settings read" on public.settings;
 create policy "settings read" on public.settings
   for select using (auth.uid() is not null);
+drop policy if exists "settings admin update" on public.settings;
 create policy "settings admin update" on public.settings
   for update using (public.is_admin()) with check (public.is_admin());
 
 -- Subjects and students: readable by signed-in users; written by admins only.
+drop policy if exists "subjects read" on public.subjects;
 create policy "subjects read" on public.subjects
   for select using (auth.uid() is not null);
+drop policy if exists "subjects admin write" on public.subjects;
 create policy "subjects admin write" on public.subjects
   for insert with check (public.is_admin());
+drop policy if exists "subjects admin update" on public.subjects;
 create policy "subjects admin update" on public.subjects
   for update using (public.is_admin());
+drop policy if exists "subjects admin delete" on public.subjects;
 create policy "subjects admin delete" on public.subjects
   for delete using (public.is_admin());
 
+drop policy if exists "students read" on public.students;
 create policy "students read" on public.students
   for select using (auth.uid() is not null);
+drop policy if exists "students admin write" on public.students;
 create policy "students admin write" on public.students
   for insert with check (public.is_admin());
+drop policy if exists "students admin update" on public.students;
 create policy "students admin update" on public.students
   for update using (public.is_admin());
+drop policy if exists "students admin delete" on public.students;
 create policy "students admin delete" on public.students
   for delete using (public.is_admin());
 
 -- Attendance: students read their own marks, teachers read and write the
 -- records of the subjects assigned to them, administrators manage everything.
+drop policy if exists "attendance own read" on public.attendance;
 create policy "attendance own read" on public.attendance
   for select using (student_id = public.student_id_of());
+drop policy if exists "attendance staff read" on public.attendance;
 create policy "attendance staff read" on public.attendance
-  for select using (public.is_staff());
-create policy "attendance teacher insert" on public.attendance
-  for insert with check (
+  for select using (
     public.is_admin()
     or (
       public.role_of() = 'teacher'
@@ -160,6 +173,20 @@ create policy "attendance teacher insert" on public.attendance
       )
     )
   );
+drop policy if exists "attendance teacher insert" on public.attendance;
+create policy "attendance teacher insert" on public.attendance
+  for insert with check (
+    public.is_admin()
+    or (
+      public.role_of() = 'teacher'
+      and marked_by = auth.uid()
+      and exists (
+        select 1 from public.subjects s
+        where s.code = subject_code and s.teacher_id = auth.uid()
+      )
+    )
+  );
+drop policy if exists "attendance teacher update" on public.attendance;
 create policy "attendance teacher update" on public.attendance
   for update using (
     public.is_admin()
@@ -170,17 +197,40 @@ create policy "attendance teacher update" on public.attendance
         where s.code = subject_code and s.teacher_id = auth.uid()
       )
     )
+  ) with check (
+    public.is_admin()
+    or (
+      public.role_of() = 'teacher'
+      and marked_by = auth.uid()
+      and exists (
+        select 1 from public.subjects s
+        where s.code = subject_code and s.teacher_id = auth.uid()
+      )
+    )
   );
+drop policy if exists "attendance admin delete" on public.attendance;
 create policy "attendance admin delete" on public.attendance
   for delete using (public.is_admin());
 
 -- Leaves: students raise and view their own requests; staff review them.
+drop policy if exists "leaves own read" on public.leaves;
 create policy "leaves own read" on public.leaves
   for select using (student_id = public.student_id_of());
+drop policy if exists "leaves staff read" on public.leaves;
 create policy "leaves staff read" on public.leaves
   for select using (public.is_staff());
+drop policy if exists "leaves own insert" on public.leaves;
 create policy "leaves own insert" on public.leaves
-  for insert with check (student_id = public.student_id_of());
+  for insert with check (
+    student_id = public.student_id_of()
+    and status = 'pending'
+    and reviewed_by is null
+    and (
+      document_url is null
+      or (storage.foldername(document_url))[1] = auth.uid()::text
+    )
+  );
+drop policy if exists "leaves staff update" on public.leaves;
 create policy "leaves staff update" on public.leaves
   for update using (public.is_staff()) with check (public.is_staff());
 
@@ -191,15 +241,21 @@ values ('leave-documents', 'leave-documents', false)
 on conflict (id) do nothing;
 
 -- Students upload into their own folder; staff can read every document.
+drop policy if exists "leave docs own upload" on storage.objects;
 create policy "leave docs own upload" on storage.objects
   for insert to authenticated
   with check (
     bucket_id = 'leave-documents'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
+-- Students read their own documents; staff review every leave document.
+drop policy if exists "leave docs authenticated read" on storage.objects;
 create policy "leave docs authenticated read" on storage.objects
   for select to authenticated
-  using (bucket_id = 'leave-documents');
+  using (
+    bucket_id = 'leave-documents'
+    and (public.is_staff() or (storage.foldername(name))[1] = auth.uid()::text)
+  );
 
 -- 5. Demo seeds ---------------------------------------------------------------
 -- The three accounts must exist in Authentication -> Users first (see

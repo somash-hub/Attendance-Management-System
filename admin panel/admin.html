@@ -7,6 +7,10 @@
     <meta name="description" content="AttendIQ administrator portal" />
     <title>AttendIQ | Admin Portal</title>
     <link rel="stylesheet" href="admin.css" />
+    <!-- Supabase browser SDK; safe to expose because RLS protects the tables. -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Load the public client before the local fallback store. -->
+    <script src="../shared/supabase.js" defer></script>
     <script src="../shared/store.js" defer></script>
     <script src="admin.js" defer></script>
   </head>

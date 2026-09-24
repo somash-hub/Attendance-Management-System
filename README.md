@@ -1,9 +1,10 @@
 # AttendIQ Student Attendance System
 
-AttendIQ is a frontend project for a role-based student attendance management
-website. The current implementation is being built with plain HTML, CSS, and
-JavaScript so that the interface and user flows can be completed before adding
-a backend.
+AttendIQ is a role-based student attendance management website built with
+plain HTML, CSS, and JavaScript. The current app keeps a browser-only fallback
+store so the demo works immediately, while the Supabase schema, security
+policies, storage bucket, and account-management functions are prepared for
+the hosted data layer.
 
 ## Product Direction
 
@@ -17,8 +18,8 @@ finished website:
 - **Administrators:** institution-wide dashboard, student and teacher
   management, course management, leave management, and settings
 - **Shared experience:** role-based authentication, responsive navigation,
-  status badges, charts, warnings below the 75% threshold, and clear empty or
-  success states
+  status badges, charts, warnings below the administrator-selected threshold,
+  and clear empty or success states
 
 The reference bundle is a React/Vite prototype with Recharts and Lucide icons.
 It is being used as a functional and visual reference only; it has not been
@@ -41,18 +42,33 @@ plain HTML, CSS, and JavaScript.
 - Password visibility toggle
 - Client-side validation for email and password requirements
 - Responsive styling for the login screen and all portals
+- Supabase-ready schema with row-level security, demo seeds, private document
+  storage, and admin-only account-management edge functions
+- Supabase browser SDK loading and a public client guard; the service-role key
+  is never included in frontend files
+
+## Supabase status
+
+The repository contains the database and edge-function source in
+`supabase/`, but the hosted project is not connected to the frontend yet. The
+public anon key is still intentionally a placeholder in
+`shared/supabase.js`; until it is replaced, the working localStorage demo is
+used. See `supabase/SETUP.md` for the dashboard/MCP steps and security notes.
 
 ## Planned Frontend Work
 
-The authentication foundation is in place. The next iterations will make the
-portals work on shared data and finish the remaining actions:
+The local demo and Supabase repository scaffolding are in place. The next
+iterations are:
 
-1. Build a shared data store so the student, teacher, and administrator
-   portals read and write the same attendance, leave, and course records.
-2. Replace demo actions with real behavior: CSV export, add/edit forms,
+1. Complete the hosted Supabase setup: create the three demo Auth users, push
+   `supabase/migrations/20260924000100_initial_attendance_schema.sql`, deploy
+   the two account-management functions, and paste only the public anon key
+   into `shared/supabase.js`.
+2. Move authentication, account management, settings, and attendance/leave
+   records from the local fallback store to Supabase queries.
+3. Finish the remaining attendance actions: CSV export, add/edit forms,
    persisted settings, and notifications.
-3. Consolidate duplicated panel helpers and styles into shared files.
-4. Replace browser-only accounts and demo data with backend/API integration.
+4. Consolidate duplicated panel helpers and styles into shared files.
 
 ## Project Structure
 
@@ -79,8 +95,19 @@ portals work on shared data and finish the remaining actions:
 │   ├── login.css
 │   └── login.js
 ├── shared/
-│   └── store.js
+│   ├── store.js
+│   └── supabase.js
+├── supabase/
+│   ├── .gitignore
+│   ├── config.toml
+│   ├── SETUP.md
+│   ├── functions/
+│   │   ├── admin-create-user/index.ts
+│   │   └── admin-delete-user/index.ts
+│   └── migrations/
+│       └── 20260924000100_initial_attendance_schema.sql
 └── .vscode/
+    ├── mcp.json
     └── settings.json
 ```
 
@@ -98,6 +125,8 @@ installation.
 4. Administrators can open **Settings → User Accounts** to create new users
    and assign roles. New accounts can sign in immediately.
 5. Opening a portal while signed out redirects back to the login page.
+6. The pages load the Supabase SDK, but they continue using the local fallback
+   until the public anon key is configured in `shared/supabase.js`.
 
 ### Demo Accounts
 
@@ -107,13 +136,14 @@ installation.
 | Teacher       | `priya.mehta@kct.edu.np` | `Teacher@2025` |
 | Student       | `aryan.k@kct.edu.np`     | `Student@2025` |
 
-Accounts and attendance settings are stored in the browser via `localStorage`.
-The demo accounts are restored automatically whenever the account list is
-empty, and stored copies are refreshed automatically, so browsers that saved
-an earlier demo email still sign in with the current one. The attendance
-threshold is shared through the same store, so warnings and at-risk lists
-stay in sync across every portal. Passwords are kept in plain text because
-this is a frontend prototype; backend authentication with hashing is planned.
+Accounts and attendance settings currently use `localStorage` in the working
+browser-only demo. The demo accounts are restored automatically whenever the
+account list is empty, and stored copies are refreshed automatically, so
+browsers that saved an earlier demo email still sign in with the current one.
+The attendance threshold is shared through the same fallback store, so
+warnings and at-risk lists stay in sync across every portal. Passwords are
+kept in plain text only in this frontend demo; do not use it for real users.
+The Supabase setup in `supabase/SETUP.md` is the replacement for this fallback.
 
 The administrator prototype includes dashboard metrics, program attendance
 visualization, student and faculty directories, course cards, leave-request
@@ -130,4 +160,5 @@ demo data and browser-only state.
 
 The portals currently run on demo data and browser-only accounts. A backend
 will be needed for real authentication, shared attendance data, reports, and
-role-based permissions.
+role-based permissions. The prepared Supabase schema and edge functions will
+provide that hosted layer once the authenticated setup steps are completed.

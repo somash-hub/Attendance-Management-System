@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AttendIQ | Teacher Portal</title>
     <link rel="stylesheet" href="teacher.css" />
+    <!-- Supabase browser SDK; safe to expose because RLS protects the tables. -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Load the public client before the local fallback store. -->
+    <script src="../shared/supabase.js" defer></script>
     <script src="../shared/store.js" defer></script>
     <script src="teacher.js" defer></script>
   </head>

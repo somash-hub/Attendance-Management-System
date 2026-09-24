@@ -1,7 +1,10 @@
 # Supabase Setup for AttendIQ
 
 Project reference: `yvvgvteijtxnuwtncfio`
-Everything in this folder is **idempotent** — running it again is safe.
+Everything in this folder is **re-runnable** — the schema drops and recreates
+its named policies before enabling them, so policy changes can be applied
+again safely. This source is prepared locally; the hosted project still needs
+the dashboard/MCP steps below.
 
 ## 1. Create the three demo accounts
 
@@ -14,10 +17,25 @@ Supabase Dashboard → **Authentication → Users → Add user** → tick
 | `priya.mehta@kct.edu.np`  | `Teacher@2025` | teacher |
 | `aryan.k@kct.edu.np`      | `Student@2025` | student |
 
-## 2. Run the schema
+## 2. Apply the database migration
 
-Dashboard → **SQL Editor → New query** → paste the whole of
-`supabase/schema.sql` → **Run**.
+Create the three Auth users first, then choose one of these methods.
+
+### Supabase Dashboard
+
+**SQL Editor → New query** → paste the whole of
+`supabase/migrations/20260924000100_initial_attendance_schema.sql` → **Run**.
+
+### Supabase CLI
+
+Authenticate once with `npx supabase login`, then link this folder:
+
+```bash
+npx supabase link --project-ref yvvgvteijtxnuwtncfio
+npx supabase db push
+```
+
+Do not commit the access token created by `supabase login`.
 
 It creates:
 
@@ -25,7 +43,10 @@ It creates:
   `leaves`
 - Role helpers (`role_of`, `is_admin`, `is_staff`, `student_id_of`) and all
   row level security policies
-- The private `leave-documents` storage bucket with upload/read policies
+- Teacher attendance access restricted to assigned subjects, and student leave
+  submissions forced to begin as pending
+- The private `leave-documents` storage bucket; students can upload and read
+  their own documents, while staff can review every leave document
 - Demo seeds: 5 subjects (CSC419–CSC425), the 2079 batch roster, Aryan's
   attendance history, and the 4 demo leave requests
 
@@ -62,9 +83,14 @@ Settings → **API** → copy:
 - **Project URL** → already filled in `shared/supabase.js`
 - **anon public key** → paste it into `shared/supabase.js`
 
+For current Supabase dashboards, the public and secret keys are shown under
+**Project Settings → API Keys**. Use only the `anon`/`publishable` key in the
+browser.
+
 The anon key is safe to ship to the browser because every table is protected
-by row level security. **Never** put the `service_role` key in frontend files
-or in this repository.
+by row level security. **Never** put the `service_role` key in frontend files,
+Git commits, or this repository. The app deliberately keeps the local
+fallback active while this value is a placeholder.
 
 ## 6. Sanity checks (SQL Editor)
 
@@ -93,4 +119,4 @@ select count(*) from public.leaves;      -- 4
 - Extra teacher accounts for the faculty directory (currently one teacher
   account exists; the rest of the directory stays demo data until then).
 - The frontend refactor that moves `shared/store.js` from localStorage to
-  these tables (see the project roadmap).
+  these tables (see `supabase/SETUP.md` and the project roadmap).

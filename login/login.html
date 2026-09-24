@@ -6,6 +6,10 @@
     <title>AttendIQ - Login</title>
     <!-- HTML loads the CSS file for appearance and JavaScript for behavior. -->
     <link rel="stylesheet" href="login.css" />
+    <!-- Supabase browser SDK; safe to expose because RLS protects the tables. -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Load the public client before the local fallback store. -->
+    <script src="../shared/supabase.js" defer></script>
     <!-- The shared store provides the accounts and sessions for login.js. -->
     <script src="../shared/store.js" defer></script>
     <!-- defer waits until HTML is parsed before running login.js. -->
