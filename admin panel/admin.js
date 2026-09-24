@@ -158,6 +158,7 @@ let leaves = [
 ];
 
 let currentFilter = "all";
+let currentSections = [];
 
 // Shared DOM helpers.
 const $ = (selector) => document.querySelector(selector);
@@ -180,7 +181,7 @@ function renderStudents(query = "") {
     .map((student) => {
       // The warned status is derived from the administrator's threshold.
       const warned = student.attendance < settings.threshold;
-      return `<tr><td><strong>${h(student.name)}</strong><small>${h(student.email)}</small></td><td class="mono">${h(student.roll)}</td><td>${h(student.dept)}</td><td><strong class="${warned ? "danger-text" : ""}">${h(student.attendance)}%</strong></td><td>${statusBadge(warned ? "Warned" : "Active")}</td><td><button class="row-action" type="button">•••</button></td></tr>`;
+      return `<tr><td><strong>${h(student.name)}</strong><small>${h(student.email)}</small></td><td class="mono">${h(student.roll)}</td><td>${h(student.dept)}</td><td><strong class="${warned ? "danger-text" : ""}">${h(student.attendance)}%</strong></td><td>${statusBadge(warned ? "Warned" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-student="${h(student.id)}">Edit</button><button type="button" data-archive-student="${h(student.id)}">Archive</button></div></td></tr>`;
     })
     .join("");
 }
@@ -270,19 +271,26 @@ function loadAdminLeaves() {
   });
 }
 
-// Load real students and compute their attendance percentages.
+// Load real students, current sections, and attendance percentages.
 function loadAdminStudents() {
   if (!window.AttendIQDb) return Promise.resolve();
   return Promise.all([
     AttendIQSupabase.getStudents(),
     AttendIQSupabase.getAttendance(),
+    AttendIQSupabase.getSections(),
   ]).then(function (results) {
     const studentsResult = results[0];
     const attendanceResult = results[1];
-    if (!studentsResult.ok || !attendanceResult.ok) {
-      showToast(studentsResult.error || attendanceResult.error || "Student attendance could not be loaded.");
+    const sectionsResult = results[2];
+    if (!studentsResult.ok || !attendanceResult.ok || !sectionsResult.ok) {
+      showToast(studentsResult.error || attendanceResult.error || sectionsResult.error || "Student records could not be loaded.");
       return;
     }
+    currentSections = sectionsResult.data;
+    const sectionSelect = $("#studentSection");
+    sectionSelect.innerHTML = currentSections
+      .map((section) => `<option value="${h(section.id)}">${h(section.program)} · ${h(section.batch)} · ${h(section.name)}</option>`)
+      .join("");
     const totals = {};
     attendanceResult.data.forEach(function (row) {
       const entry = totals[row.student_id] || { total: 0, present: 0 };
@@ -293,10 +301,14 @@ function loadAdminStudents() {
     students = studentsResult.data.map(function (student) {
       const entry = totals[student.id] || { total: 0, present: 0 };
       return {
+        id: student.id,
         name: student.name,
         email: student.email || "",
         roll: student.roll,
         dept: student.program,
+        batch: student.batch,
+        section: student.section,
+        section_id: student.enrollments && student.enrollments[0] ? student.enrollments[0].section_id : "",
         attendance: entry.total ? Math.round((entry.present / entry.total) * 100) : 0,
       };
     });
@@ -388,10 +400,63 @@ $("#userForm").addEventListener("submit", async (event) => {
   const created = result.data && (result.data.user || result.data);
   event.target.reset();
   await loadUsers();
+  if (created.role === "student") await loadAdminStudents();
   showToast(`${created.name} added as ${ROLE_LABELS[created.role]}.`);
 });
 
-// Delegated events update roles and remove accounts from rendered rows.
+// Student create/edit/archive controls use the shared adapter and current section
+// list. Existing accounts are edited without changing their Auth password.
+function openStudentEditor(student) {
+  const editor = $("#studentEditor");
+  const form = $("#studentForm");
+  form.reset();
+  $("#studentId").value = student ? student.id : "";
+  $("#studentFormTitle").textContent = student ? "Edit student" : "Add student";
+  $("#studentFormCopy").textContent = student
+    ? "Update directory information and current enrollment."
+    : "Create a linked login, student record, and current enrollment.";
+  $("#studentPasswordField").hidden = Boolean(student);
+  $("#studentPassword").required = !student;
+  $("#studentSave").textContent = student ? "Save changes" : "Create student";
+  if (student) {
+    $("#studentName").value = student.name;
+    $("#studentEmail").value = student.email;
+    $("#studentRoll").value = student.roll;
+    $("#studentProgram").value = student.dept;
+    $("#studentBatch").value = student.batch;
+    $("#studentSection").value = student.section_id;
+  }
+  editor.hidden = false;
+  $("#studentName").focus();
+}
+
+function closeStudentEditor() {
+  $("#studentEditor").hidden = true;
+  $("#studentForm").reset();
+}
+
+$("#studentForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const studentId = $("#studentId").value.trim();
+  const formData = {
+    name: $("#studentName").value,
+    email: $("#studentEmail").value,
+    roll: $("#studentRoll").value,
+    program: $("#studentProgram").value,
+    batch: $("#studentBatch").value,
+    section_id: $("#studentSection").value,
+  };
+  const result = studentId
+    ? await AttendIQSupabase.updateStudent({ id: studentId, ...formData })
+    : await AttendIQSupabase.createUser({ ...formData, password: $("#studentPassword").value, role: "student", section: currentSections.find((section) => section.id === formData.section_id)?.name || "A" });
+  if (!result.ok) return showToast(result.error);
+  closeStudentEditor();
+  await loadAdminStudents();
+  showToast(studentId ? "Student details updated." : "Student account and enrollment created.");
+});
+
+$("#studentCancel").addEventListener("click", closeStudentEditor);
+
 document.addEventListener("change", async (event) => {
   const select = event.target.closest("[data-user-id]");
   if (!select) return;
@@ -472,11 +537,14 @@ $$("[data-filter]").forEach((button) =>
     renderLeaves();
   }),
 );
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const action = event.target.closest("[data-action]");
   if (action) {
     const target = action.dataset.action;
-    if (target === "student") openTab("students");
+    if (target === "student") {
+      openTab("students");
+      openStudentEditor();
+    }
     if (target === "faculty") openTab("faculty");
     if (target === "course") openTab("courses");
     if (target === "report") {
@@ -497,6 +565,22 @@ document.addEventListener("click", (event) => {
     if (target === "reset") showToast("Reset requires backend confirmation.");
     if (target === "archive")
       showToast("Archive requires backend confirmation.");
+  }
+  const editButton = event.target.closest("[data-edit-student]");
+  if (editButton) {
+    const student = students.find((item) => item.id === editButton.dataset.editStudent);
+    if (student) openStudentEditor(student);
+    return;
+  }
+  const archiveButton = event.target.closest("[data-archive-student]");
+  if (archiveButton) {
+    const student = students.find((item) => item.id === archiveButton.dataset.archiveStudent);
+    if (!student || !window.confirm(`Archive ${student.name}? Historical attendance and leave records will be preserved.`)) return;
+    const result = await AttendIQSupabase.archiveStudent(student.id);
+    if (!result.ok) return showToast(result.error);
+    await loadAdminStudents();
+    showToast(`${student.name} archived.`);
+    return;
   }
   const leaveButton = event.target.closest("[data-leave]");
   if (leaveButton) {

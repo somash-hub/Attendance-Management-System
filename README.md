@@ -50,6 +50,8 @@ plain HTML, CSS, and JavaScript.
   storage bucket, and admin-only account-management edge functions
 - Academic data model for years, semesters, sections, enrollments, and course
   offerings, with existing demo records linked into the current structure
+- Administrator student CRUD: create a linked student login and enrollment,
+  edit student/section details, and archive students while preserving history
 - Supabase browser SDK loading and a public publishable-key guard; the
   service-role key is never included in frontend files
 - Password visibility toggle, client-side validation, and responsive styling
@@ -58,16 +60,18 @@ plain HTML, CSS, and JavaScript.
 ## Supabase status
 
 The hosted project `yvvgvteijtxnuwtncfio` is connected. The initial migration,
-Phase 1 security migration, and Phase 2 academic data-model migration are
-applied. The `admin-create-user`, `admin-delete-user`, and
-`upload-leave-document` Edge Functions are deployed, and `shared/supabase.js`
-contains only the public publishable key. The Phase 2 migration backfills the
-current academic year, Semester 7, BSc CSIT Section A, five course offerings,
-and eight active student enrollments while preserving legacy attendance and
-leave rows. The frontend calls the backend through `shared/supabase-store.js`;
-a configured client never silently falls back to localStorage after a request
-error. The local store is available only in explicit demo mode (`?demo=1`).
-See `supabase/SETUP.md` for the setup and security notes.
+Phase 1 security migration, Phase 2 academic data-model migration, and Phase 3
+student CRUD migration are applied. The `admin-create-user`,
+`admin-delete-user`, and `upload-leave-document` Edge Functions are deployed,
+and `shared/supabase.js` contains only the public publishable key. Phase 2
+backfills the current academic year, Semester 7, BSc CSIT Section A, five
+course offerings, and eight active student enrollments while preserving legacy
+attendance and leave rows. Phase 3 adds administrator student create/edit/
+archive operations with enrollment synchronization. The frontend calls the
+backend through `shared/supabase-store.js`; a configured client never silently
+falls back to localStorage after a request error. The local store is available
+only in explicit demo mode (`?demo=1`). See `supabase/SETUP.md` for the setup
+and security notes.
 
 ## Planned Frontend Work
 
@@ -77,8 +81,9 @@ report flows are connected. Remaining iterations are:
 1. Replace the remaining demo panels with database queries: faculty and course
    cards, class schedule, notifications, monthly trend, and the administrator
    dashboard charts and metrics.
-2. Add administrator forms for students, subjects, and faculty assignments so
-   the roster and course catalog can be managed instead of seeded with SQL.
+2. Add administrator forms for faculty, subjects, course offerings, and
+   academic structure so the remaining directory and catalog data can be
+   managed instead of seeded with SQL.
 3. Add leave-document viewing for reviewers and richer empty/loading states.
 4. Consolidate duplicated panel helpers and styles into shared files.
 
@@ -123,7 +128,9 @@ report flows are connected. Remaining iterations are:
 │   └── migrations/
 │       ├── 20260924000100_initial_attendance_schema.sql
 │       ├── 20260924000200_phase1_security_integrity.sql
-│       └── 20260924000300_phase2_academic_data_model.sql
+│       ├── 20260924000300_phase2_academic_data_model.sql
+│       ├── 20260924000400_phase3_student_crud.sql
+│       └── 20260924000500_phase3_student_crud_lint_fix.sql
 └── .vscode/
     ├── mcp.json
     └── settings.json

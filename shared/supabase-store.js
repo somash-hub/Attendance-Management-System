@@ -280,6 +280,7 @@
       program: String(value.program || "BSc CSIT").trim(),
       batch: String(value.batch || "").trim(),
       section: String(value.section || "A").trim(),
+      section_id: String(value.section_id || "").trim(),
       faculty_id: String(value.faculty_id || "").trim(),
     }, "The account could not be created.");
   }
@@ -363,10 +364,51 @@
     if (!client()) return Promise.resolve(unsupportedLocal("Student records"));
     return remote(function () {
       return client().from("students")
-        .select("id, profile_id, roll, name, email, program, batch, section, active")
+        .select("id, profile_id, roll, name, email, program, batch, section, active, archived_at, enrollments!inner(id, section_id, status)")
         .eq("active", true)
+        .eq("enrollments.status", "active")
         .order("roll", { ascending: true });
     }, "Students could not be loaded.");
+  }
+
+  function getSections() {
+    if (!client()) return Promise.resolve(unsupportedLocal("Academic sections"));
+    return remote(function () {
+      return client().from("sections")
+        .select("id, academic_year_id, semester_id, program, batch, name, is_current")
+        .eq("is_current", true)
+        .order("program", { ascending: true })
+        .order("batch", { ascending: true })
+        .order("name", { ascending: true });
+    }, "Academic sections could not be loaded.");
+  }
+
+  function updateStudent(input) {
+    if (!client()) return Promise.resolve(unsupportedLocal("Student records"));
+    var value = input || {};
+    var required = [value.id, value.name, value.email, value.roll, value.program, value.batch, value.section_id];
+    if (required.some(function (item) { return !String(item || "").trim(); })) {
+      return Promise.resolve(failure("Complete every student field before saving.", "supabase"));
+    }
+    return remote(function () {
+      return client().rpc("admin_update_student", {
+        p_student_id: String(value.id).trim(),
+        p_name: String(value.name).trim(),
+        p_email: String(value.email).trim(),
+        p_roll: String(value.roll).trim(),
+        p_program: String(value.program).trim(),
+        p_batch: String(value.batch).trim(),
+        p_section_id: String(value.section_id).trim(),
+      }).single();
+    }, "The student could not be updated.");
+  }
+
+  function archiveStudent(studentId) {
+    if (!client()) return Promise.resolve(unsupportedLocal("Student records"));
+    if (!studentId) return Promise.resolve(failure("Student is required.", "supabase"));
+    return remote(function () {
+      return client().rpc("admin_archive_student", { p_student_id: String(studentId) }).single();
+    }, "The student could not be archived.");
   }
 
   function getSubjects(filters) {
@@ -515,6 +557,9 @@
   api.assignRole = assignRole;
   api.removeUser = removeUser;
   api.getStudents = getStudents;
+  api.getSections = getSections;
+  api.updateStudent = updateStudent;
+  api.archiveStudent = archiveStudent;
   api.getSubjects = getSubjects;
   api.getAttendance = getAttendance;
   api.saveAttendance = saveAttendance;

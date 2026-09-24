@@ -90,13 +90,18 @@ checks confirm the expected visibility boundaries.
 
 ## Phase 3 — Administrator CRUD, one vertical slice at a time
 
-Implement in this order:
+**Status: in progress — student slice complete**
 
-1. Student create/edit/archive.
-2. Faculty create/edit/archive.
+The first vertical slice is complete in `supabase/migrations/20260924000400_phase3_student_crud.sql`
+with a lint follow-up in `20260924000500_phase3_student_crud_lint_fix.sql`:
+
+1. **Student create/edit/archive — complete.** The admin portal can create a
+   linked student login, student record, and current enrollment; edit directory
+   details and current section; and archive a student without deleting history.
+2. Faculty create/edit/archive — next.
 3. Subject create/edit/archive.
 4. Course offering creation and teacher assignment.
-5. Student enrollment management.
+5. Student enrollment management beyond the create/edit flow.
 6. Academic calendar and schedule management.
 
 Each slice must include database migration, RLS, JavaScript adapter method, HTML form, validation, success/error states, tests, and documentation. No SQL should be required for normal administration.

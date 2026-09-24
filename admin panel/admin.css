@@ -950,6 +950,9 @@ td small {
   .date-grid {
     grid-template-columns: 1fr;
   }
+  .student-form {
+    grid-template-columns: 1fr;
+  }
   .setting-row {
     align-items: flex-start;
   }
@@ -988,5 +991,65 @@ td small {
   color: var(--red);
   font-size: 11px;
   font-weight: 600;
+}
+.student-editor {
+  background: #f8f8fb;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  margin: -5px 0 18px;
+  padding: 18px;
+}
+.student-editor .card-heading {
+  margin-bottom: 17px;
+}
+.student-editor h2 {
+  font-size: 16px;
+}
+.student-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.student-form label {
+  color: var(--muted);
+  display: grid;
+  font-size: 10px;
+  gap: 6px;
+}
+.student-form input,
+.student-form select {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  font-size: 11px;
+  padding: 9px;
+}
+.student-form small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.student-form-actions {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+  grid-column: 1 / -1;
+}
+.button-secondary {
+  background: #ececf0;
+  color: var(--muted);
+}
+.student-row-actions {
+  display: flex;
+  gap: 7px;
+}
+.student-row-actions button {
+  background: transparent;
+  border: 0;
+  color: var(--indigo);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 5px;
+}
+.student-row-actions button:last-child {
+  color: var(--red);
 }
 

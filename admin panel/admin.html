@@ -217,6 +217,30 @@
                   ＋ Add student
                 </button>
               </div>
+              <div class="student-editor" id="studentEditor" hidden>
+                <div class="card-heading">
+                  <div>
+                    <h2 id="studentFormTitle">Add student</h2>
+                    <p id="studentFormCopy">Create a linked login, student record, and current enrollment.</p>
+                  </div>
+                </div>
+                <form id="studentForm" class="date-grid student-form">
+                  <input id="studentId" type="hidden" />
+                  <label>Full name<input id="studentName" type="text" required /></label>
+                  <label>Email<input id="studentEmail" type="email" required /></label>
+                  <label>Roll number<input id="studentRoll" type="text" required /></label>
+                  <label>Program<input id="studentProgram" type="text" value="BSc CSIT" required /></label>
+                  <label>Batch<input id="studentBatch" type="text" value="2079" required /></label>
+                  <label>Section<select id="studentSection" required></select></label>
+                  <label id="studentPasswordField"
+                    >Login password<input id="studentPassword" type="password" required
+                  /><small>At least 8 characters with uppercase, lowercase, number, and symbol.</small></label>
+                  <div class="student-form-actions">
+                    <button class="button button-primary" id="studentSave" type="submit">Create student</button>
+                    <button class="button button-secondary" id="studentCancel" type="button">Cancel</button>
+                  </div>
+                </form>
+              </div>
               <div class="filter-row">
                 <label class="search-box"
                   >⌕<input

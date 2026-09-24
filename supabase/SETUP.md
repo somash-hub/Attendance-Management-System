@@ -28,6 +28,8 @@ Apply the migrations in order from `supabase/migrations/`:
 1. `20260924000100_initial_attendance_schema.sql`
 2. `20260924000200_phase1_security_integrity.sql`
 3. `20260924000300_phase2_academic_data_model.sql`
+4. `20260924000400_phase3_student_crud.sql`
+5. `20260924000500_phase3_student_crud_lint_fix.sql`
 
 Use separate SQL Editor queries, or paste them in order and run each query.
 
@@ -54,6 +56,9 @@ It creates:
 - Relationship-aware access now uses current sections and course offerings;
   teachers can read students and academic records connected to their assigned
   offerings, while students can read their own academic relationships
+- Administrator student CRUD RPCs support editing and archiving students while
+  preserving attendance and leave history; new student logins receive a current
+  enrollment through the `admin-create-user` Edge Function
 - The private `leave-documents` storage bucket; students can upload and read
   their own documents, while assigned staff can review related documents
 - Demo seeds: 5 subjects (CSC419–CSC425), the 2079 batch roster, Aryan's
@@ -141,8 +146,7 @@ select count(*) from public.enrollments;   -- 8 active enrollments
 
 - Extra teacher accounts for the faculty directory (currently one teacher
   account exists; the rest of the directory stays demo data until then).
+- Faculty create/edit/archive and course/subject management remain for the next
+  Phase 3 slices.
 - Remaining demo panels: dashboard charts, class schedule, notifications,
   faculty/course cards, and monthly trend.
-- Administrator CRUD forms for students, faculty, subjects, course offerings,
-  enrollments, and academic structure.
-- Leave-document viewing for reviewers.

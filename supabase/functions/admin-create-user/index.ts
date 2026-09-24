@@ -19,6 +19,7 @@ type CreateUserInput = {
   program?: string;
   batch?: string;
   section?: string;
+  section_id?: string;
   faculty_id?: string;
 };
 
@@ -74,6 +75,7 @@ Deno.serve(async (req) => {
   const program = String(input.program ?? "BSc CSIT").trim() || "BSc CSIT";
   const batch = String(input.batch ?? "").trim();
   const section = String(input.section ?? "A").trim() || "A";
+  const sectionId = String(input.section_id ?? "").trim();
   const facultyId = String(input.faculty_id ?? "").trim();
 
   // Mirror of the validation rules used by the client side form.
@@ -87,8 +89,8 @@ Deno.serve(async (req) => {
   if (role === "student" && !email.endsWith("@kct.edu.np")) {
     return json({ error: "Student accounts must use an @kct.edu.np email." }, 400);
   }
-  if (role === "student" && !roll) {
-    return json({ error: "Enter the student's roll number." }, 400);
+  if (role === "student" && (!roll || !batch)) {
+    return json({ error: "Enter the student's roll number and batch." }, 400);
   }
   if (role === "teacher" && !facultyId) {
     return json({ error: "Enter the faculty ID." }, 400);
@@ -104,6 +106,27 @@ Deno.serve(async (req) => {
       { error: "Password must include uppercase, lowercase, number, and symbol." },
       400,
     );
+  }
+
+  // Resolve the current section before creating Auth so an incomplete academic
+  // relationship cannot be created and then repaired manually.
+  let currentSectionId = sectionId;
+  if (role === "student") {
+    let sectionQuery = admin
+      .from("sections")
+      .select("id, program, batch, name")
+      .eq("program", program)
+      .eq("batch", batch)
+      .eq("name", section)
+      .eq("is_current", true)
+      .limit(1);
+    if (currentSectionId) sectionQuery = sectionQuery.eq("id", currentSectionId);
+    const { data: sections, error: sectionError } = await sectionQuery;
+    if (sectionError) return json({ error: sectionError.message }, 400);
+    if (!sections || !sections.length) {
+      return json({ error: "No current section matches this program, batch, and section." }, 400);
+    }
+    currentSectionId = sections[0].id;
   }
 
   // Create the login account (auto-confirmed because the admin vouches for it).
@@ -125,19 +148,33 @@ Deno.serve(async (req) => {
   // Create the role-specific directory row and audit event in the same
   // privileged path. A missing directory row leaves the login unusable.
   if (role === "student") {
-    const { error: studentError } = await admin.from("students").insert({
-      profile_id: created.user.id,
-      roll,
-      name,
-      email,
-      program,
-      batch: batch || "2079",
-      section,
-      active: true,
-    });
+    const { data: student, error: studentError } = await admin
+      .from("students")
+      .insert({
+        profile_id: created.user.id,
+        roll,
+        name,
+        email,
+        program,
+        batch,
+        section,
+        active: true,
+      })
+      .select("id")
+      .single();
     if (studentError) {
       await admin.auth.admin.deleteUser(created.user.id);
       return json({ error: studentError.message }, 400);
+    }
+    const { error: enrollmentError } = await admin.from("enrollments").insert({
+      student_id: student.id,
+      section_id: currentSectionId,
+      status: "active",
+    });
+    if (enrollmentError) {
+      await admin.from("students").delete().eq("profile_id", created.user.id);
+      await admin.auth.admin.deleteUser(created.user.id);
+      return json({ error: enrollmentError.message }, 400);
     }
   } else if (role === "teacher") {
     const { error: facultyError } = await admin.from("faculty").insert({
