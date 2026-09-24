@@ -260,22 +260,17 @@
                 </div></label
               >
               <div class="form-grid">
-                <label>From date<input type="date" required /></label
-                ><label>To date<input type="date" required /></label>
+                <label>From date<input id="leaveFrom" type="date" required /></label
+                ><label>To date<input id="leaveTo" type="date" required /></label>
               </div>
               <label
-                >Subject<select required>
-                  <option value="">Select a subject</option>
-                  <option>CSC419 · Advanced Java Programming</option>
-                  <option>CSC421 · Principles of Management</option>
-                </select></label
-              ><label
                 >Reason<textarea
+                  id="leaveReason"
                   required
                   placeholder="Explain the reason for your leave"
                 ></textarea></label
               ><label class="upload"
-                >Supporting document <input type="file" />
+                >Supporting document <input id="leaveDocument" type="file" accept=".pdf,.jpg,.jpeg,.png" />
                 <small>Optional · PDF, JPG, or PNG</small></label
               ><button class="button primary" type="submit">
                 Submit leave request →

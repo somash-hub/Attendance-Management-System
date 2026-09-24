@@ -278,14 +278,46 @@ $("#notification").addEventListener("click", () =>
 $("#export").addEventListener("click", () =>
   toast("Attendance export prepared."),
 );
+let selectedLeaveType = "Medical";
 $$(".choice").forEach((choice) =>
   choice.addEventListener("click", () => {
     $$(".choice").forEach((c) => c.classList.remove("selected"));
     choice.classList.add("selected");
+    selectedLeaveType = choice.textContent.trim();
   }),
 );
-$("#leaveForm").addEventListener("submit", (e) => {
+$("#leaveForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (!window.AttendIQDb) {
+    toast("Supabase is not configured; leave requests cannot be submitted yet.");
+    return;
+  }
+
+  const fromDate = $("#leaveFrom").value;
+  const toDate = $("#leaveTo").value;
+  const reason = $("#leaveReason").value.trim();
+  if (!fromDate || !toDate) return toast("Choose both leave dates.");
+  if (toDate < fromDate) return toast("The to date cannot be before the from date.");
+  if (!reason) return toast("Enter a reason for the leave.");
+
+  let documentUrl = null;
+  const fileInput = $("#leaveDocument");
+  const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+  if (file) {
+    const upload = await AttendIQSupabase.uploadLeaveDocument(file);
+    if (!upload.ok) return toast(upload.error);
+    documentUrl = upload.data.path;
+  }
+
+  const result = await AttendIQSupabase.createLeave({
+    type: selectedLeaveType,
+    from_date: fromDate,
+    to_date: toDate,
+    reason: reason,
+    document_url: documentUrl,
+  });
+  if (!result.ok) return toast(result.error);
+
   $("#leaveCard").innerHTML =
     `<div class="success-state"><span>✓</span><h2>Request Submitted</h2><p>Your leave application has been forwarded to your class advisor for approval.</p><button class="button primary" id="another">Submit another request</button></div>`;
   $("#another").addEventListener("click", () => location.reload());

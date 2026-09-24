@@ -113,7 +113,8 @@ const courses = [
   ["CSC425", "Software Project Management", "Dr. Neha Verma", 36, 83],
 ];
 
-const leaves = [
+// Local fallback rows; replaced by Supabase leave rows after initialization.
+let leaves = [
   {
     id: 1,
     name: "Aryan Kumar",
@@ -220,6 +221,51 @@ function renderLeaves(target = "#leaveRequests", limit = false) {
   $(target).innerHTML = (limit ? filtered.slice(0, 3) : filtered)
     .map((leave) => requestMarkup(leave))
     .join("");
+}
+
+function formatLeaveDates(row) {
+  return row.from_date === row.to_date
+    ? row.from_date
+    : row.from_date + " → " + row.to_date;
+}
+
+// Load real leave requests and join them to the student roster by UUID.
+function loadAdminLeaves() {
+  if (!window.AttendIQDb) {
+    renderLeaves();
+    renderLeaves("#dashboardRequests", true);
+    return Promise.resolve();
+  }
+  return Promise.all([
+    AttendIQSupabase.getLeaves(),
+    AttendIQSupabase.getStudents(),
+  ]).then(function (results) {
+    const leavesResult = results[0];
+    const studentsResult = results[1];
+    if (!leavesResult.ok || !studentsResult.ok) {
+      showToast(leavesResult.error || studentsResult.error || "Leave requests could not be loaded.");
+      return;
+    }
+    const directory = {};
+    studentsResult.data.forEach(function (student) {
+      directory[student.id] = { name: student.name, roll: student.roll };
+    });
+    leaves = leavesResult.data.map(function (row) {
+      const student = directory[row.student_id] || { name: "Unknown student", roll: "—" };
+      return {
+        id: row.id,
+        name: student.name,
+        roll: student.roll,
+        type: row.type,
+        dates: formatLeaveDates(row),
+        reason: row.reason,
+        status: row.status,
+        doc: !!row.document_url,
+      };
+    });
+    renderLeaves();
+    renderLeaves("#dashboardRequests", true);
+  });
 }
 
 function showToast(message) {
@@ -368,13 +414,11 @@ document.addEventListener("click", (event) => {
   }
   const leaveButton = event.target.closest("[data-leave]");
   if (leaveButton) {
-    const leave = leaves.find(
-      (item) => item.id === Number(leaveButton.dataset.leave),
-    );
-    leave.status = leaveButton.dataset.status;
-    renderLeaves();
-    renderLeaves("#dashboardRequests", true);
-    showToast(`Leave request ${leave.status}.`);
+    AttendIQSupabase.reviewLeave(leaveButton.dataset.leave, leaveButton.dataset.status).then(function (result) {
+      if (!result.ok) return showToast(result.error);
+      showToast(`Leave request ${leaveButton.dataset.status}.`);
+      return loadAdminLeaves();
+    });
   }
 });
 $("#threshold").addEventListener("input", (event) => {
@@ -423,5 +467,6 @@ $("#signOut").addEventListener("click", async (event) => {
   renderLeaves("#dashboardRequests", true);
   renderUsers();
   renderThreshold();
+  return loadAdminLeaves();
   });
 }

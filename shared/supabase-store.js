@@ -467,14 +467,17 @@
 
   function reviewLeave(leaveId, status) {
     if (!client()) return Promise.resolve(unsupportedLocal("Leave review"));
-    if (LEAVE_STATUSES.indexOf(status) === -1 || status === "pending") {
-      return Promise.resolve(failure("Choose approved or rejected.", "supabase"));
+    if (LEAVE_STATUSES.indexOf(status) === -1) {
+      return Promise.resolve(failure("Choose pending, approved, or rejected.", "supabase"));
     }
     return currentProfile().then(function (profileResult) {
       if (!profileResult.ok) return profileResult;
       return remote(function () {
         return client().from("leaves")
-          .update({ status: status, reviewed_by: profileResult.data.user.id })
+          .update({
+            status: status,
+            reviewed_by: status === "pending" ? null : profileResult.data.user.id,
+          })
           .eq("id", leaveId)
           .select("id, student_id, type, from_date, to_date, reason, status, document_url, reviewed_by, created_at")
           .single();

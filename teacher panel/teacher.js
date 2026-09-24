@@ -34,7 +34,7 @@ const students = [
   ["Ananya Nair", "2079CSIT048", 79, "present"],
   ["Vivek Rao", "2079CSIT049", 94, "present"],
 ];
-const leaves = [
+let leaves = [
   {
     id: 1,
     name: "Aryan Kumar",
@@ -69,6 +69,7 @@ const leaves = [
 // Attendance is kept in memory until the portal is connected to a backend.
 let attendance = Object.fromEntries(students.map((s) => [s[1], s[3]]));
 let markingStudents = students.map((s) => ({ id: s[1], name: s[0], roll: s[1] }));
+let studentDirectory = {};
 let attendanceReady = false;
 
 // Shared DOM helpers.
@@ -174,6 +175,9 @@ function loadTeacherData() {
       name: student.name,
       roll: student.roll,
     }));
+    studentDirectory = Object.fromEntries(
+      studentsResult.data.map((student) => [student.id, { name: student.name, roll: student.roll }]),
+    );
     if (!subjectsResult.data.length) {
       attendanceReady = false;
       toast("No subjects are assigned to this teacher account.");
@@ -210,6 +214,40 @@ function renderLeaves() {
           )}</span><div><div><strong>${l.name}</strong> <small class="mono">${l.roll}</small> ${status(l.status)}</div><p>${l.type} · ${l.date} · ${l.reason}</p>${l.doc ? '<small class="document">✓ Supporting document attached</small>' : ""}</div></div>${l.status === "pending" ? `<div class="leave-actions"><button class="approve" data-leave="${l.id}" data-state="approved">Approve</button><button class="reject" data-leave="${l.id}" data-state="rejected">Reject</button></div>` : `<button class="undo" data-leave="${l.id}" data-state="pending">Undo</button>`}</div>`,
     )
     .join("");
+}
+
+function formatLeaveDates(row) {
+  return row.from_date === row.to_date
+    ? row.from_date
+    : row.from_date + " → " + row.to_date;
+}
+
+// Load real leave requests and join them to the student roster by UUID.
+function loadTeacherLeaves() {
+  if (!window.AttendIQDb) {
+    renderLeaves();
+    return Promise.resolve();
+  }
+  return AttendIQSupabase.getLeaves().then(function (result) {
+    if (!result.ok) {
+      toast(result.error);
+      return;
+    }
+    leaves = result.data.map(function (row) {
+      const student = studentDirectory[row.student_id] || { name: "Unknown student", roll: "—" };
+      return {
+        id: row.id,
+        name: student.name,
+        roll: student.roll,
+        type: row.type,
+        date: formatLeaveDates(row),
+        reason: row.reason,
+        status: row.status,
+        doc: !!row.document_url,
+      };
+    });
+    renderLeaves();
+  });
 }
 
 // Keep the at-risk metric, the section heading, and the risk list aligned
@@ -270,10 +308,11 @@ document.addEventListener("click", (e) => {
   }
   const leave = e.target.closest("[data-leave]");
   if (leave) {
-    leaves.find((l) => l.id === Number(leave.dataset.leave)).status =
-      leave.dataset.state;
-    renderLeaves();
-    toast("Leave request updated.");
+    AttendIQSupabase.reviewLeave(leave.dataset.leave, leave.dataset.state).then(function (result) {
+      if (!result.ok) return toast(result.error);
+      toast("Leave request updated.");
+      return loadTeacherLeaves();
+    });
   }
 });
   $("#markAll").addEventListener("click", () => {
@@ -331,6 +370,6 @@ $("#signOut").addEventListener("click", async (event) => {
   renderReports();
   renderLeaves();
   renderThreshold();
-  return loadTeacherData();
+  return loadTeacherData().then(loadTeacherLeaves);
   });
 }
