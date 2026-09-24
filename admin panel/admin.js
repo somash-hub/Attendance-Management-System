@@ -294,55 +294,73 @@ const ROLE_LABELS = {
   admin: "Administrator",
 };
 
+// Cached account rows; the local fallback is replaced after initialization.
+let users = [];
+
 // Draw the account list with a role selector and remove control per user.
 function renderUsers() {
-  $("#userRows").innerHTML = AttendIQ.getUsers()
+  $("#userRows").innerHTML = users
     .map(
       (user) =>
-        `<tr><td><strong>${user.name}</strong><small>${user.email}</small></td><td><select class="role-select" data-user-id="${user.id}" aria-label="Role for ${user.name}">${AttendIQ.ROLES.map((role) => `<option value="${role}"${role === user.role ? " selected" : ""}>${ROLE_LABELS[role]}</option>`).join("")}</select></td><td><button class="user-remove" type="button" data-remove-user="${user.id}">Remove</button></td></tr>`,
+        `<tr><td><strong>${user.name}</strong><small>${user.email}</small></td><td><select class="role-select" data-user-id="${user.id}" aria-label="Role for ${user.name}">${AttendIQSupabase.ROLES.map((role) => `<option value="${role}"${role === user.role ? " selected" : ""}>${ROLE_LABELS[role]}</option>`).join("")}</select></td><td><button class="user-remove" type="button" data-remove-user="${user.id}">Remove</button></td></tr>`,
     )
     .join("");
 }
 
+// Load the account list through the shared adapter.
+function loadUsers() {
+  return AttendIQSupabase.getUsers().then(function (result) {
+    if (!result.ok) {
+      showToast(result.error);
+      return;
+    }
+    users = result.data;
+    renderUsers();
+  });
+}
+
 // Create accounts from the settings form, reporting validation errors.
-$("#userForm").addEventListener("submit", (event) => {
+$("#userForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const result = AttendIQ.addUser({
+  const result = await AttendIQSupabase.createUser({
     name: $("#newUserName").value,
     email: $("#newUserEmail").value,
     role: $("#newUserRole").value,
     password: $("#newUserPassword").value,
   });
   if (!result.ok) return showToast(result.error);
+  const created = result.data && (result.data.user || result.data);
   event.target.reset();
-  renderUsers();
-  showToast(`${result.user.name} added as ${ROLE_LABELS[result.user.role]}.`);
+  await loadUsers();
+  showToast(`${created.name} added as ${ROLE_LABELS[created.role]}.`);
 });
 
 // Delegated events update roles and remove accounts from rendered rows.
-document.addEventListener("change", (event) => {
+document.addEventListener("change", async (event) => {
   const select = event.target.closest("[data-user-id]");
   if (!select) return;
-  const result = AttendIQ.assignRole(select.dataset.userId, select.value);
+  const result = await AttendIQSupabase.assignRole(select.dataset.userId, select.value);
   if (!result.ok) {
     showToast(result.error);
-    renderUsers();
-    return;
+    return loadUsers();
   }
-  showToast(`${result.user.name} is now ${ROLE_LABELS[result.user.role]}.`);
+  const user = result.data && (result.data.user || result.data);
+  await loadUsers();
+  showToast(`${user.name} is now ${ROLE_LABELS[user.role]}.`);
 });
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-remove-user]");
   if (!button) return;
   if (session && button.dataset.removeUser === session.id)
     return showToast("You cannot remove your own account.");
-  const user = AttendIQ.getUsers().find(
+  const user = users.find(
     (item) => item.id === button.dataset.removeUser,
   );
   if (!user) return;
   if (!window.confirm(`Remove the account for ${user.name}?`)) return;
-  AttendIQ.removeUser(user.id);
-  renderUsers();
+  const result = await AttendIQSupabase.removeUser(user.id);
+  if (!result.ok) return showToast(result.error);
+  await loadUsers();
   showToast("Account removed.");
 });
 
@@ -465,8 +483,7 @@ $("#signOut").addEventListener("click", async (event) => {
   renderCourses();
   renderLeaves();
   renderLeaves("#dashboardRequests", true);
-  renderUsers();
   renderThreshold();
-  return loadAdminLeaves();
+  return Promise.all([loadUsers(), loadAdminLeaves()]);
   });
 }
