@@ -4,7 +4,7 @@
 // browser because row level security protects every table, and privileged
 // operations (account creation and deletion) run inside the edge functions.
 const SUPABASE_URL = "https://yvvgvteijtxnuwtncfio.supabase.co";
-const SUPABASE_ANON_KEY = "PASTE_YOUR_ANON_KEY_HERE";
+const SUPABASE_ANON_KEY = "sb_publishable_Oo7qwamCwC05zP1HqN92-g_8fVZ96Ue";
 
 // Shared client for the future data layer (shared/store.js). Kept on the
 // global scope so plain <script> files can reach it without modules.
