@@ -275,9 +275,18 @@ $("#search").addEventListener("input", (e) => {
 $("#notification").addEventListener("click", () =>
   $("#notificationPop").classList.toggle("open"),
 );
-$("#export").addEventListener("click", () =>
-  toast("Attendance export prepared."),
-);
+$("#export").addEventListener("click", () => {
+  if (!records.length) return toast("There are no attendance records to export.");
+  try {
+    AttendIQCsv.download("attendiq-attendance-records.csv", [
+      ["Date", "Day", "Subject code", "Time", "Status"],
+      ...records,
+    ]);
+    toast("Attendance CSV downloaded.");
+  } catch (error) {
+    toast(error.message);
+  }
+});
 let selectedLeaveType = "Medical";
 $$(".choice").forEach((choice) =>
   choice.addEventListener("click", () => {

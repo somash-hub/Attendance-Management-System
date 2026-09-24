@@ -34,6 +34,13 @@ const students = [
   ["Ananya Nair", "2079CSIT048", 79, "present"],
   ["Vivek Rao", "2079CSIT049", 94, "present"],
 ];
+let reportRows = students.map((s) => {
+  const total = 42,
+    present = Math.round((total * s[2]) / 100),
+    late = 1,
+    absent = total - present - late;
+  return { name: s[0], roll: s[1], total: total, present: present, absent: absent, late: late, percent: s[2] };
+});
 let leaves = [
   {
     id: 1,
@@ -190,15 +197,47 @@ function loadTeacherData() {
 
 // Render the semester attendance report.
 function renderReports() {
-  $("#reportRows").innerHTML = students
-    .map((s) => {
-      const total = 42,
-        present = Math.round((total * s[2]) / 100),
-        late = 1,
-        absent = total - present - late;
-      return `<tr><td class="mono">${s[1]}</td><td><strong>${s[0]}</strong></td><td>${total}</td><td class="positive">${present}</td><td class="danger">${absent}</td><td class="late-text">${late}</td><td><div class="progress"><i class="${s[2] < settings.threshold ? "red-bar" : ""}" style="width:${s[2]}%"></i></div><b>${s[2]}%</b></td><td>${status(s[2] < settings.threshold ? "at-risk" : "safe")}</td></tr>`;
+  $("#reportRows").innerHTML = reportRows
+    .map((row) => {
+      return `<tr><td class="mono">${row.roll}</td><td><strong>${row.name}</strong></td><td>${row.total}</td><td class="positive">${row.present}</td><td class="danger">${row.absent}</td><td class="late-text">${row.late}</td><td><div class="progress"><i class="${row.percent < settings.threshold ? "red-bar" : ""}" style="width:${row.percent}%"></i></div><b>${row.percent}%</b></td><td>${status(row.percent < settings.threshold ? "at-risk" : "safe")}</td></tr>`;
     })
     .join("");
+}
+
+// Build the semester report from all marks visible to this teacher.
+function loadTeacherReports() {
+  if (!window.AttendIQDb) {
+    renderReports();
+    return Promise.resolve();
+  }
+  return AttendIQSupabase.getAttendance().then(function (result) {
+    if (!result.ok) {
+      toast(result.error);
+      return;
+    }
+    const totals = {};
+    result.data.forEach(function (row) {
+      const entry = totals[row.student_id] || { total: 0, present: 0, absent: 0, late: 0 };
+      entry.total += 1;
+      if (row.status === "Present") entry.present += 1;
+      if (row.status === "Absent") entry.absent += 1;
+      if (row.status === "Late") entry.late += 1;
+      totals[row.student_id] = entry;
+    });
+    reportRows = markingStudents.map(function (student) {
+      const entry = totals[student.id] || { total: 0, present: 0, absent: 0, late: 0 };
+      return {
+        name: student.name,
+        roll: student.roll,
+        total: entry.total,
+        present: entry.present,
+        absent: entry.absent,
+        late: entry.late,
+        percent: entry.total ? Math.round((entry.present / entry.total) * 100) : 0,
+      };
+    });
+    renderReports();
+  });
 }
 
 // Render leave requests with approve, reject, and undo controls.
@@ -347,9 +386,20 @@ document.addEventListener("click", (e) => {
     $("#saved").classList.add("is-saved");
     toast("Attendance saved successfully.");
   });
-$("#exportReport").addEventListener("click", () =>
-  toast("CSV report prepared."),
-);
+$("#exportReport").addEventListener("click", () => {
+  if (!reportRows.length) return toast("There is no report data to export.");
+  try {
+    AttendIQCsv.download("attendiq-attendance-report.csv", [
+      ["Roll number", "Student", "Total", "Present", "Absent", "Late", "Attendance %", "Status"],
+      ...reportRows.map(function (row) {
+        return [row.roll, row.name, row.total, row.present, row.absent, row.late, row.percent, row.percent < settings.threshold ? "At risk" : "Safe"];
+      }),
+    ]);
+    toast("CSV report downloaded.");
+  } catch (error) {
+    toast(error.message);
+  }
+});
 // Reflect the signed-in teacher in the topbar and support sign-out.
 if (session) {
   $("#userName").textContent = session.name;
@@ -370,6 +420,6 @@ $("#signOut").addEventListener("click", async (event) => {
   renderReports();
   renderLeaves();
   renderThreshold();
-  return loadTeacherData().then(loadTeacherLeaves);
+  return loadTeacherData().then(loadTeacherLeaves).then(loadTeacherReports);
   });
 }

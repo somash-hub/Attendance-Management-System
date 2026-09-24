@@ -24,7 +24,7 @@ function initializePortal(session) {
     let settings = result.data;
 
 // Demo records used by the administrator portal before backend integration.
-const students = [
+let students = [
   {
     name: "Aryan Kumar",
     email: "aryan.k@kct.edu.np",
@@ -268,6 +268,41 @@ function loadAdminLeaves() {
   });
 }
 
+// Load real students and compute their attendance percentages.
+function loadAdminStudents() {
+  if (!window.AttendIQDb) return Promise.resolve();
+  return Promise.all([
+    AttendIQSupabase.getStudents(),
+    AttendIQSupabase.getAttendance(),
+  ]).then(function (results) {
+    const studentsResult = results[0];
+    const attendanceResult = results[1];
+    if (!studentsResult.ok || !attendanceResult.ok) {
+      showToast(studentsResult.error || attendanceResult.error || "Student attendance could not be loaded.");
+      return;
+    }
+    const totals = {};
+    attendanceResult.data.forEach(function (row) {
+      const entry = totals[row.student_id] || { total: 0, present: 0 };
+      entry.total += 1;
+      if (row.status === "Present") entry.present += 1;
+      totals[row.student_id] = entry;
+    });
+    students = studentsResult.data.map(function (student) {
+      const entry = totals[student.id] || { total: 0, present: 0 };
+      return {
+        name: student.name,
+        email: student.email || "",
+        roll: student.roll,
+        dept: student.program,
+        attendance: entry.total ? Math.round((entry.present / entry.total) * 100) : 0,
+      };
+    });
+    renderStudents();
+    renderThreshold();
+  });
+}
+
 function showToast(message) {
   const toast = $("#toast");
   toast.textContent = message;
@@ -423,8 +458,20 @@ document.addEventListener("click", (event) => {
     if (target === "student") openTab("students");
     if (target === "faculty") openTab("faculty");
     if (target === "course") openTab("courses");
-    if (target === "report")
-      showToast("Attendance report is ready to download.");
+    if (target === "report") {
+      if (!students.length) return showToast("There is no student attendance data to export.");
+      try {
+        AttendIQCsv.download("attendiq-institution-attendance-report.csv", [
+          ["Name", "Email", "Roll number", "Program", "Attendance %", "Status"],
+          ...students.map(function (student) {
+            return [student.name, student.email, student.roll, student.dept, student.attendance, student.attendance < settings.threshold ? "Warned" : "Active"];
+          }),
+        ]);
+        showToast("Attendance report downloaded.");
+      } catch (error) {
+        showToast(error.message);
+      }
+    }
     if (target === "notify") showToast("Notification composer opened.");
     if (target === "reset") showToast("Reset requires backend confirmation.");
     if (target === "archive")
@@ -484,6 +531,6 @@ $("#signOut").addEventListener("click", async (event) => {
   renderLeaves();
   renderLeaves("#dashboardRequests", true);
   renderThreshold();
-  return Promise.all([loadUsers(), loadAdminLeaves()]);
+  return Promise.all([loadUsers(), loadAdminLeaves(), loadAdminStudents()]);
   });
 }
