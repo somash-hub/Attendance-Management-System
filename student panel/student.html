@@ -83,20 +83,21 @@
           </div>
           <div class="metrics">
             <article>
-              <i class="green">↗</i><strong>84%</strong
-              ><small>Overall Attendance</small><em>171 / 200 classes</em>
+              <i class="green">↗</i><strong id="overallPercent">84%</strong
+              ><small>Overall Attendance</small
+              ><em id="overallClasses">171 / 200 classes</em>
             </article>
             <article>
-              <i class="blue">✓</i><strong>171</strong><small>Present</small
-              ><em>classes attended</em>
+              <i class="blue">✓</i><strong id="presentCount">171</strong
+              ><small>Present</small><em>classes attended</em>
             </article>
             <article>
-              <i class="red">×</i><strong>29</strong><small>Absent</small
-              ><em>classes missed</em>
+              <i class="red">×</i><strong id="absentCount">29</strong
+              ><small>Absent</small><em>classes missed</em>
             </article>
             <article>
-              <i class="purple">▣</i><strong>5</strong><small>Subjects</small
-              ><em>this semester</em>
+              <i class="purple">▣</i><strong id="subjectCount">5</strong
+              ><small>Subjects</small><em>this semester</em>
             </article>
           </div>
           <div class="two-col">
@@ -107,7 +108,7 @@
                   <p>Current attendance percentage</p>
                 </div>
               </div>
-              <div class="subject-bars">
+              <div class="subject-bars" id="subjectBars">
                 <div>
                   <span>CSC419</span><i><b style="width: 90%"></b></i
                   ><strong>90%</strong>
@@ -170,7 +171,7 @@
                     <th>Status</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="breakdownRows">
                   <tr>
                     <td class="mono">CSC419</td>
                     <td>Advanced Java Programming</td>

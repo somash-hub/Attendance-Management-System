@@ -23,8 +23,8 @@ function initializePortal(session) {
     }
     const settings = result.data;
 
-// Demo attendance data used until the student portal is connected to an API.
-const records = [
+// Demo attendance data used as the local fallback until Supabase is configured.
+let records = [
   ["Ashadh 24, 2082", "Tuesday", "CSC419", "09:00 AM", "Present"],
   ["Ashadh 24, 2082", "Tuesday", "CSC420", "11:00 AM", "Present"],
   ["Ashadh 24, 2082", "Tuesday", "CSC421", "02:00 PM", "Absent"],
@@ -68,13 +68,21 @@ const schedule = {
 const $ = (s) => document.querySelector(s),
   $$ = (s) => [...document.querySelectorAll(s)];
 
-// Subject percentages are the source for the threshold warning banner.
-const subjectAttendance = [
-  ["CSC419", "Advanced Java Programming", 90],
-  ["CSC420", "Data Warehousing and Data Mining", 85],
-  ["CSC421", "Principles of Management", 73],
-  ["CSC422", "Project Work", 93],
-  ["CSC425", "Software Project Management", 83],
+// Subject percentages are the source for the threshold warning banner. The
+// database load below replaces the demo rows when Supabase is configured.
+let subjectNames = {
+  CSC419: "Advanced Java Programming",
+  CSC420: "Data Warehousing and Data Mining",
+  CSC421: "Principles of Management",
+  CSC422: "Project Work",
+  CSC425: "Software Project Management",
+};
+let subjectAttendance = [
+  ["CSC419", "Advanced Java Programming", 90, 38, 42],
+  ["CSC420", "Data Warehousing and Data Mining", 85, 34, 40],
+  ["CSC421", "Principles of Management", 73, 28, 38],
+  ["CSC422", "Project Work", 93, 39, 42],
+  ["CSC425", "Software Project Management", 83, 30, 36],
 ];
 
 // Point the warning banner at the weakest subject while it is below the
@@ -110,7 +118,7 @@ function renderRecords() {
     )
     .map(
       (r) =>
-        `<tr><td class="mono">${r[0]}</td><td>${r[1]}</td><td><strong>${r[2]}</strong><small>${{ CSC419: "Advanced Java Programming", CSC420: "Data Warehousing and Data Mining", CSC421: "Principles of Management", CSC422: "Project Work", CSC425: "Software Project Management" }[r[2]]}</small></td><td>${r[3]}</td><td>${badge(r[4])}</td></tr>`,
+        `<tr><td class="mono">${r[0]}</td><td>${r[1]}</td><td><strong>${r[2]}</strong><small>${subjectNames[r[2]] || ""}</small></td><td>${r[3]}</td><td>${badge(r[4])}</td></tr>`,
     )
     .join("");
 }
@@ -123,6 +131,99 @@ function renderSchedule() {
         `<article class="card day-card"><h2>${day}</h2><p>${slots.length} classes</p>${slots.map((s) => `<div class="class-slot"><span>◷</span><div><strong>${s[2]}</strong><small>${s[0]} · ${s[1]} · ${s[3]}</small></div></div>`).join("")}</article>`,
     )
     .join("");
+}
+
+var WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+var BAR_CLASSES = ["", "bar-green", "bar-red", "bar-purple", "bar-yellow"];
+
+function weekdayName(value) {
+  var parts = String(value || "").split("-");
+  if (parts.length !== 3) return "";
+  var date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  return WEEKDAYS[date.getDay()] || "";
+}
+
+// Recalculate subject percentages and all dashboard metrics from real marks.
+function renderDashboard(attendanceRows, subjects) {
+  var totals = {};
+  attendanceRows.forEach(function (row) {
+    var entry = totals[row.subject_code] || { total: 0, present: 0 };
+    entry.total += 1;
+    if (row.status === "Present") entry.present += 1;
+    totals[row.subject_code] = entry;
+  });
+
+  subjectNames = Object.fromEntries(subjects.map(function (subject) {
+    return [subject.code, subject.name];
+  }));
+  subjectAttendance = subjects.map(function (subject) {
+    var entry = totals[subject.code] || { total: 0, present: 0 };
+    var percent = entry.total ? Math.round((entry.present / entry.total) * 100) : 0;
+    return [subject.code, subject.name, percent, entry.present, entry.total];
+  });
+
+  var totalClasses = attendanceRows.length;
+  var presentCount = attendanceRows.filter(function (row) { return row.status === "Present"; }).length;
+  var absentCount = attendanceRows.filter(function (row) { return row.status === "Absent"; }).length;
+
+  $("#overallPercent").textContent = (totalClasses ? Math.round((presentCount / totalClasses) * 100) : 0) + "%";
+  $("#overallClasses").textContent = presentCount + " / " + totalClasses + " classes";
+  $("#presentCount").textContent = presentCount;
+  $("#absentCount").textContent = absentCount;
+  $("#subjectCount").textContent = subjectAttendance.length;
+
+  $("#subjectBars").innerHTML = subjectAttendance
+    .map(function (subject, index) {
+      var barClass = subject[2] < settings.threshold ? "bar-red" : BAR_CLASSES[index] || "";
+      return `<div><span>${subject[0]}</span><i><b class="${barClass}" style="width:${subject[2]}%"></b></i><strong class="${subject[2] < settings.threshold ? "danger" : ""}">${subject[2]}%</strong></div>`;
+    })
+    .join("");
+
+  $("#breakdownRows").innerHTML = subjectAttendance
+    .map(function (subject) {
+      var atRisk = subject[2] < settings.threshold;
+      return `<tr><td class="mono">${subject[0]}</td><td>${subject[1]}</td><td>Assigned faculty</td><td>${subject[3]} / ${subject[4]}</td><td class="${atRisk ? "danger" : ""}">${subject[2]}%</td><td><span class="${atRisk ? "risk" : "safe"}">${atRisk ? "At risk" : "Safe"}</span></td></tr>`;
+    })
+    .join("");
+}
+
+// Load the signed-in student's own rows and replace the demo dashboard.
+function loadStudentDashboard() {
+  if (!window.AttendIQDb) {
+    renderWarning();
+    renderRecords();
+    return Promise.resolve();
+  }
+  return Promise.all([
+    AttendIQSupabase.getStudents(),
+    AttendIQSupabase.getSubjects(),
+  ]).then(function (results) {
+    var studentsResult = results[0];
+    var subjectsResult = results[1];
+    if (!studentsResult.ok || !subjectsResult.ok) {
+      toast(studentsResult.error || subjectsResult.error || "Attendance data could not be loaded.");
+      return;
+    }
+    var student = studentsResult.data.find(function (row) {
+      return row.profile_id === session.id;
+    });
+    if (!student) {
+      toast("Your student record is not linked to this login.");
+      return;
+    }
+    return AttendIQSupabase.getAttendance({ student_id: student.id }).then(function (attendanceResult) {
+      if (!attendanceResult.ok) {
+        toast(attendanceResult.error);
+        return;
+      }
+      records = attendanceResult.data.map(function (row) {
+        return [row.date_bs || row.date_ad, weekdayName(row.date_ad), row.subject_code, row.time, row.status];
+      });
+      renderDashboard(attendanceResult.data, subjectsResult.data);
+      renderWarning();
+      renderRecords();
+    });
+  });
 }
 
 // Switch between the four student portal views.
@@ -206,8 +307,7 @@ $("#signOut").addEventListener("click", async (event) => {
   location.href = "../login/login.html";
 });
 
-  renderWarning();
-  renderRecords();
   renderSchedule();
+  return loadStudentDashboard();
   });
 }
