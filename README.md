@@ -3,7 +3,7 @@
 AttendIQ is a role-based student attendance management website built with
 plain HTML, CSS, and JavaScript. Supabase provides authentication, the shared
 attendance and leave data, settings, reports, and administrator account
-functions. The old localStorage store remains only as an explicit fallback
+functions. The old localStorage store is available only in explicit demo mode
 when the Supabase browser client is unavailable.
 
 ## Product Direction
@@ -55,12 +55,13 @@ plain HTML, CSS, and JavaScript.
 
 ## Supabase status
 
-The hosted project `yvvgvteijtxnuwtncfio` is connected. The migration in
-`supabase/migrations/20260924000100_initial_attendance_schema.sql` has been
-applied, the `admin-create-user` and `admin-delete-user` Edge Functions are
-deployed, and `shared/supabase.js` contains only the public publishable key.
+The hosted project `yvvgvteijtxnuwtncfio` is connected. The initial migration
+and the Phase 1 security migration are applied, the `admin-create-user`,
+`admin-delete-user`, and `upload-leave-document` Edge Functions are deployed,
+and `shared/supabase.js` contains only the public publishable key.
 The frontend calls the backend through `shared/supabase-store.js`; a configured
-client never silently falls back to localStorage after a request error. See
+client never silently falls back to localStorage after a request error. The
+local store is available only in explicit demo mode (`?demo=1`). See
 `supabase/SETUP.md` for the setup and security notes.
 
 ## Planned Frontend Work
@@ -104,6 +105,7 @@ report flows are connected. Remaining iterations are:
 │   ├── store.js
 │   ├── supabase.js
 │   ├── supabase-store.js
+│   ├── safe-dom.js
 │   └── csv.js
 ├── supabase/
 │   ├── .gitignore
@@ -111,9 +113,11 @@ report flows are connected. Remaining iterations are:
 │   ├── SETUP.md
 │   ├── functions/
 │   │   ├── admin-create-user/index.ts
-│   │   └── admin-delete-user/index.ts
+│   │   ├── admin-delete-user/index.ts
+│   │   └── upload-leave-document/index.ts
 │   └── migrations/
-│       └── 20260924000100_initial_attendance_schema.sql
+│       ├── 20260924000100_initial_attendance_schema.sql
+│       └── 20260924000200_phase1_security_integrity.sql
 └── .vscode/
     ├── mcp.json
     └── settings.json
@@ -127,14 +131,14 @@ installation.
 1. Open `landing page/landing.html` in a web browser to view the public
    landing page.
 2. Use any portal button to open `login/login.html`.
-3. Sign in with one of the demo accounts below, or click a demo chip on the
-   login page to auto-fill the credentials; the account role decides which
-   portal opens.
+3. Sign in with a hosted Supabase account. To use the local demo explicitly,
+   open `login/login.html?demo=1`; demo credentials are hidden otherwise.
+4. The account role decides which portal opens.
 4. Administrators can open **Settings → User Accounts** to create new users
    and assign roles. New accounts can sign in immediately.
 5. Opening a portal while signed out redirects back to the login page.
 6. The pages use the hosted Supabase client in `shared/supabase.js`. The
-   localStorage store is used only when the SDK or public key is unavailable.
+   localStorage store is used only in explicit demo mode (`?demo=1`).
 
 ### Demo Accounts
 
@@ -145,10 +149,10 @@ installation.
 | Student       | `aryan.k@kct.edu.np`     | `Student@2025` |
 
 These accounts must also exist in Supabase Authentication with the same
-passwords (see `supabase/SETUP.md`). The local store still keeps a demo copy so
-the UI remains usable if the Supabase client is unavailable, but the hosted
-accounts and all attendance data are the source of truth when the client is
-configured. Do not use these demo passwords for real users.
+passwords (see `supabase/SETUP.md`). The local store keeps a demo copy only for
+explicit `?demo=1` sessions; the hosted accounts and all attendance data are the
+source of truth in normal operation. Do not use these demo passwords for real
+users.
 
 The administrator portal now loads students, attendance percentages, leave
 requests, users, and settings from Supabase. Dashboard metrics, program charts,

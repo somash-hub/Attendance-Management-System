@@ -415,11 +415,14 @@ enabled = true
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
 
-# Both functions authenticate the caller and re-check the administrator role.
+# These functions authenticate the caller and re-check authorization.
 # Keeping JWT verification enabled prevents unauthenticated gateway requests.
 [functions.admin-create-user]
 verify_jwt = true
 
 [functions.admin-delete-user]
+verify_jwt = true
+
+[functions.upload-leave-document]
 verify_jwt = true
 

@@ -6,5 +6,7 @@
   },
   "editor.suggestOnTriggerCharacters": false,
   "editor.inlineSuggest.enabled": false,
-  "github.copilot.inlineSuggest.enable": false
+  "github.copilot.inlineSuggest.enable": false,
+  "deno.enable": true,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false
 }

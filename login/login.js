@@ -65,12 +65,20 @@ const roleNames = {
   admin: "Administrator",
 };
 const demoAccounts = document.getElementById("demoAccounts");
+const demoAccountsPanel = document.getElementById("demoAccountsPanel");
 
-AttendIQ.SEED_USERS.forEach((account) => {
+if (window.AttendIQDemoMode) {
+  demoAccountsPanel.hidden = false;
+  AttendIQ.SEED_USERS.forEach((account) => {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "demo-chip";
-  button.innerHTML = `<strong>${roleNames[account.role]}</strong><small>${account.email}</small>`;
+  button.innerHTML = "";
+  const role = document.createElement("strong");
+  role.textContent = roleNames[account.role];
+  const email = document.createElement("small");
+  email.textContent = account.email;
+  button.append(role, email);
 
   button.addEventListener("click", () => {
     emailInput.value = account.email;
@@ -81,4 +89,5 @@ AttendIQ.SEED_USERS.forEach((account) => {
   });
 
   demoAccounts.appendChild(button);
-});
+  });
+}

@@ -8,12 +8,13 @@
     <link rel="stylesheet" href="teacher.css" />
     <!-- Supabase browser SDK; safe to expose because RLS protects the tables. -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Load the public client before the local fallback store. -->
+    <!-- Load the public client before the explicit demo store. -->
     <script src="../shared/supabase.js" defer></script>
     <script src="../shared/store.js" defer></script>
     <!-- The async Supabase adapter is the only frontend module for backend calls. -->
     <script src="../shared/supabase-store.js" defer></script>
     <!-- Shared CSV download helper for report exports. -->
+    <script src="../shared/safe-dom.js" defer></script>
     <script src="../shared/csv.js" defer></script>
 
     <script src="teacher.js" defer></script>

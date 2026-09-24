@@ -66,7 +66,8 @@ const schedule = {
 
 // Small DOM helpers keep selectors concise throughout this file.
 const $ = (s) => document.querySelector(s),
-  $$ = (s) => [...document.querySelectorAll(s)];
+  $$ = (s) => [...document.querySelectorAll(s)],
+  h = AttendIQUtils.escapeHtml;
 
 // Subject percentages are the source for the threshold warning banner. The
 // database load below replaces the demo rows when Supabase is configured.
@@ -103,7 +104,8 @@ function renderWarning() {
 
 // Render a reusable status badge for attendance records.
 function badge(status) {
-  return `<span class="status status-${status.toLowerCase()}">${status}</span>`;
+  const value = String(status || "Unknown");
+  return `<span class="status status-${h(value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))}">${h(value)}</span>`;
 }
 
 // Draw the searchable and filterable attendance log.
@@ -118,7 +120,7 @@ function renderRecords() {
     )
     .map(
       (r) =>
-        `<tr><td class="mono">${r[0]}</td><td>${r[1]}</td><td><strong>${r[2]}</strong><small>${subjectNames[r[2]] || ""}</small></td><td>${r[3]}</td><td>${badge(r[4])}</td></tr>`,
+        `<tr><td class="mono">${h(r[0])}</td><td>${h(r[1])}</td><td><strong>${h(r[2])}</strong><small>${h(subjectNames[r[2]] || "")}</small></td><td>${h(r[3])}</td><td>${badge(r[4])}</td></tr>`,
     )
     .join("");
 }
@@ -128,7 +130,7 @@ function renderSchedule() {
   $("#scheduleGrid").innerHTML = Object.entries(schedule)
     .map(
       ([day, slots]) =>
-        `<article class="card day-card"><h2>${day}</h2><p>${slots.length} classes</p>${slots.map((s) => `<div class="class-slot"><span>◷</span><div><strong>${s[2]}</strong><small>${s[0]} · ${s[1]} · ${s[3]}</small></div></div>`).join("")}</article>`,
+        `<article class="card day-card"><h2>${h(day)}</h2><p>${h(slots.length)} classes</p>${slots.map((s) => `<div class="class-slot"><span>◷</span><div><strong>${h(s[2])}</strong><small>${h(s[0])} · ${h(s[1])} · ${h(s[3])}</small></div></div>`).join("")}</article>`,
     )
     .join("");
 }
@@ -175,14 +177,14 @@ function renderDashboard(attendanceRows, subjects) {
   $("#subjectBars").innerHTML = subjectAttendance
     .map(function (subject, index) {
       var barClass = subject[2] < settings.threshold ? "bar-red" : BAR_CLASSES[index] || "";
-      return `<div><span>${subject[0]}</span><i><b class="${barClass}" style="width:${subject[2]}%"></b></i><strong class="${subject[2] < settings.threshold ? "danger" : ""}">${subject[2]}%</strong></div>`;
+      return `<div><span>${h(subject[0])}</span><i><b class="${barClass}" style="width:${Math.min(100, Math.max(0, Number(subject[2]) || 0))}%"></b></i><strong class="${subject[2] < settings.threshold ? "danger" : ""}">${h(subject[2])}%</strong></div>`;
     })
     .join("");
 
   $("#breakdownRows").innerHTML = subjectAttendance
     .map(function (subject) {
       var atRisk = subject[2] < settings.threshold;
-      return `<tr><td class="mono">${subject[0]}</td><td>${subject[1]}</td><td>Assigned faculty</td><td>${subject[3]} / ${subject[4]}</td><td class="${atRisk ? "danger" : ""}">${subject[2]}%</td><td><span class="${atRisk ? "risk" : "safe"}">${atRisk ? "At risk" : "Safe"}</span></td></tr>`;
+      return `<tr><td class="mono">${h(subject[0])}</td><td>${h(subject[1])}</td><td>Assigned faculty</td><td>${h(subject[3])} / ${h(subject[4])}</td><td class="${atRisk ? "danger" : ""}">${h(subject[2])}%</td><td><span class="${atRisk ? "risk" : "safe"}">${atRisk ? "At risk" : "Safe"}</span></td></tr>`;
     })
     .join("");
 }

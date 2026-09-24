@@ -8,14 +8,19 @@ const SUPABASE_ANON_KEY = "sb_publishable_Oo7qwamCwC05zP1HqN92-g_8fVZ96Ue";
 
 // Shared client for the async adapter in shared/supabase-store.js. Kept on the
 // global scope so plain <script> files can reach it without modules.
+window.AttendIQDemoMode =
+  new URLSearchParams(window.location.search).get("demo") === "1";
+
 window.AttendIQDb =
-  !SUPABASE_ANON_KEY.startsWith("PASTE") && window.supabase
+  !window.AttendIQDemoMode &&
+  !SUPABASE_ANON_KEY.startsWith("PASTE") &&
+  window.supabase
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
 
 if (!window.supabase) {
   console.warn(
-    "Supabase SDK is unavailable; the app will keep using its local fallback store.",
+    "Supabase SDK is unavailable; only explicit demo mode can use the local store.",
   );
 } else if (SUPABASE_ANON_KEY.startsWith("PASTE")) {
   console.warn(

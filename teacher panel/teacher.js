@@ -81,7 +81,8 @@ let attendanceReady = false;
 
 // Shared DOM helpers.
 const $ = (s) => document.querySelector(s),
-  $$ = (s) => [...document.querySelectorAll(s)];
+  $$ = (s) => [...document.querySelectorAll(s)],
+  h = AttendIQUtils.escapeHtml;
 
 // Display temporary feedback for demo actions.
 function toast(t) {
@@ -92,7 +93,8 @@ function toast(t) {
 
 // Create a consistent status badge for reports and leave requests.
 function status(s) {
-  return `<span class="status status-${s}">${s}</span>`;
+  const value = String(s || "Unknown");
+  return `<span class="status status-${h(value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))}">${h(value)}</span>`;
 }
 
 // Render each student's selectable attendance state.
@@ -100,10 +102,10 @@ function renderAttendance() {
   $("#attendanceRows").innerHTML = markingStudents
     .map(
       (student) =>
-        `<div class="attendance-row"><div class="student"><span class="student-avatar">${student.name
+        `<div class="attendance-row"><div class="student"><span class="student-avatar">${h(student.name
           .split(" ")
           .map((part) => part[0])
-          .join("")}</span><strong>${student.name}<small>${student.roll}</small></strong></div><div class="attendance-options"><button class="${attendance[student.id] === "present" ? "chosen present" : ""}" data-student="${student.id}" data-status="present">Present</button><button class="${attendance[student.id] === "absent" ? "chosen absent" : ""}" data-student="${student.id}" data-status="absent">Absent</button><button class="${attendance[student.id] === "late" ? "chosen late" : ""}" data-student="${student.id}" data-status="late">Late</button></div></div>`,
+          .join(""))}</span><strong>${h(student.name)}<small>${h(student.roll)}</small></strong></div><div class="attendance-options"><button class="${attendance[student.id] === "present" ? "chosen present" : ""}" data-student="${h(student.id)}" data-status="present">Present</button><button class="${attendance[student.id] === "absent" ? "chosen absent" : ""}" data-student="${h(student.id)}" data-status="absent">Absent</button><button class="${attendance[student.id] === "late" ? "chosen late" : ""}" data-student="${h(student.id)}" data-status="late">Late</button></div></div>`,
     )
     .join("");
   updateCounts();
@@ -199,7 +201,7 @@ function loadTeacherData() {
 function renderReports() {
   $("#reportRows").innerHTML = reportRows
     .map((row) => {
-      return `<tr><td class="mono">${row.roll}</td><td><strong>${row.name}</strong></td><td>${row.total}</td><td class="positive">${row.present}</td><td class="danger">${row.absent}</td><td class="late-text">${row.late}</td><td><div class="progress"><i class="${row.percent < settings.threshold ? "red-bar" : ""}" style="width:${row.percent}%"></i></div><b>${row.percent}%</b></td><td>${status(row.percent < settings.threshold ? "at-risk" : "safe")}</td></tr>`;
+      return `<tr><td class="mono">${h(row.roll)}</td><td><strong>${h(row.name)}</strong></td><td>${h(row.total)}</td><td class="positive">${h(row.present)}</td><td class="danger">${h(row.absent)}</td><td class="late-text">${h(row.late)}</td><td><div class="progress"><i class="${row.percent < settings.threshold ? "red-bar" : ""}" style="width:${Math.min(100, Math.max(0, Number(row.percent) || 0))}%"></i></div><b>${h(row.percent)}%</b></td><td>${status(row.percent < settings.threshold ? "at-risk" : "safe")}</td></tr>`;
     })
     .join("");
 }
@@ -245,12 +247,10 @@ function renderLeaves() {
   $("#leaveRows").innerHTML = leaves
     .map(
       (l) =>
-        `<div class="leave-row"><div class="leave-main"><span class="student-avatar">${l.name
+        `<div class="leave-row"><div class="leave-main"><span class="student-avatar">${h(l.name
           .split(" ")
           .map((x) => x[0])
-          .join(
-            "",
-          )}</span><div><div><strong>${l.name}</strong> <small class="mono">${l.roll}</small> ${status(l.status)}</div><p>${l.type} · ${l.date} · ${l.reason}</p>${l.doc ? '<small class="document">✓ Supporting document attached</small>' : ""}</div></div>${l.status === "pending" ? `<div class="leave-actions"><button class="approve" data-leave="${l.id}" data-state="approved">Approve</button><button class="reject" data-leave="${l.id}" data-state="rejected">Reject</button></div>` : `<button class="undo" data-leave="${l.id}" data-state="pending">Undo</button>`}</div>`,
+          .join(""))}</span><div><div><strong>${h(l.name)}</strong> <small class="mono">${h(l.roll)}</small> ${status(l.status)}</div><p>${h(l.type)} · ${h(l.date)} · ${h(l.reason)}</p>${l.doc ? '<small class="document">✓ Supporting document attached</small>' : ""}</div></div>${l.status === "pending" ? `<div class="leave-actions"><button class="approve" data-leave="${h(l.id)}" data-state="approved">Approve</button><button class="reject" data-leave="${h(l.id)}" data-state="rejected">Reject</button></div>` : `<button class="undo" data-leave="${h(l.id)}" data-state="pending">Undo</button>`}</div>`,
     )
     .join("");
 }
@@ -301,10 +301,10 @@ function renderThreshold() {
   $("#riskList").innerHTML = atRisk
     .map(
       (student) =>
-        `<div><span class="student-avatar">${student[0]
+        `<div><span class="student-avatar">${h(student[0]
           .split(" ")
           .map((part) => part[0])
-          .join("")}</span><strong>${student[0]}<small>${student[1]}</small></strong><b class="danger">${student[2]}%</b><button class="link">Notify</button></div>`,
+          .join(""))}</span><strong>${h(student[0])}<small>${h(student[1])}</small></strong><b class="danger">${h(student[2])}%</b><button class="link">Notify</button></div>`,
     )
     .join("");
 }

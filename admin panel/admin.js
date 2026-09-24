@@ -162,9 +162,12 @@ let currentFilter = "all";
 // Shared DOM helpers.
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
+const h = AttendIQUtils.escapeHtml;
 
 function statusBadge(status) {
-  return `<span class="status status-${status.toLowerCase().replace(" ", "-")}">${status}</span>`;
+  const value = String(status || "Unknown");
+  const slug = value.toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+  return `<span class="status status-${h(slug)}">${h(value)}</span>`;
 }
 
 // Render the student, faculty, and course management views.
@@ -177,7 +180,7 @@ function renderStudents(query = "") {
     .map((student) => {
       // The warned status is derived from the administrator's threshold.
       const warned = student.attendance < settings.threshold;
-      return `<tr><td><strong>${student.name}</strong><small>${student.email}</small></td><td class="mono">${student.roll}</td><td>${student.dept}</td><td><strong class="${warned ? "danger-text" : ""}">${student.attendance}%</strong></td><td>${statusBadge(warned ? "Warned" : "Active")}</td><td><button class="row-action" type="button">•••</button></td></tr>`;
+      return `<tr><td><strong>${h(student.name)}</strong><small>${h(student.email)}</small></td><td class="mono">${h(student.roll)}</td><td>${h(student.dept)}</td><td><strong class="${warned ? "danger-text" : ""}">${h(student.attendance)}%</strong></td><td>${statusBadge(warned ? "Warned" : "Active")}</td><td><button class="row-action" type="button">•••</button></td></tr>`;
     })
     .join("");
 }
@@ -186,7 +189,7 @@ function renderFaculty() {
   $("#facultyRows").innerHTML = faculty
     .map(
       (member) =>
-        `<tr><td><strong>${member[0]}</strong><small>${member[1].toLowerCase()}@kct.edu.np</small></td><td class="mono">${member[1]}</td><td>${member[2]}</td><td>${member[3]}</td><td>${member[4]}</td><td>${statusBadge(member[5])}</td></tr>`,
+        `<tr><td><strong>${h(member[0])}</strong><small>${h(member[1].toLowerCase())}@kct.edu.np</small></td><td class="mono">${h(member[1])}</td><td>${h(member[2])}</td><td>${h(member[3])}</td><td>${h(member[4])}</td><td>${statusBadge(member[5])}</td></tr>`,
     )
     .join("");
 }
@@ -195,7 +198,7 @@ function renderCourses() {
   $("#courseCards").innerHTML = courses
     .map(
       (course) =>
-        `<article class="course-card"><div class="course-code">${course[0]}</div><h3>${course[1]}</h3><p>${course[2]}</p><div class="course-meta"><span>${course[3]} classes</span><strong class="${course[4] < 75 ? "danger-text" : "positive"}">${course[4]}% avg.</strong></div><div class="progress"><i style="width:${course[4]}%"></i></div></article>`,
+        `<article class="course-card"><div class="course-code">${h(course[0])}</div><h3>${h(course[1])}</h3><p>${h(course[2])}</p><div class="course-meta"><span>${h(course[3])} classes</span><strong class="${course[4] < 75 ? "danger-text" : "positive"}">${h(course[4])}% avg.</strong></div><div class="progress"><i style="width:${Math.min(100, Math.max(0, Number(course[4]) || 0))}%"></i></div></article>`,
     )
     .join("");
 }
@@ -204,14 +207,13 @@ function renderCourses() {
 function requestMarkup(request, actions = true) {
   const actionMarkup =
     actions && request.status === "pending"
-      ? `<div class="request-actions"><button class="approve" data-leave="${request.id}" data-status="approved">Approve</button><button class="reject" data-leave="${request.id}" data-status="rejected">Reject</button></div>`
-      : `<button class="undo" data-leave="${request.id}" data-status="pending">Undo</button>`;
-  return `<div class="request-row"><div class="request-main"><span class="request-avatar">${request.name
+      ? `<div class="request-actions"><button class="approve" data-leave="${h(request.id)}" data-status="approved">Approve</button><button class="reject" data-leave="${h(request.id)}" data-status="rejected">Reject</button></div>`
+      : `<button class="undo" data-leave="${h(request.id)}" data-status="pending">Undo</button>`;
+  const initials = String(request.name || "?")
     .split(" ")
     .map((part) => part[0])
-    .join(
-      "",
-    )}</span><div><div class="request-title"><strong>${request.name}</strong><span class="mono">${request.roll}</span>${statusBadge(request.status)}</div><p>${request.type} · ${request.dates} · ${request.reason}</p>${request.doc ? '<small class="document">✓ Document submitted</small>' : ""}</div></div>${actionMarkup}</div>`;
+    .join("");
+  return `<div class="request-row"><div class="request-main"><span class="request-avatar">${h(initials)}</span><div><div class="request-title"><strong>${h(request.name)}</strong><span class="mono">${h(request.roll)}</span>${statusBadge(request.status)}</div><p>${h(request.type)} · ${h(request.dates)} · ${h(request.reason)}</p>${request.doc ? '<small class="document">✓ Document submitted</small>' : ""}</div></div>${actionMarkup}</div>`;
 }
 
 function renderLeaves(target = "#leaveRequests", limit = false) {
@@ -337,7 +339,7 @@ function renderUsers() {
   $("#userRows").innerHTML = users
     .map(
       (user) =>
-        `<tr><td><strong>${user.name}</strong><small>${user.email}</small></td><td><select class="role-select" data-user-id="${user.id}" aria-label="Role for ${user.name}">${AttendIQSupabase.ROLES.map((role) => `<option value="${role}"${role === user.role ? " selected" : ""}>${ROLE_LABELS[role]}</option>`).join("")}</select></td><td><button class="user-remove" type="button" data-remove-user="${user.id}">Remove</button></td></tr>`,
+        `<tr><td><strong>${h(user.name)}</strong><small>${h(user.email)}</small></td><td><select class="role-select" data-user-id="${h(user.id)}" aria-label="Role for ${h(user.name)}">${AttendIQSupabase.ROLES.map((role) => `<option value="${h(role)}"${role === user.role ? " selected" : ""}>${h(ROLE_LABELS[role])}</option>`).join("")}</select></td><td><button class="user-remove" type="button" data-remove-user="${h(user.id)}">Remove</button></td></tr>`,
     )
     .join("");
 }
@@ -354,6 +356,21 @@ function loadUsers() {
   });
 }
 
+const roleSelect = document.getElementById("newUserRole");
+const accountFields = document.querySelectorAll("[data-account-field]");
+
+function updateAccountFields() {
+  const role = roleSelect.value;
+  accountFields.forEach((field) => {
+    field.hidden = field.dataset.accountField !== role;
+  });
+  document.getElementById("newUserRoll").required = role === "student";
+  document.getElementById("newUserBatch").required = role === "student";
+  document.getElementById("newFacultyId").required = role === "teacher";
+}
+roleSelect.addEventListener("change", updateAccountFields);
+updateAccountFields();
+
 // Create accounts from the settings form, reporting validation errors.
 $("#userForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -362,6 +379,10 @@ $("#userForm").addEventListener("submit", async (event) => {
     email: $("#newUserEmail").value,
     role: $("#newUserRole").value,
     password: $("#newUserPassword").value,
+    roll: $("#newUserRoll").value,
+    batch: $("#newUserBatch").value,
+    section: $("#newUserSection").value,
+    faculty_id: $("#newFacultyId").value,
   });
   if (!result.ok) return showToast(result.error);
   const created = result.data && (result.data.user || result.data);

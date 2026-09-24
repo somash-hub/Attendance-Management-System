@@ -40,11 +40,13 @@ Do not commit the access token created by `supabase login`.
 It creates:
 
 - Tables: `profiles`, `settings`, `subjects`, `students`, `attendance`,
-  `leaves`
+  `leaves`, `faculty`, and `audit_logs`
 - Role helpers (`role_of`, `is_admin`, `is_staff`, `student_id_of`) and all
   row level security policies
 - Teacher attendance access restricted to assigned subjects, and student leave
   submissions forced to begin as pending
+- Teacher/admin leave-document access restricted to the teacher's assigned
+  program roster until section-level offerings are added in Phase 2
 - The private `leave-documents` storage bucket; students can upload and read
   their own documents, while staff can review every leave document
 - Demo seeds: 5 subjects (CSC419–CSC425), the 2079 batch roster, Aryan's
@@ -52,8 +54,9 @@ It creates:
 
 ## 3. Deploy the edge functions
 
-These two functions are the only privileged operations (creating and deleting
-login accounts). The service role key stays inside Supabase.
+These three functions are the only privileged operations (creating and
+ deleting accounts and validating leave-document uploads). The service role
+ key stays inside Supabase.
 
 Dashboard → **Edge Functions** → **Deploy a new function** → paste the content
 of each file:
@@ -62,12 +65,14 @@ of each file:
 | ------------------- | ------------------------------------------- |
 | `admin-create-user` | `supabase/functions/admin-create-user/index.ts` |
 | `admin-delete-user` | `supabase/functions/admin-delete-user/index.ts` |
+| `upload-leave-document` | `supabase/functions/upload-leave-document/index.ts` |
 
 Or with the CLI:
 
 ```bash
 npx supabase functions deploy admin-create-user --project-ref yvvgvteijtxnuwtncfio
 npx supabase functions deploy admin-delete-user --project-ref yvvgvteijtxnuwtncfio
+npx supabase functions deploy upload-leave-document --project-ref yvvgvteijtxnuwtncfio
 ```
 
 ## 4. Lock down signups
@@ -90,8 +95,8 @@ browser.
 
 The public key is safe to ship to the browser because every table is protected
 by row level security. **Never** put the `service_role` key in frontend files,
-Git commits, or this repository. The frontend uses the local fallback store
-only when the SDK or public key is unavailable.
+Git commits, or this repository. The local store is available only in explicit
+`?demo=1` sessions.
 
 ## 6. Sanity checks (SQL Editor)
 

@@ -56,6 +56,40 @@ Deno.serve(async (req) => {
     return json({ error: "You cannot remove your own account." }, 400);
   }
 
+  const { data: target, error: targetError } = await admin
+    .from("profiles")
+    .select("id, role, name, email")
+    .eq("id", id)
+    .single();
+  if (targetError || !target) {
+    return json({ error: targetError?.message || "Account not found." }, 404);
+  }
+
+  // Archive application records before removing the login. Attendance and
+  // leave history remain queryable through the student/faculty rows.
+  if (target.role === "student") {
+    const { error: archiveError } = await admin
+      .from("students")
+      .update({ active: false, archived_at: new Date().toISOString() })
+      .eq("profile_id", id);
+    if (archiveError) return json({ error: archiveError.message }, 400);
+  } else if (target.role === "teacher") {
+    const { error: archiveError } = await admin
+      .from("faculty")
+      .update({ status: "archived", archived_at: new Date().toISOString() })
+      .eq("profile_id", id);
+    if (archiveError) return json({ error: archiveError.message }, 400);
+  }
+
+  const { error: auditError } = await admin.from("audit_logs").insert({
+    actor_id: user.id,
+    action: "account.delete",
+    entity_type: target.role,
+    entity_id: id,
+    old_values: { name: target.name, email: target.email, role: target.role },
+  });
+  if (auditError) return json({ error: auditError.message }, 500);
+
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error) return json({ error: error.message }, 400);
 

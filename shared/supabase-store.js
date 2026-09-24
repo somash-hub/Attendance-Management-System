@@ -3,8 +3,8 @@
 // The pages may continue using AttendIQ during the gradual migration, but all
 // live backend calls belong in this file. It exposes one small, async API and
 // reports which source answered the request. Local results are used only when
-// no Supabase client is configured; a configured client never silently falls
-// back after a network or database error.
+// the page is explicitly opened in demo mode; a configured client never
+// silently falls back after a network or database error.
 (function (root) {
   "use strict";
 
@@ -12,14 +12,13 @@
   var LEAVE_TYPES = ["Medical", "Personal", "College Event"];
   var LEAVE_STATUSES = ["pending", "approved", "rejected"];
   var ATTENDANCE_STATUSES = ["Present", "Absent", "Late"];
-  var LEAVE_BUCKET = "leave-documents";
 
   function client() {
     return root.AttendIQDb || null;
   }
 
   function localStore() {
-    return root.AttendIQ || null;
+    return root.AttendIQDemoMode === true ? root.AttendIQ || null : null;
   }
 
   function errorText(error, fallback) {
@@ -82,7 +81,7 @@
 
   function unsupportedLocal(name) {
     return failure(
-      new Error(name + " is not available in the local demo. Configure Supabase to use it."),
+      new Error(name + " is unavailable. Configure Supabase or open the explicit demo mode."),
       "local",
     );
   }
@@ -277,6 +276,11 @@
       email: cleanEmail(value.email),
       password: String(value.password || ""),
       role: String(value.role || ""),
+      roll: String(value.roll || "").trim(),
+      program: String(value.program || "BSc CSIT").trim(),
+      batch: String(value.batch || "").trim(),
+      section: String(value.section || "A").trim(),
+      faculty_id: String(value.faculty_id || "").trim(),
     }, "The account could not be created.");
   }
 
@@ -359,7 +363,8 @@
     if (!client()) return Promise.resolve(unsupportedLocal("Student records"));
     return remote(function () {
       return client().from("students")
-        .select("id, profile_id, roll, name, email, program, batch, section")
+        .select("id, profile_id, roll, name, email, program, batch, section, active")
+        .eq("active", true)
         .order("roll", { ascending: true });
     }, "Students could not be loaded.");
   }
@@ -487,19 +492,16 @@
 
   function uploadLeaveDocument(file) {
     if (!client()) return Promise.resolve(unsupportedLocal("Leave documents"));
-    if (!file || !file.name) return Promise.resolve(failure("Choose a document to upload.", "supabase"));
-    return currentProfile().then(function (profileResult) {
-      if (!profileResult.ok) return profileResult;
-      var userId = profileResult.data.user.id;
-      var safeName = String(file.name).replace(/[^a-zA-Z0-9._-]/g, "-");
-      var path = userId + "/" + Date.now() + "-" + safeName;
-      return remote(function () {
-        return client().storage.from(LEAVE_BUCKET)
-          .upload(path, file, { upsert: false, contentType: file.type || "application/octet-stream" });
-      }, "The leave document could not be uploaded.").then(function (uploadResult) {
-        return uploadResult.ok ? success({ path: path }) : uploadResult;
-      });
-    });
+    var allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+    var extension = String(file && file.name || "").toLowerCase().split(".").pop();
+    if (!file || !file.name || file.size > 5 * 1024 * 1024 ||
+        allowedTypes.indexOf(String(file.type || "").toLowerCase()) === -1 ||
+        [".pdf", ".jpg", ".jpeg", ".png"].indexOf("." + extension) === -1) {
+      return Promise.resolve(failure("Choose a PDF, JPG, or PNG file smaller than 5 MB.", "supabase"));
+    }
+    var form = new FormData();
+    form.append("file", file, file.name);
+    return invokeFunction("upload-leave-document", form, "The leave document could not be uploaded.");
   }
 
   api.signIn = signIn;
