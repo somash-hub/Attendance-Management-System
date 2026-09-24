@@ -3,8 +3,8 @@
 Project reference: `yvvgvteijtxnuwtncfio`
 Everything in this folder is **re-runnable** — the schema drops and recreates
 its named policies before enabling them, so policy changes can be applied
-again safely. This source is prepared locally; the hosted project still needs
-the dashboard/MCP steps below.
+again safely. The hosted project has the migration and both Edge Functions
+applied; the steps below can be used to reproduce or update the setup.
 
 ## 1. Create the three demo accounts
 
@@ -81,16 +81,17 @@ Authentication → **Providers → Email** → turn **off**
 Settings → **API** → copy:
 
 - **Project URL** → already filled in `shared/supabase.js`
-- **anon public key** → paste it into `shared/supabase.js`
+- **anon/publishable key** → already filled in `shared/supabase.js`; replace it
+  only when rotating the public key
 
 For current Supabase dashboards, the public and secret keys are shown under
 **Project Settings → API Keys**. Use only the `anon`/`publishable` key in the
 browser.
 
-The anon key is safe to ship to the browser because every table is protected
+The public key is safe to ship to the browser because every table is protected
 by row level security. **Never** put the `service_role` key in frontend files,
-Git commits, or this repository. The app deliberately keeps the local
-fallback active while this value is a placeholder.
+Git commits, or this repository. The frontend uses the local fallback store
+only when the SDK or public key is unavailable.
 
 ## 6. Sanity checks (SQL Editor)
 
@@ -118,5 +119,7 @@ select count(*) from public.leaves;      -- 4
 
 - Extra teacher accounts for the faculty directory (currently one teacher
   account exists; the rest of the directory stays demo data until then).
-- The frontend refactor that moves `shared/store.js` from localStorage to
-  these tables (see `supabase/SETUP.md` and the project roadmap).
+- Administrator forms for students, subjects, and faculty assignments.
+- Remaining demo panels: dashboard charts, class schedule, notifications,
+  faculty/course cards, and monthly trend.
+- Leave-document viewing for reviewers.

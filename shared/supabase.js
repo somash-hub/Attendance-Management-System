@@ -6,7 +6,7 @@
 const SUPABASE_URL = "https://yvvgvteijtxnuwtncfio.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Oo7qwamCwC05zP1HqN92-g_8fVZ96Ue";
 
-// Shared client for the future data layer (shared/store.js). Kept on the
+// Shared client for the async adapter in shared/supabase-store.js. Kept on the
 // global scope so plain <script> files can reach it without modules.
 window.AttendIQDb =
   !SUPABASE_ANON_KEY.startsWith("PASTE") && window.supabase

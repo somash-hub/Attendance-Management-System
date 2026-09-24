@@ -1,10 +1,10 @@
 # AttendIQ Student Attendance System
 
 AttendIQ is a role-based student attendance management website built with
-plain HTML, CSS, and JavaScript. The current app keeps a browser-only fallback
-store so the demo works immediately, while the Supabase schema, security
-policies, storage bucket, and account-management functions are prepared for
-the hosted data layer.
+plain HTML, CSS, and JavaScript. Supabase provides authentication, the shared
+attendance and leave data, settings, reports, and administrator account
+functions. The old localStorage store remains only as an explicit fallback
+when the Supabase browser client is unavailable.
 
 ## Product Direction
 
@@ -28,46 +28,52 @@ plain HTML, CSS, and JavaScript.
 
 ## Current Features
 
-- Single login page for every role: the account decides which portal opens
-- Administrator-managed accounts: create users and assign roles from
-  **Settings → User Accounts**
-- Role-based redirect after login to the student, teacher, or administrator
-  portal
+- Single login page for every role: Supabase Auth signs the account in and the
+  profile role decides which portal opens
+- Administrator-managed accounts: create users, assign roles, and remove
+  accounts from **Settings → User Accounts** through Supabase Edge Functions
+- Role-based redirects and profile checks on every portal page
 - Session persistence so a signed-in user stays signed in after a refresh
 - Student email-domain validation using the college domain `@kct.edu.np`
-- Administrator-controlled attendance threshold (defaults to 80%, the TU
-  requirement, and can be adjusted in Settings)
+- Administrator-controlled attendance threshold persisted in the `settings`
+  table (defaults to 80%, the TU requirement, and can be adjusted in Settings)
+- Teacher attendance marking backed by `students`, `subjects`, and
+  `attendance`, including AD/BS dates and database-enforced uniqueness
+- Student dashboard and attendance log computed from the signed-in student's
+  own marks, with subject percentages and threshold warnings
+- Leave workflow: student submission with optional private document upload,
+  teacher/admin review, and approve/reject/undo status changes
+- Teacher, admin, and student CSV report downloads
 - Demo data aligned with TU BSc CSIT: Semester 7 subjects (CSC419–CSC425),
   Bikram Sambat dates, and Nepali roll numbers
-- Password visibility toggle
-- Client-side validation for email and password requirements
-- Responsive styling for the login screen and all portals
-- Supabase-ready schema with row-level security, demo seeds, private document
-  storage, and admin-only account-management edge functions
-- Supabase browser SDK loading and a public client guard; the service-role key
-  is never included in frontend files
+- Supabase schema with row-level security, demo seeds, a private document
+  storage bucket, and admin-only account-management edge functions
+- Supabase browser SDK loading and a public publishable-key guard; the
+  service-role key is never included in frontend files
+- Password visibility toggle, client-side validation, and responsive styling
+  for the login screen and all portals
 
 ## Supabase status
 
-The repository contains the database and edge-function source in
-`supabase/`, but the hosted project is not connected to the frontend yet. The
-public anon key is still intentionally a placeholder in
-`shared/supabase.js`; until it is replaced, the working localStorage demo is
-used. See `supabase/SETUP.md` for the dashboard/MCP steps and security notes.
+The hosted project `yvvgvteijtxnuwtncfio` is connected. The migration in
+`supabase/migrations/20260924000100_initial_attendance_schema.sql` has been
+applied, the `admin-create-user` and `admin-delete-user` Edge Functions are
+deployed, and `shared/supabase.js` contains only the public publishable key.
+The frontend calls the backend through `shared/supabase-store.js`; a configured
+client never silently falls back to localStorage after a request error. See
+`supabase/SETUP.md` for the setup and security notes.
 
 ## Planned Frontend Work
 
-The local demo and Supabase repository scaffolding are in place. The next
-iterations are:
+The Supabase data layer and the main attendance, leave, account, settings, and
+report flows are connected. Remaining iterations are:
 
-1. Complete the hosted Supabase setup: create the three demo Auth users, push
-   `supabase/migrations/20260924000100_initial_attendance_schema.sql`, deploy
-   the two account-management functions, and paste only the public anon key
-   into `shared/supabase.js`.
-2. Move authentication, account management, settings, and attendance/leave
-   records from the local fallback store to Supabase queries.
-3. Finish the remaining attendance actions: CSV export, add/edit forms,
-   persisted settings, and notifications.
+1. Replace the remaining demo panels with database queries: faculty and course
+   cards, class schedule, notifications, monthly trend, and the administrator
+   dashboard charts and metrics.
+2. Add administrator forms for students, subjects, and faculty assignments so
+   the roster and course catalog can be managed instead of seeded with SQL.
+3. Add leave-document viewing for reviewers and richer empty/loading states.
 4. Consolidate duplicated panel helpers and styles into shared files.
 
 ## Project Structure
@@ -96,7 +102,9 @@ iterations are:
 │   └── login.js
 ├── shared/
 │   ├── store.js
-│   └── supabase.js
+│   ├── supabase.js
+│   ├── supabase-store.js
+│   └── csv.js
 ├── supabase/
 │   ├── .gitignore
 │   ├── config.toml
@@ -125,8 +133,8 @@ installation.
 4. Administrators can open **Settings → User Accounts** to create new users
    and assign roles. New accounts can sign in immediately.
 5. Opening a portal while signed out redirects back to the login page.
-6. The pages load the Supabase SDK, but they continue using the local fallback
-   until the public anon key is configured in `shared/supabase.js`.
+6. The pages use the hosted Supabase client in `shared/supabase.js`. The
+   localStorage store is used only when the SDK or public key is unavailable.
 
 ### Demo Accounts
 
@@ -136,29 +144,22 @@ installation.
 | Teacher       | `priya.mehta@kct.edu.np` | `Teacher@2025` |
 | Student       | `aryan.k@kct.edu.np`     | `Student@2025` |
 
-Accounts and attendance settings currently use `localStorage` in the working
-browser-only demo. The demo accounts are restored automatically whenever the
-account list is empty, and stored copies are refreshed automatically, so
-browsers that saved an earlier demo email still sign in with the current one.
-The attendance threshold is shared through the same fallback store, so
-warnings and at-risk lists stay in sync across every portal. Passwords are
-kept in plain text only in this frontend demo; do not use it for real users.
-The Supabase setup in `supabase/SETUP.md` is the replacement for this fallback.
+These accounts must also exist in Supabase Authentication with the same
+passwords (see `supabase/SETUP.md`). The local store still keeps a demo copy so
+the UI remains usable if the Supabase client is unavailable, but the hosted
+accounts and all attendance data are the source of truth when the client is
+configured. Do not use these demo passwords for real users.
 
-The administrator prototype includes dashboard metrics, program attendance
-visualization, student and faculty directories, course cards, leave-request
-approval, attendance settings (with the shared threshold), an academic
-calendar, user accounts, and responsive mobile navigation. Its data is
-currently demo data stored in JavaScript.
+The administrator portal now loads students, attendance percentages, leave
+requests, users, and settings from Supabase. Dashboard metrics, program charts,
+faculty and course cards, and the academic calendar still use demo data.
 
-The student prototype includes attendance overview cards, subject percentages,
-attendance records with search and status filtering, a weekly class schedule,
-notifications, and a leave-request form. The teacher prototype includes class
-metrics, subject averages, at-risk students, interactive attendance marking,
-attendance reports, and leave-request approval. These portals currently use
-demo data and browser-only state.
+The student portal now loads the signed-in student's attendance dashboard,
+attendance log, subject percentages, threshold warning, leave submission, and
+CSV export from Supabase. The weekly class schedule and notification copy
+remain demo data.
 
-The portals currently run on demo data and browser-only accounts. A backend
-will be needed for real authentication, shared attendance data, reports, and
-role-based permissions. The prepared Supabase schema and edge functions will
-provide that hosted layer once the authenticated setup steps are completed.
+The teacher portal now loads the roster, assigned subjects, daily attendance
+marking, semester reports, leave review, settings, and CSV export from
+Supabase. Dashboard subject averages and some summary metrics still use demo
+data.
