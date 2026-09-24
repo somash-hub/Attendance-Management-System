@@ -13,6 +13,9 @@
     <!-- The shared store provides the accounts and sessions for login.js. -->
     <script src="../shared/store.js" defer></script>
     <!-- defer waits until HTML is parsed before running login.js. -->
+    <!-- The async Supabase adapter is the only frontend module for backend calls. -->
+    <script src="../shared/supabase-store.js" defer></script>
+
     <script src="login.js" defer></script>
   </head>
   <body>

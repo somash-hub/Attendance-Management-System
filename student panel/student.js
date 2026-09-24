@@ -1,13 +1,27 @@
-// Access control: only signed-in students may use this portal.
-const session = AttendIQ.getSession();
-if (!session) {
-  location.replace("../login/login.html");
-} else if (session.role !== "student") {
-  location.replace("../" + AttendIQ.ROLE_PANELS[session.role]);
-}
+// Access control: wait for the verified Supabase profile before initializing.
+const PORTAL_ROLE = "student";
+AttendIQSupabase.getCurrentProfile().then(function (result) {
+  if (!result.ok || !result.data) {
+    location.replace("../login/login.html");
+    return;
+  }
+  const session = result.data;
+  if (session.role !== PORTAL_ROLE) {
+    const destination = AttendIQ.ROLE_PANELS[session.role];
+    location.replace(destination ? "../" + destination : "../login/login.html");
+    return;
+  }
+  initializePortal(session);
+});
 
-// Portal-wide attendance settings (threshold) shared by every panel.
-const settings = AttendIQ.getSettings();
+function initializePortal(session) {
+  // Load the shared threshold from Supabase before rendering the portal.
+  return AttendIQSupabase.getSettings().then(function (result) {
+    if (!result.ok) {
+      console.error("Could not load attendance settings:", result.error);
+      return;
+    }
+    const settings = result.data;
 
 // Demo attendance data used until the student portal is connected to an API.
 const records = [
@@ -186,8 +200,14 @@ if (session) {
     .slice(0, 2)
     .toUpperCase();
 }
-$("#signOut").addEventListener("click", () => AttendIQ.clearSession());
+$("#signOut").addEventListener("click", async (event) => {
+  event.preventDefault();
+  await AttendIQSupabase.signOut();
+  location.href = "../login/login.html";
+});
 
-renderWarning();
-renderRecords();
-renderSchedule();
+  renderWarning();
+  renderRecords();
+  renderSchedule();
+  });
+}

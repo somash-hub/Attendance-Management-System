@@ -1,13 +1,27 @@
-// Access control: only signed-in teachers may use this portal.
-const session = AttendIQ.getSession();
-if (!session) {
-  location.replace("../login/login.html");
-} else if (session.role !== "teacher") {
-  location.replace("../" + AttendIQ.ROLE_PANELS[session.role]);
-}
+// Access control: wait for the verified Supabase profile before initializing.
+const PORTAL_ROLE = "teacher";
+AttendIQSupabase.getCurrentProfile().then(function (result) {
+  if (!result.ok || !result.data) {
+    location.replace("../login/login.html");
+    return;
+  }
+  const session = result.data;
+  if (session.role !== PORTAL_ROLE) {
+    const destination = AttendIQ.ROLE_PANELS[session.role];
+    location.replace(destination ? "../" + destination : "../login/login.html");
+    return;
+  }
+  initializePortal(session);
+});
 
-// Portal-wide attendance settings (threshold) shared by every panel.
-const settings = AttendIQ.getSettings();
+function initializePortal(session) {
+  // Load the shared threshold from Supabase before rendering the portal.
+  return AttendIQSupabase.getSettings().then(function (result) {
+    if (!result.ok) {
+      console.error("Could not load attendance settings:", result.error);
+      return;
+    }
+    const settings = result.data;
 
 // Demo class roster and leave data used by the teacher portal.
 const students = [
@@ -54,6 +68,8 @@ const leaves = [
 ];
 // Attendance is kept in memory until the portal is connected to a backend.
 let attendance = Object.fromEntries(students.map((s) => [s[1], s[3]]));
+let markingStudents = students.map((s) => ({ id: s[1], name: s[0], roll: s[1] }));
+let attendanceReady = false;
 
 // Shared DOM helpers.
 const $ = (s) => document.querySelector(s),
@@ -73,15 +89,13 @@ function status(s) {
 
 // Render each student's selectable attendance state.
 function renderAttendance() {
-  $("#attendanceRows").innerHTML = students
+  $("#attendanceRows").innerHTML = markingStudents
     .map(
-      (s) =>
-        `<div class="attendance-row"><div class="student"><span class="student-avatar">${s[0]
+      (student) =>
+        `<div class="attendance-row"><div class="student"><span class="student-avatar">${student.name
           .split(" ")
-          .map((x) => x[0])
-          .join(
-            "",
-          )}</span><strong>${s[0]}<small>${s[1]}</small></strong></div><div class="attendance-options"><button class="${attendance[s[1]] === "present" ? "chosen present" : ""}" data-student="${s[1]}" data-status="present">Present</button><button class="${attendance[s[1]] === "absent" ? "chosen absent" : ""}" data-student="${s[1]}" data-status="absent">Absent</button><button class="${attendance[s[1]] === "late" ? "chosen late" : ""}" data-student="${s[1]}" data-status="late">Late</button></div></div>`,
+          .map((part) => part[0])
+          .join("")}</span><strong>${student.name}<small>${student.roll}</small></strong></div><div class="attendance-options"><button class="${attendance[student.id] === "present" ? "chosen present" : ""}" data-student="${student.id}" data-status="present">Present</button><button class="${attendance[student.id] === "absent" ? "chosen absent" : ""}" data-student="${student.id}" data-status="absent">Absent</button><button class="${attendance[student.id] === "late" ? "chosen late" : ""}" data-student="${student.id}" data-status="late">Late</button></div></div>`,
     )
     .join("");
   updateCounts();
@@ -93,6 +107,81 @@ function updateCounts() {
   $("#presentCount").textContent = values.filter((x) => x === "present").length;
   $("#absentCount").textContent = values.filter((x) => x === "absent").length;
   $("#lateCount").textContent = values.filter((x) => x === "late").length;
+}
+
+function displayStatus(value) {
+  return String(value || "Present").toLowerCase();
+}
+
+function databaseStatus(value) {
+  const normalized = String(value || "present").toLowerCase();
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function populateSubjectOptions(subjects) {
+  const select = $("#markSubject");
+  select.replaceChildren();
+  subjects.forEach((subject) => {
+    const option = document.createElement("option");
+    option.value = subject.code;
+    option.textContent = subject.code + " · " + subject.name;
+    select.appendChild(option);
+  });
+}
+
+function loadSelectedAttendance() {
+  const dateAd = $("#markDate").value;
+  const subjectCode = $("#markSubject").value;
+  if (!dateAd || !subjectCode) return Promise.resolve();
+
+  return AttendIQSupabase.getAttendance({ date_ad: dateAd, subject_code: subjectCode }).then(function (result) {
+    if (!result.ok) {
+      attendanceReady = false;
+      if (window.AttendIQDb) toast(result.error);
+      return;
+    }
+    const existing = {};
+    result.data.forEach((record) => {
+      existing[record.student_id] = displayStatus(record.status);
+    });
+    attendance = Object.fromEntries(
+      markingStudents.map((student) => [student.id, existing[student.id] || "present"]),
+    );
+    attendanceReady = true;
+    renderAttendance();
+  });
+}
+
+function loadTeacherData() {
+  if (!window.AttendIQDb) {
+    attendanceReady = false;
+    renderAttendance();
+    return Promise.resolve();
+  }
+  return Promise.all([
+    AttendIQSupabase.getStudents(),
+    AttendIQSupabase.getSubjects({ teacher_id: session.id }),
+  ]).then(function (results) {
+    const studentsResult = results[0];
+    const subjectsResult = results[1];
+    if (!studentsResult.ok || !subjectsResult.ok) {
+      attendanceReady = false;
+      toast(studentsResult.error || subjectsResult.error || "Attendance data could not be loaded.");
+      return;
+    }
+    markingStudents = studentsResult.data.map((student) => ({
+      id: student.id,
+      name: student.name,
+      roll: student.roll,
+    }));
+    if (!subjectsResult.data.length) {
+      attendanceReady = false;
+      toast("No subjects are assigned to this teacher account.");
+      return;
+    }
+    populateSubjectOptions(subjectsResult.data);
+    return loadSelectedAttendance();
+  });
 }
 
 // Render the semester attendance report.
@@ -187,15 +276,38 @@ document.addEventListener("click", (e) => {
     toast("Leave request updated.");
   }
 });
-$("#markAll").addEventListener("click", () => {
-  students.forEach((s) => (attendance[s[1]] = "present"));
-  renderAttendance();
-});
-$("#saveAttendance").addEventListener("click", () => {
-  $("#saved").textContent = "Saved just now";
-  $("#saved").classList.add("is-saved");
-  toast("Attendance saved successfully.");
-});
+  $("#markAll").addEventListener("click", () => {
+    markingStudents.forEach((student) => (attendance[student.id] = "present"));
+    renderAttendance();
+  });
+  $("#markDate").addEventListener("change", loadSelectedAttendance);
+  $("#markSubject").addEventListener("change", loadSelectedAttendance);
+  $("#saveAttendance").addEventListener("click", async () => {
+    if (!window.AttendIQDb) {
+      toast("Supabase is not configured; attendance remains in the local demo.");
+      return;
+    }
+    if (!attendanceReady) return toast("Attendance data is not ready yet.");
+
+    const dateAd = $("#markDate").value;
+    const dateBs = $("#markDateBs").value.trim();
+    const subjectCode = $("#markSubject").value;
+    if (!dateAd || !dateBs || !subjectCode) return toast("Choose a date, BS date, and subject.");
+
+    const records = markingStudents.map((student) => ({
+      student_id: student.id,
+      subject_code: subjectCode,
+      date_ad: dateAd,
+      date_bs: dateBs,
+      time: "09:00 AM",
+      status: databaseStatus(attendance[student.id]),
+    }));
+    const result = await AttendIQSupabase.saveAttendance(records);
+    if (!result.ok) return toast(result.error);
+    $("#saved").textContent = "Saved just now";
+    $("#saved").classList.add("is-saved");
+    toast("Attendance saved successfully.");
+  });
 $("#exportReport").addEventListener("click", () =>
   toast("CSV report prepared."),
 );
@@ -210,9 +322,15 @@ if (session) {
     .slice(0, 2)
     .toUpperCase();
 }
-$("#signOut").addEventListener("click", () => AttendIQ.clearSession());
+$("#signOut").addEventListener("click", async (event) => {
+  event.preventDefault();
+  await AttendIQSupabase.signOut();
+  location.href = "../login/login.html";
+});
 
-renderAttendance();
-renderReports();
-renderLeaves();
-renderThreshold();
+  renderReports();
+  renderLeaves();
+  renderThreshold();
+  return loadTeacherData();
+  });
+}

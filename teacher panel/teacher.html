@@ -11,6 +11,9 @@
     <!-- Load the public client before the local fallback store. -->
     <script src="../shared/supabase.js" defer></script>
     <script src="../shared/store.js" defer></script>
+    <!-- The async Supabase adapter is the only frontend module for backend calls. -->
+    <script src="../shared/supabase-store.js" defer></script>
+
     <script src="teacher.js" defer></script>
   </head>
   <body>
@@ -142,14 +145,20 @@
             </div>
             <div class="selectors">
               <label
-                >Date<input
+                >Date (AD)<input
                   id="markDate"
                   type="date"
                   value="2025-07-09" /></label
               ><label
-                >Subject<select>
-                  <option>CSC419 · Advanced Java Programming</option>
-                  <option>CSC420 · Data Warehousing and Data Mining</option>
+                >Date (BS)<input
+                  id="markDateBs"
+                  type="text"
+                  value="Ashadh 26, 2082"
+                  placeholder="e.g. Ashadh 26, 2082" /></label
+              ><label
+                >Subject<select id="markSubject">
+                  <option value="CSC419">CSC419 · Advanced Java Programming</option>
+                  <option value="CSC420">CSC420 · Data Warehousing and Data Mining</option>
                 </select></label
               >
             </div>
