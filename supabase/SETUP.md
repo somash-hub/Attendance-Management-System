@@ -38,6 +38,8 @@ Apply the migrations in order from `supabase/migrations/`:
 9. `20260924000900_phase3_enrollment_management.sql`
 10. `20260924001000_phase3_academic_calendar_schedule.sql`
 11. `20260924001100_phase3_schedule_integrity.sql`
+12. `20260924001200_phase5_attendance_sessions.sql`
+13. `20260924001201_phase5_attendance_sessions_lint_fix.sql`
 
 Use separate SQL Editor queries, or paste them in order and run each query.
 
@@ -56,8 +58,8 @@ It creates:
 
 - Tables: `profiles`, `settings`, `subjects`, `students`, `attendance`,
   `leaves`, `faculty`, `audit_logs`, `academic_years`, `semesters`,
-  `sections`, `enrollments`, `course_offerings`, `academic_events`, and
-  `class_schedules`
+  `sections`, `enrollments`, `course_offerings`, `academic_events`,
+  `class_schedules`, and `attendance_sessions`
 - Role helpers (`role_of`, `is_admin`, `is_staff`, `student_id_of`) and all
   row level security policies
 - Teacher attendance access restricted to assigned subjects, and student leave
@@ -81,6 +83,8 @@ It creates:
   delete attendance records
 - Phase 4 adapter methods scope teacher and student reads to assigned course
   offerings, sections, enrollments, attendance, and leave requests
+- Phase 5 adds scheduled attendance sessions with teacher-assignment checks,
+  atomic session attendance saving, relationship-aware RLS, and a lint follow-up
 - The private `leave-documents` storage bucket; students can upload and read
   their own documents, while assigned staff can review related documents
 - Demo seeds: 5 subjects (CSC419–CSC425), the 2079 batch roster, Aryan's
@@ -150,6 +154,7 @@ select count(*) from public.course_offerings; -- 5 active offerings
 select count(*) from public.enrollments;   -- 8 active enrollments
 select count(*) from public.academic_events; -- 0 until an administrator adds one
 select count(*) from public.class_schedules; -- 0 until an administrator adds one
+select count(*) from public.attendance_sessions; -- 0 until a teacher opens a session
 ```
 
 ## Access rules at a glance
@@ -162,7 +167,10 @@ select count(*) from public.class_schedules; -- 0 until an administrator adds on
 | `subjects`            | read catalogue                  | read assigned offerings              | all   |
 | `enrollments`         | read own enrollment             | read assigned section relationships | all   |
 | `course_offerings`    | read enrolled offerings         | read assigned offerings              | all   |
-| `academic_years`      | read                            | read                                 | all   |
+| `academic_events`     | read                            | read                                  | all   |
+| `class_schedules`     | read enrolled schedules         | read assigned schedules              | all   |
+| `attendance_sessions` | read enrolled sessions          | read/create assigned sessions        | all   |
+| `academic_years`      | read                            | read                                  | all   |
 | `semesters`           | read                            | read                                 | all   |
 | `sections`            | read                            | read                                 | all   |
 | `settings`            | read                            | read                                 | update |

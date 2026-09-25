@@ -143,15 +143,18 @@ JavaScript, Edge Functions, and repository diff checks pass.
 
 ## Phase 5 — Schedule and attendance sessions
 
-**Status: planning — class schedule administration is complete; session-based attendance remains.**
+**Status: in progress — session database foundation is complete; the teacher and student UIs are next.**
 
-Phase 3 now provides the `class_schedules` table and admin UI. The next slice
-adds `attendance_sessions` and session-based attendance records, migrates the
-existing date/time attendance into sessions, and compares reports before removing
-the legacy path.
+The hosted database now contains `attendance_sessions`, the optional
+`attendance.attendance_session_id` link, and the `create_attendance_session`,
+`close_attendance_session`, and `save_attendance_session` RPCs. Session writes
+are restricted to an assigned teacher (or administrator), validate the scheduled
+weekday, validate active enrollment, and save all marks in one operation. Session
+reads are relationship-scoped for teachers and enrolled students. The existing
+legacy attendance path remains available until the UI migration is verified.
 
 **Exit gate:** a teacher marks attendance only for an assigned scheduled session
-and its enrolled roster.
+and its enrolled roster; the student sees the same session-linked result.
 
 ## Phase 6 — Leave and document completion
 
@@ -161,7 +164,7 @@ Add reviewer comments, review timestamps, cancellation rules, overlap detection,
 
 ## Phase 7 — Notifications and calendar
 
-Add `notifications` and `academic_events`. Replace hard-coded notification copy and calendar dates with database records.
+Add `notifications`; academic events and calendar administration already exist in Phase 3. Replace hard-coded notification copy with database records.
 
 **Exit gate:** unread notifications and academic events are real data.
 

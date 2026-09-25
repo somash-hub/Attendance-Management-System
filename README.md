@@ -54,6 +54,8 @@ plain HTML, CSS, and JavaScript.
   edit student/section details, and archive students while preserving history
 - Relationship-scoped teacher and student queries for offerings, rosters,
   attendance, and leave requests
+- Scheduled attendance sessions with relationship-scoped RLS, atomic session
+  attendance saving, and a separate lint-correction migration
 - Supabase browser SDK loading and a public publishable-key guard; the
   service-role key is never included in frontend files
 - Password visibility toggle, client-side validation, and responsive styling
@@ -62,23 +64,30 @@ plain HTML, CSS, and JavaScript.
 ## Supabase status
 
 The hosted project `yvvgvteijtxnuwtncfio` is connected. All repository migrations
-through `20260924001100_phase3_schedule_integrity.sql` are applied to the
-hosted database, and the linked database lint passes. The project includes Phase 1
-security, Phase 2 academic relationships, and the complete Phase 3 administrator
-student, faculty, subject, course-offering, enrollment, academic-calendar, and
-class-schedule administration slices. The `admin-create-user`,
-`admin-update-faculty`, `admin-delete-user`, and `upload-leave-document` Edge
-Functions are deployed, and `shared/supabase.js` contains only the public
-publishable key. Phase 2 backfills the current academic year, Semester 7, BSc
-CSIT Section A, five course offerings, and eight active student enrollments while
-preserving legacy attendance and leave rows. Phase 3 adds linked account and
-academic-resource management without deleting historical attendance records. Phase
-4 adds explicit relationship-scoped teacher and student reads for course offerings,
-rosters, attendance, and leave requests; administrator queries remain
-institution-wide by design. The frontend calls the backend through
-`shared/supabase-store.js`; a configured client never silently falls back to
-localStorage after a request error. The local store is available only in explicit
-demo mode (`?demo=1`). See `supabase/SETUP.md` for setup and security notes.
+through `20260924001201_phase5_attendance_sessions_lint_fix.sql` are applied to
+the hosted database, and the linked database lint passes. The project includes
+Phase 1 security, Phase 2 academic relationships, and the complete Phase 3
+administrator student, faculty, subject, course-offering, enrollment,
+academic-calendar, and class-schedule administration slices. The
+`admin-create-user`, `admin-update-faculty`, `admin-delete-user`, and
+`upload-leave-document` Edge Functions are deployed, and `shared/supabase.js`
+contains only the public publishable key. Phase 2 backfills the current academic
+year, Semester 7, BSc CSIT Section A, five course offerings, and eight active
+student enrollments while preserving legacy attendance and leave rows. Phase 3
+adds linked account and academic-resource management without deleting historical
+attendance records. Phase 4 adds explicit relationship-scoped teacher and
+student reads for course offerings, rosters, attendance, and leave requests;
+administrator queries remain institution-wide by design. Phase 5 adds
+`attendance_sessions`, teacher-assignment checks for opening sessions, atomic
+session attendance RPCs, relationship-aware RLS, and adapter methods for
+teacher/student session reads. The next slice connects the teacher attendance
+form to open a session, save enrolled-roster marks, and close the session; the
+student portal will then read session-linked attendance.
+
+The frontend calls the backend through `shared/supabase-store.js`; a configured
+client never silently falls back to localStorage after a request error. The
+local store is available only in explicit demo mode (`?demo=1`). See
+`supabase/SETUP.md` for setup and security notes.
 
 ## Planned Frontend Work
 
@@ -141,7 +150,9 @@ report flows are connected. Remaining iterations are:
 │       ├── 20260924000800_phase3_course_offering_crud.sql
 │       ├── 20260924000900_phase3_enrollment_management.sql
 │       ├── 20260924001000_phase3_academic_calendar_schedule.sql
-│       └── 20260924001100_phase3_schedule_integrity.sql
+│       ├── 20260924001100_phase3_schedule_integrity.sql
+│       ├── 20260924001200_phase5_attendance_sessions.sql
+│       └── 20260924001201_phase5_attendance_sessions_lint_fix.sql
 └── .vscode/
     ├── mcp.json
     └── settings.json

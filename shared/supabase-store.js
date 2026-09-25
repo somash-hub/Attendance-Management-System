@@ -487,13 +487,97 @@
       var value = filters || {};
       return remote(function () {
         var query = client().from("attendance")
-          .select("id, student_id, subject_code, course_offering_id, date_ad, date_bs, time, status, marked_by, created_at")
+          .select("id, student_id, subject_code, course_offering_id, attendance_session_id, date_ad, date_bs, time, status, marked_by, created_at")
           .eq("student_id", profileResult.data.id)
           .order("date_ad", { ascending: false })
           .order("time", { ascending: true });
         return applyAttendanceFilters(query, value);
       }, "Your attendance could not be loaded.");
     });
+  }
+
+  // Session reads are explicit so the student portal never has to guess which
+  // scheduled classes belong to its active enrollment.
+  function getMyAttendanceSessions(filters) {
+    return getMyStudentProfile().then(function (profileResult) {
+      if (!profileResult.ok) return profileResult;
+      return getMySubjects().then(function (subjectResult) {
+        if (!subjectResult.ok) return subjectResult;
+        var offeringIds = Array.from(new Set(subjectResult.data.map(function (row) {
+          return row.course_offering_id;
+        }).filter(Boolean)));
+        if (!offeringIds.length) return success([], "supabase");
+        var value = filters || {};
+        return remote(function () {
+          var query = client().from("attendance_sessions")
+            .select("id, schedule_id, course_offering_id, date_ad, date_bs, status, created_at, closed_at")
+            .in("course_offering_id", offeringIds)
+            .order("date_ad", { ascending: false });
+          if (value.course_offering_id) query = query.eq("course_offering_id", value.course_offering_id);
+          if (value.date_ad) query = query.eq("date_ad", value.date_ad);
+          if (value.status) query = query.eq("status", value.status);
+          return query;
+        }, "Your attendance sessions could not be loaded.");
+      });
+    });
+  }
+
+  function getTeacherAttendanceSessions(filters) {
+    return getTeacherCourseOfferings().then(function (offeringResult) {
+      if (!offeringResult.ok) return offeringResult;
+      var offeringIds = Array.from(new Set(offeringResult.data.map(function (row) { return row.id; }).filter(Boolean)));
+      if (!offeringIds.length) return success([], "supabase");
+      var value = filters || {};
+      return remote(function () {
+        var query = client().from("attendance_sessions")
+          .select("id, schedule_id, course_offering_id, date_ad, date_bs, status, created_at, closed_at")
+          .in("course_offering_id", offeringIds)
+          .order("date_ad", { ascending: false });
+        if (value.course_offering_id) query = query.eq("course_offering_id", value.course_offering_id);
+        if (value.date_ad) query = query.eq("date_ad", value.date_ad);
+        if (value.status) query = query.eq("status", value.status);
+        return query;
+      }, "Assigned attendance sessions could not be loaded.");
+    });
+  }
+
+  function createAttendanceSession(input) {
+    var value = input || {};
+    if (!client()) return Promise.resolve(unsupportedLocal("Attendance sessions"));
+    if (!value.schedule_id || !value.date_ad || !String(value.date_bs || "").trim()) {
+      return Promise.resolve(failure("Schedule, AD date, and BS date are required.", "supabase"));
+    }
+    return remote(function () {
+      return client().rpc("create_attendance_session", {
+        p_schedule_id: String(value.schedule_id).trim(),
+        p_date_ad: value.date_ad,
+        p_date_bs: String(value.date_bs).trim(),
+      }).single();
+    }, "The attendance session could not be created.");
+  }
+
+  function closeAttendanceSession(sessionId) {
+    if (!client()) return Promise.resolve(unsupportedLocal("Attendance sessions"));
+    if (!sessionId) return Promise.resolve(failure("Attendance session is required.", "supabase"));
+    return remote(function () {
+      return client().rpc("close_attendance_session", { p_session_id: String(sessionId).trim() }).single();
+    }, "The attendance session could not be closed.");
+  }
+
+  function saveAttendanceSession(input) {
+    var value = input || {};
+    if (!client()) return Promise.resolve(unsupportedLocal("Attendance sessions"));
+    if (!value.session_id || !Array.isArray(value.records) || !value.records.length) {
+      return Promise.resolve(failure("An attendance session and records are required.", "supabase"));
+    }
+    return remote(function () {
+      return client().rpc("save_attendance_session", {
+        p_session_id: String(value.session_id).trim(),
+        p_records: value.records.map(function (record) {
+          return { student_id: String(record.student_id || "").trim(), status: String(record.status || "").trim() };
+        }),
+      });
+    }, "The attendance session could not be saved.");
   }
 
   function getMyLeaves(filters) {
@@ -814,7 +898,7 @@
       var value = filters || {};
       return remote(function () {
         var query = client().from("attendance")
-          .select("id, student_id, subject_code, course_offering_id, date_ad, date_bs, time, status, marked_by, created_at")
+          .select("id, student_id, subject_code, course_offering_id, attendance_session_id, date_ad, date_bs, time, status, marked_by, created_at")
           .in("course_offering_id", offeringIds)
           .order("date_ad", { ascending: false })
           .order("time", { ascending: true });
@@ -906,7 +990,7 @@
     var value = filters || {};
     return remote(function () {
       var query = client().from("attendance")
-        .select("id, student_id, subject_code, course_offering_id, date_ad, date_bs, time, status, marked_by, created_at")
+        .select("id, student_id, subject_code, course_offering_id, attendance_session_id, date_ad, date_bs, time, status, marked_by, created_at")
         .order("date_ad", { ascending: false })
         .order("time", { ascending: true });
       return applyAttendanceFilters(query, value);
@@ -932,7 +1016,7 @@
       return remote(function () {
         return client().from("attendance")
           .upsert(rows, { onConflict: "student_id,subject_code,date_ad,time" })
-          .select("id, student_id, subject_code, course_offering_id, date_ad, date_bs, time, status, marked_by, created_at");
+          .select("id, student_id, subject_code, course_offering_id, attendance_session_id, date_ad, date_bs, time, status, marked_by, created_at");
       }, "Attendance could not be saved.");
     });
   }
@@ -1052,7 +1136,12 @@
   api.getMyStudentProfile = getMyStudentProfile;
   api.getMySubjects = getMySubjects;
   api.getMyAttendance = getMyAttendance;
+  api.getMyAttendanceSessions = getMyAttendanceSessions;
   api.getMyLeaves = getMyLeaves;
+  api.getTeacherAttendanceSessions = getTeacherAttendanceSessions;
+  api.createAttendanceSession = createAttendanceSession;
+  api.closeAttendanceSession = closeAttendanceSession;
+  api.saveAttendanceSession = saveAttendanceSession;
   api.getSections = getSections;
   api.getAcademicYears = getAcademicYears;
   api.getSemesters = getSemesters;
