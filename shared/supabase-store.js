@@ -566,6 +566,67 @@
     }, "The faculty record could not be archived.");
   }
 
+  function getAcademicYears() {
+    if (!client()) return local(function (store) { return store.getAcademicYears(); }, "Academic years could not be loaded.");
+    return remote(function () {
+      return client().from("academic_years")
+        .select("id, name, start_date, end_date, is_current, created_at")
+        .order("start_date", { ascending: false });
+    }, "Academic years could not be loaded.");
+  }
+
+  function getAcademicEvents(filters) {
+    if (!client()) return local(function (store) { return store.getAcademicEvents(filters && filters.include_archived); }, "Academic events could not be loaded.");
+    var value = filters || {};
+    return remote(function () {
+      var query = client().from("academic_events")
+        .select("id, academic_year_id, semester_id, title, event_type, start_date, end_date, description, status, created_at, updated_at, academic_years(id, name, is_current), semesters(id, name, number, is_current)")
+        .order("start_date", { ascending: true });
+      if (!value.include_archived) query = query.eq("status", "active");
+      if (value.academic_year_id) query = query.eq("academic_year_id", value.academic_year_id);
+      return query;
+    }, "Academic events could not be loaded.");
+  }
+
+  function createAcademicEvent(input) {
+    var value = input || {};
+    if (!client()) return local(function (store) { return store.createAcademicEvent(value); }, "The academic event could not be created.");
+    return remote(function () {
+      return client().rpc("admin_create_academic_event", {
+        p_academic_year_id: String(value.academic_year_id || "").trim(),
+        p_semester_id: value.semester_id ? String(value.semester_id).trim() : null,
+        p_title: String(value.title || "").trim(),
+        p_event_type: String(value.event_type || "").trim(),
+        p_start_date: value.start_date,
+        p_end_date: value.end_date,
+        p_description: String(value.description || "").trim(),
+      }).single();
+    }, "The academic event could not be created.");
+  }
+
+  function updateAcademicEvent(input) {
+    var value = input || {};
+    if (!client()) return local(function (store) { return store.updateAcademicEvent(value); }, "The academic event could not be updated.");
+    return remote(function () {
+      return client().rpc("admin_update_academic_event", {
+        p_event_id: String(value.id || "").trim(),
+        p_title: String(value.title || "").trim(),
+        p_event_type: String(value.event_type || "").trim(),
+        p_start_date: value.start_date,
+        p_end_date: value.end_date,
+        p_description: String(value.description || "").trim(),
+        p_status: value.status === "archived" ? "archived" : "active",
+      }).single();
+    }, "The academic event could not be updated.");
+  }
+
+  function archiveAcademicEvent(id) {
+    if (!client()) return local(function (store) { return store.archiveAcademicEvent(id); }, "The academic event could not be archived.");
+    return remote(function () {
+      return client().rpc("admin_archive_academic_event", { p_event_id: String(id || "").trim() }).single();
+    }, "The academic event could not be archived.");
+  }
+
   function getSemesters() {
     if (!client()) return local(function (store) { return store.getSemesters(); }, "Semesters could not be loaded.");
     return remote(function () {
@@ -632,6 +693,55 @@
     return remote(function () {
       return client().rpc("admin_archive_course_offering", { p_offering_id: String(id || "").trim() }).single();
     }, "The course offering could not be archived.");
+  }
+
+  function getClassSchedules(filters) {
+    if (!client()) return local(function (store) { return store.getClassSchedules(filters && filters.include_archived); }, "Class schedules could not be loaded.");
+    var value = filters || {};
+    return remote(function () {
+      var query = client().from("class_schedules")
+        .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, created_at, updated_at, course_offerings(id, subject_code, section_id, subjects(code, name), sections(program, batch, name))")
+        .order("day_of_week", { ascending: true })
+        .order("start_time", { ascending: true });
+      if (!value.include_archived) query = query.eq("status", "active");
+      return query;
+    }, "Class schedules could not be loaded.");
+  }
+
+  function createClassSchedule(input) {
+    var value = input || {};
+    if (!client()) return local(function (store) { return store.createClassSchedule(value); }, "The class schedule could not be created.");
+    return remote(function () {
+      return client().rpc("admin_create_class_schedule", {
+        p_offering_id: String(value.course_offering_id || "").trim(),
+        p_day_of_week: Number(value.day_of_week),
+        p_start_time: value.start_time,
+        p_end_time: value.end_time,
+        p_room: String(value.room || "").trim(),
+      }).single();
+    }, "The class schedule could not be created.");
+  }
+
+  function updateClassSchedule(input) {
+    var value = input || {};
+    if (!client()) return local(function (store) { return store.updateClassSchedule(value); }, "The class schedule could not be updated.");
+    return remote(function () {
+      return client().rpc("admin_update_class_schedule", {
+        p_schedule_id: String(value.id || "").trim(),
+        p_day_of_week: Number(value.day_of_week),
+        p_start_time: value.start_time,
+        p_end_time: value.end_time,
+        p_room: String(value.room || "").trim(),
+        p_status: value.status === "archived" ? "archived" : "active",
+      }).single();
+    }, "The class schedule could not be updated.");
+  }
+
+  function archiveClassSchedule(id) {
+    if (!client()) return local(function (store) { return store.archiveClassSchedule(id); }, "The class schedule could not be archived.");
+    return remote(function () {
+      return client().rpc("admin_archive_class_schedule", { p_schedule_id: String(id || "").trim() }).single();
+    }, "The class schedule could not be archived.");
   }
 
   function getEnrollmentStudents() {
@@ -944,7 +1054,16 @@
   api.getMyAttendance = getMyAttendance;
   api.getMyLeaves = getMyLeaves;
   api.getSections = getSections;
+  api.getAcademicYears = getAcademicYears;
   api.getSemesters = getSemesters;
+  api.getAcademicEvents = getAcademicEvents;
+  api.createAcademicEvent = createAcademicEvent;
+  api.updateAcademicEvent = updateAcademicEvent;
+  api.archiveAcademicEvent = archiveAcademicEvent;
+  api.getClassSchedules = getClassSchedules;
+  api.createClassSchedule = createClassSchedule;
+  api.updateClassSchedule = updateClassSchedule;
+  api.archiveClassSchedule = archiveClassSchedule;
   api.getCourseOfferings = getCourseOfferings;
   api.createCourseOffering = createCourseOffering;
   api.updateCourseOffering = updateCourseOffering;

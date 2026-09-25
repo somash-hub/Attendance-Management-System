@@ -12,6 +12,8 @@
   var SUBJECTS_KEY = "attendiq.subjects";
   var SECTIONS_KEY = "attendiq.sections";
   var OFFERINGS_KEY = "attendiq.offerings";
+  var EVENTS_KEY = "attendiq.academic-events";
+  var SCHEDULES_KEY = "attendiq.class-schedules";
 
   // TU requires 80% attendance per subject; administrators can adjust it.
   var DEFAULT_THRESHOLD = 80;
@@ -96,11 +98,26 @@
     { id: "offering-csc425", subject_code: "CSC425", semester_id: "sem-7", section_id: "section-a", teacher_id: "u-teacher", status: "active" },
   ];
 
+  var DEMO_ACADEMIC_YEARS = [
+    { id: "year-2082", name: "2082/83 BS", start_date: "2025-04-01", end_date: "2026-03-31", is_current: true },
+  ];
+
+  var DEMO_EVENTS = [
+    { id: "event-1", academic_year_id: "year-2082", semester_id: "sem-7", title: "Semester 7 begins", event_type: "semester", start_date: "2025-06-01", end_date: "2025-06-01", description: "Classes begin", status: "active" },
+    { id: "event-2", academic_year_id: "year-2082", semester_id: "sem-7", title: "Mid-semester break", event_type: "holiday", start_date: "2025-08-10", end_date: "2025-08-16", description: "College holiday", status: "active" },
+  ];
+
+  var DEMO_SCHEDULES = [
+    { id: "schedule-1", course_offering_id: "offering-csc419", day_of_week: 1, start_time: "09:00", end_time: "10:00", room: "A-201", status: "active" },
+    { id: "schedule-2", course_offering_id: "offering-csc420", day_of_week: 2, start_time: "10:15", end_time: "11:15", room: "A-202", status: "active" },
+  ];
+
   var ROLE_PANELS = {
     student: "student panel/student.html",
     teacher: "teacher panel/teacher.html",
     admin: "admin panel/admin.html",
   };
+
 
   // localStorage can be unavailable (private mode, blocked storage), so every
   // read and write is guarded and reports failure instead of crashing.
@@ -322,9 +339,89 @@
     return { ok: true, subject: subject };
   }
 
+  function getAcademicEvents(includeArchived) {
+    var events = read(EVENTS_KEY, null);
+    if (!Array.isArray(events)) {
+      events = DEMO_EVENTS.map(function (event) { return Object.assign({}, event); });
+      write(EVENTS_KEY, events);
+    }
+    return events.filter(function (event) { return includeArchived === true || event.status !== "archived"; });
+  }
+
+  function getClassSchedules(includeArchived) {
+    var schedules = read(SCHEDULES_KEY, null);
+    if (!Array.isArray(schedules)) {
+      schedules = DEMO_SCHEDULES.map(function (schedule) { return Object.assign({}, schedule); });
+      write(SCHEDULES_KEY, schedules);
+    }
+    return schedules.filter(function (schedule) { return includeArchived === true || schedule.status !== "archived"; });
+  }
+
+  function createAcademicEvent(value) {
+    var event = value || {};
+    if (!event.title || !event.start_date || !event.end_date || event.end_date < event.start_date) return { ok: false, error: "Complete the event title and valid date range." };
+    var events = getAcademicEvents(true);
+    var created = { id: "event-" + Date.now().toString(36), academic_year_id: event.academic_year_id || "year-2082", semester_id: event.semester_id || "sem-7", title: event.title.trim(), event_type: event.event_type || "college_event", start_date: event.start_date, end_date: event.end_date, description: String(event.description || "").trim(), status: "active" };
+    events.push(created);
+    if (!write(EVENTS_KEY, events)) return { ok: false, error: "Browser storage is unavailable, so the academic event was not saved." };
+    return { ok: true, event: created };
+  }
+
+  function updateAcademicEvent(value) {
+    var event = value || {};
+    var events = getAcademicEvents(true);
+    var current = events.find(function (item) { return item.id === event.id; });
+    if (!current) return { ok: false, error: "Academic event not found." };
+    if (!event.title || !event.start_date || !event.end_date || event.end_date < event.start_date) return { ok: false, error: "Complete the event title and valid date range." };
+    current.title = event.title.trim(); current.event_type = event.event_type || current.event_type; current.start_date = event.start_date; current.end_date = event.end_date; current.description = String(event.description || "").trim(); current.status = event.status === "archived" ? "archived" : "active";
+    if (!write(EVENTS_KEY, events)) return { ok: false, error: "Browser storage is unavailable, so the academic event was not updated." };
+    return { ok: true, event: current };
+  }
+
+  function archiveAcademicEvent(id) {
+    var events = getAcademicEvents(true); var event = events.find(function (item) { return item.id === id; });
+    if (!event) return { ok: false, error: "Academic event not found." };
+    event.status = "archived";
+    if (!write(EVENTS_KEY, events)) return { ok: false, error: "Browser storage is unavailable, so the academic event was not archived." };
+    return { ok: true, event: event };
+  }
+
+  function createClassSchedule(value) {
+    var schedule = value || {};
+    if (!schedule.course_offering_id || schedule.day_of_week === "" || !schedule.start_time || !schedule.end_time || schedule.end_time <= schedule.start_time) return { ok: false, error: "Choose an active offering, weekday, and valid start/end times." };
+    var schedules = getClassSchedules(true);
+    var created = { id: "schedule-" + Date.now().toString(36), course_offering_id: schedule.course_offering_id, day_of_week: Number(schedule.day_of_week), start_time: schedule.start_time, end_time: schedule.end_time, room: String(schedule.room || "").trim(), status: "active" };
+    schedules.push(created);
+    if (!write(SCHEDULES_KEY, schedules)) return { ok: false, error: "Browser storage is unavailable, so the class schedule was not saved." };
+    return { ok: true, schedule: created };
+  }
+
+  function updateClassSchedule(value) {
+    var schedule = value || {};
+    var schedules = getClassSchedules(true); var current = schedules.find(function (item) { return item.id === schedule.id; });
+    if (!current) return { ok: false, error: "Class schedule not found." };
+    if (schedule.end_time <= schedule.start_time) return { ok: false, error: "End time must be after start time." };
+    current.day_of_week = Number(schedule.day_of_week); current.start_time = schedule.start_time; current.end_time = schedule.end_time; current.room = String(schedule.room || "").trim(); current.status = schedule.status === "archived" ? "archived" : "active";
+    if (!write(SCHEDULES_KEY, schedules)) return { ok: false, error: "Browser storage is unavailable, so the class schedule was not updated." };
+    return { ok: true, schedule: current };
+  }
+
+  function archiveClassSchedule(id) {
+    var schedules = getClassSchedules(true); var schedule = schedules.find(function (item) { return item.id === id; });
+    if (!schedule) return { ok: false, error: "Class schedule not found." };
+    schedule.status = "archived";
+    if (!write(SCHEDULES_KEY, schedules)) return { ok: false, error: "Browser storage is unavailable, so the class schedule was not archived." };
+    return { ok: true, schedule: schedule };
+  }
+
+  function getAcademicYears() {
+    return DEMO_ACADEMIC_YEARS.map(function (year) { return Object.assign({}, year); });
+  }
+
   function getSemesters() {
     return DEMO_SEMESTERS.map(function (semester) { return Object.assign({}, semester); });
   }
+
 
   function getSections() {
     var sections = read(SECTIONS_KEY, null);
@@ -633,12 +730,21 @@
     createSubject: createSubject,
     updateSubject: updateSubject,
     archiveSubject: archiveSubject,
+    getAcademicYears: getAcademicYears,
     getSemesters: getSemesters,
     getSections: getSections,
     getOfferings: getOfferings,
     createOffering: createOffering,
     updateOffering: updateOffering,
     archiveOffering: archiveOffering,
+    getAcademicEvents: getAcademicEvents,
+    createAcademicEvent: createAcademicEvent,
+    updateAcademicEvent: updateAcademicEvent,
+    archiveAcademicEvent: archiveAcademicEvent,
+    getClassSchedules: getClassSchedules,
+    createClassSchedule: createClassSchedule,
+    updateClassSchedule: updateClassSchedule,
+    archiveClassSchedule: archiveClassSchedule,
     findUserByEmail: findUserByEmail,
     validateUser: validateUser,
     addUser: addUser,

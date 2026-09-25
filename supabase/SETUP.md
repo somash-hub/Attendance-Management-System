@@ -4,7 +4,9 @@ Project reference: `yvvgvteijtxnuwtncfio`
 Everything in this folder is **re-runnable** — the schema drops and recreates
 its named policies before enabling them, so policy changes can be applied
 again safely. The hosted project has the migration and both Edge Functions
-applied; the steps below can be used to reproduce or update the setup.
+applied; the steps below can be used to reproduce or update the setup. The hosted
+project has all migrations through `20260924001100_phase3_schedule_integrity.sql`
+and all four Edge Functions applied.
 
 ## 1. Create the three demo accounts
 
@@ -34,6 +36,8 @@ Apply the migrations in order from `supabase/migrations/`:
 7. `20260924000700_phase3_subject_crud.sql`
 8. `20260924000800_phase3_course_offering_crud.sql`
 9. `20260924000900_phase3_enrollment_management.sql`
+10. `20260924001000_phase3_academic_calendar_schedule.sql`
+11. `20260924001100_phase3_schedule_integrity.sql`
 
 Use separate SQL Editor queries, or paste them in order and run each query.
 
@@ -52,7 +56,8 @@ It creates:
 
 - Tables: `profiles`, `settings`, `subjects`, `students`, `attendance`,
   `leaves`, `faculty`, `audit_logs`, `academic_years`, `semesters`,
-  `sections`, `enrollments`, and `course_offerings`
+  `sections`, `enrollments`, `course_offerings`, `academic_events`, and
+  `class_schedules`
 - Role helpers (`role_of`, `is_admin`, `is_staff`, `student_id_of`) and all
   row level security policies
 - Teacher attendance access restricted to assigned subjects, and student leave
@@ -71,6 +76,9 @@ It creates:
   course-offering references
 - Administrator course-offering and enrollment operations are implemented in the
   admin portal; transfers and enrollment archival preserve historical records
+- Administrator academic-calendar events and recurring class schedules are
+  managed in **Settings**; archive/restore preserves their history and does not
+  delete attendance records
 - Phase 4 adapter methods scope teacher and student reads to assigned course
   offerings, sections, enrollments, attendance, and leave requests
 - The private `leave-documents` storage bucket; students can upload and read
@@ -140,6 +148,8 @@ select count(*) from public.semesters;     -- 1 current semester
 select count(*) from public.sections;      -- 1 current section
 select count(*) from public.course_offerings; -- 5 active offerings
 select count(*) from public.enrollments;   -- 8 active enrollments
+select count(*) from public.academic_events; -- 0 until an administrator adds one
+select count(*) from public.class_schedules; -- 0 until an administrator adds one
 ```
 
 ## Access rules at a glance
@@ -161,7 +171,8 @@ select count(*) from public.enrollments;   -- 8 active enrollments
 
 ## Still to do later (not part of this setup)
 
-- Subject create/edit/archive, course offering management, and academic
-  structure management remain for the next Phase 3 slices.
-- Remaining demo panels: dashboard charts, class schedule, notifications,
-  course cards, and monthly trend.
+- Replace the remaining demo dashboard panels, notifications, and monthly
+  attendance trends with database-backed queries.
+- Add reviewer-facing leave-document viewing with short-lived signed URLs.
+- Add automated JavaScript, RLS, and browser workflow tests before production
+  deployment.

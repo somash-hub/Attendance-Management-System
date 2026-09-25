@@ -544,23 +544,68 @@
                 <div class="card-heading">
                   <div>
                     <h2>Academic Calendar</h2>
-                    <p>Important dates for the current semester (2082 BS).</p>
+                    <p>Manage semester, exam, holiday, and college events.</p>
                   </div>
+                  <button class="button button-secondary" type="button" data-action="event">＋ Add event</button>
                 </div>
-                <div class="date-grid">
-                  <label
-                    >Semester start<input
-                      type="date"
-                      value="2025-07-01" /></label
-                  ><label
-                    >Semester end<input type="date" value="2025-11-30" /></label
-                  ><label
-                    >Exam period start<input
-                      type="date"
-                      value="2025-12-01" /></label
-                  ><label
-                    >Result declaration<input type="date" value="2025-12-15"
-                  /></label>
+                <div class="student-editor" id="eventEditor" hidden>
+                  <div class="card-heading">
+                    <div>
+                      <h2 id="eventFormTitle">Add academic event</h2>
+                      <p id="eventFormCopy">Create a date range for the academic calendar.</p>
+                    </div>
+                  </div>
+                  <form id="eventForm" class="date-grid student-form">
+                    <input id="eventId" type="hidden" />
+                    <label>Academic year<select id="eventAcademicYear" required></select></label>
+                    <label>Semester<select id="eventSemester" required></select></label>
+                    <label>Event title<input id="eventTitle" type="text" required /></label>
+                    <label>Event type<select id="eventType" required><option value="semester">Semester</option><option value="exam">Exam</option><option value="result">Result</option><option value="holiday">Holiday</option><option value="college_event">College event</option><option value="sports">Sports</option></select></label>
+                    <label>Start date<input id="eventStart" type="date" required /></label>
+                    <label>End date<input id="eventEnd" type="date" required /></label>
+                    <label>Description<input id="eventDescription" type="text" /></label>
+                    <label>Status<select id="eventStatus" required><option value="active">Active</option><option value="archived">Archived</option></select></label>
+                    <div class="student-form-actions"><button class="button button-primary" id="eventSave" type="submit">Create event</button><button class="button button-secondary" id="eventCancel" type="button">Cancel</button></div>
+                  </form>
+                </div>
+                <div class="table-wrap academic-event-table">
+                  <table>
+                    <thead><tr><th>Event</th><th>Type</th><th>Dates</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="eventRows"></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="card settings-card">
+                <div class="card-heading">
+                  <div>
+                    <h2>Class Schedule</h2>
+                    <p>Assign weekly class times to active course offerings.</p>
+                  </div>
+                  <button class="button button-secondary" type="button" data-action="schedule">＋ Add schedule</button>
+                </div>
+                <div class="student-editor" id="scheduleEditor" hidden>
+                  <div class="card-heading">
+                    <div>
+                      <h2 id="scheduleFormTitle">Add class schedule</h2>
+                      <p id="scheduleFormCopy">Create a recurring weekly class slot.</p>
+                    </div>
+                  </div>
+                  <form id="scheduleForm" class="date-grid student-form">
+                    <input id="scheduleId" type="hidden" />
+                    <label>Course offering<select id="scheduleOffering" required></select></label>
+                    <label>Weekday<select id="scheduleDay" required><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select></label>
+                    <label>Start time<input id="scheduleStart" type="time" required /></label>
+                    <label>End time<input id="scheduleEnd" type="time" required /></label>
+                    <label>Room<input id="scheduleRoom" type="text" placeholder="e.g. A-201" /></label>
+                    <label>Status<select id="scheduleStatus" required><option value="active">Active</option><option value="archived">Archived</option></select></label>
+                    <div class="student-form-actions"><button class="button button-primary" id="scheduleSave" type="submit">Create schedule</button><button class="button button-secondary" id="scheduleCancel" type="button">Cancel</button></div>
+                  </form>
+                </div>
+                <div class="table-wrap class-schedule-table">
+                  <table>
+                    <thead><tr><th>Subject</th><th>Section</th><th>Day and time</th><th>Room</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="scheduleRows"></tbody>
+                  </table>
                 </div>
               </article>
               <article class="card danger-zone">

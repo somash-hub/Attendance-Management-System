@@ -1073,11 +1073,19 @@ td small {
   font-size: 10px;
   margin-top: 3px;
 }
-.subject-form small {
-  color: var(--muted);
-  font-size: 10px;
+.academic-event-table,
+.class-schedule-table {
+  margin-top: 18px;
 }
+.academic-event-table small,
+.class-schedule-table small {
+  display: block;
   color: var(--muted);
   font-size: 10px;
+  margin-top: 3px;
+}
+.student-form textarea {
+  min-height: 90px;
+  resize: vertical;
 }
 

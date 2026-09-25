@@ -76,6 +76,9 @@ let faculty = [];
 let courses = [];
 let offerings = [];
 let currentSemesters = [];
+let currentAcademicYears = [];
+let academicEvents = [];
+let classSchedules = [];
 
 // Local fallback rows; replaced by Supabase leave rows after initialization.
 let leaves = [
@@ -196,6 +199,24 @@ function loadAdminCourses() {
     currentSections = sectionsResult.data;
     renderCourses();
     renderOfferings();
+    return Promise.all([
+      AttendIQSupabase.getAcademicYears(),
+      AttendIQSupabase.getAcademicEvents({ include_archived: true }),
+      AttendIQSupabase.getClassSchedules({ include_archived: true }),
+    ]).then(function (planningResults) {
+      var yearsResult = planningResults[0];
+      var eventsResult = planningResults[1];
+      var schedulesResult = planningResults[2];
+      if (!yearsResult.ok || !eventsResult.ok || !schedulesResult.ok) {
+        showToast(yearsResult.error || eventsResult.error || schedulesResult.error);
+        return;
+      }
+      currentAcademicYears = yearsResult.data;
+      academicEvents = eventsResult.data;
+      classSchedules = schedulesResult.data;
+      renderAcademicEvents();
+      renderClassSchedules();
+    });
   });
 }
 
@@ -229,7 +250,46 @@ function renderOfferings() {
     .join("");
 }
 
-// Build leave-request rows with approve, reject, and undo actions.
+function eventYear(event) {
+  const year = event.academic_years;
+  const resolved = Array.isArray(year) ? year[0] : year;
+  return resolved || currentAcademicYears.find((item) => item.id === event.academic_year_id);
+}
+
+function eventSemester(event) {
+  const semester = event.semesters;
+  const resolved = Array.isArray(semester) ? semester[0] : semester;
+  return resolved || currentSemesters.find((item) => item.id === event.semester_id);
+}
+
+function renderAcademicEvents() {
+  $("#eventRows").innerHTML = academicEvents.map(function (event) {
+    const year = eventYear(event);
+    const semester = eventSemester(event);
+    const dates = event.start_date === event.end_date ? event.start_date : event.start_date + " → " + event.end_date;
+    return `<tr><td><strong>${h(event.title)}</strong><small>${h(year ? year.name : "Academic year")} · ${h(semester ? semester.name : "All semesters")}</small></td><td>${h(String(event.event_type || "").replaceAll("_", " "))}</td><td>${h(dates)}</td><td>${statusBadge(event.status === "archived" ? "Archived" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-event="${h(event.id)}">Edit</button>${event.status !== "archived" ? `<button type="button" data-archive-event="${h(event.id)}">Archive</button>` : `<button type="button" data-restore-event="${h(event.id)}">Restore</button>`}</div></td></tr>`;
+  }).join("");
+}
+
+function scheduleOffering(schedule) {
+  const offering = schedule.course_offerings;
+  const resolved = Array.isArray(offering) ? offering[0] : offering;
+  return resolved || offerings.find((item) => item.id === schedule.course_offering_id);
+}
+
+function scheduleDayName(day) {
+  return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][Number(day)] || "—";
+}
+
+function renderClassSchedules() {
+  $("#scheduleRows").innerHTML = classSchedules.map(function (schedule) {
+    const offering = scheduleOffering(schedule) || {};
+    const subject = Array.isArray(offering.subjects) ? offering.subjects[0] : offering.subjects || {};
+    const section = Array.isArray(offering.sections) ? offering.sections[0] : offering.sections || {};
+    return `<tr><td><strong>${h(subject.code || offering.subject_code || "—")}</strong><small>${h(subject.name || "")}</small></td><td>${h(section.program || "—")} · ${h(section.batch || "—")} · ${h(section.name || "—")}</td><td>${h(scheduleDayName(schedule.day_of_week))}<small>${h(schedule.start_time)} – ${h(schedule.end_time)}</small></td><td>${h(schedule.room || "—")}</td><td>${statusBadge(schedule.status === "archived" ? "Archived" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-schedule="${h(schedule.id)}">Edit</button>${schedule.status !== "archived" ? `<button type="button" data-archive-schedule="${h(schedule.id)}">Archive</button>` : `<button type="button" data-restore-schedule="${h(schedule.id)}">Restore</button>`}</div></td></tr>`;
+  }).join("");
+}
+
 function requestMarkup(request, actions = true) {
   const actionMarkup =
     actions && request.status === "pending"
@@ -756,6 +816,129 @@ $("#offeringForm").addEventListener("submit", async (event) => {
   showToast(id ? "Course offering updated." : "Course offering created.");
 });
 
+
+function populateEventSelectors() {
+  const yearSelect = $("#eventAcademicYear");
+  const semesterSelect = $("#eventSemester");
+  const previousYear = yearSelect.value;
+  const previousSemester = semesterSelect.value;
+  yearSelect.innerHTML = currentAcademicYears.map((year) => `<option value="${h(year.id)}">${h(year.name)}</option>`).join("");
+  const selectedYear = yearSelect.value || previousYear;
+  semesterSelect.innerHTML = currentSemesters.map((semester) => `<option value="${h(semester.id)}">${h(semester.name)}</option>`).join("");
+  if (previousYear) yearSelect.value = previousYear;
+  if (previousSemester) semesterSelect.value = previousSemester;
+  if (selectedYear && currentSemesters.length) {
+    const matching = currentSemesters.find((semester) => semester.academic_year_id === selectedYear);
+    if (matching) semesterSelect.value = matching.id;
+  }
+}
+
+function openEventEditor(event) {
+  populateEventSelectors();
+  const editor = $("#eventEditor");
+  const form = $("#eventForm");
+  form.reset();
+  $("#eventId").value = event ? event.id : "";
+  $("#eventFormTitle").textContent = event ? "Edit academic event" : "Add academic event";
+  $("#eventFormCopy").textContent = event ? "Update the calendar event without affecting attendance history." : "Create a date range for the academic calendar.";
+  $("#eventSave").textContent = event ? "Save event" : "Create event";
+  if (event) {
+    $("#eventAcademicYear").value = event.academic_year_id;
+    $("#eventSemester").value = event.semester_id || "";
+    $("#eventTitle").value = event.title;
+    $("#eventType").value = event.event_type;
+    $("#eventStart").value = event.start_date;
+    $("#eventEnd").value = event.end_date;
+    $("#eventDescription").value = event.description || "";
+    $("#eventStatus").value = event.status === "archived" ? "archived" : "active";
+  }
+  editor.hidden = false;
+  $("#eventTitle").focus();
+}
+
+function closeEventEditor() {
+  $("#eventEditor").hidden = true;
+  $("#eventForm").reset();
+}
+
+$("#eventForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const id = $("#eventId").value.trim();
+  const formData = {
+    academic_year_id: $("#eventAcademicYear").value,
+    semester_id: $("#eventSemester").value,
+    title: $("#eventTitle").value.trim(),
+    event_type: $("#eventType").value,
+    start_date: $("#eventStart").value,
+    end_date: $("#eventEnd").value,
+    description: $("#eventDescription").value.trim(),
+    status: $("#eventStatus").value,
+  };
+  const result = id ? await AttendIQSupabase.updateAcademicEvent({ id, ...formData }) : await AttendIQSupabase.createAcademicEvent(formData);
+  if (!result.ok) return showToast(result.error);
+  closeEventEditor();
+  await loadAdminCourses();
+  showToast(id ? "Academic event updated." : "Academic event created.");
+});
+$("#eventCancel").addEventListener("click", closeEventEditor);
+
+function populateScheduleSelectors() {
+  const offeringSelect = $("#scheduleOffering");
+  const previous = offeringSelect.value;
+  offeringSelect.innerHTML = offerings.filter((offering) => offering.status !== "archived").map((offering) => {
+    const subject = offeringSubject(offering) || { code: offering.subject_code, name: "" };
+    const section = offeringSection(offering) || {};
+    return `<option value="${h(offering.id)}">${h(subject.code || offering.subject_code)} · ${h(section.program || "")} ${h(section.batch || "")} ${h(section.name || "")}</option>`;
+  }).join("");
+  if (previous) offeringSelect.value = previous;
+}
+
+function openScheduleEditor(schedule) {
+  populateScheduleSelectors();
+  const editor = $("#scheduleEditor");
+  const form = $("#scheduleForm");
+  form.reset();
+  $("#scheduleId").value = schedule ? schedule.id : "";
+  $("#scheduleFormTitle").textContent = schedule ? "Edit class schedule" : "Add class schedule";
+  $("#scheduleFormCopy").textContent = schedule ? "Update the weekly class slot." : "Create a recurring weekly class slot.";
+  $("#scheduleSave").textContent = schedule ? "Save schedule" : "Create schedule";
+  if (schedule) {
+    $("#scheduleOffering").value = schedule.course_offering_id;
+    $("#scheduleDay").value = schedule.day_of_week;
+    $("#scheduleStart").value = schedule.start_time;
+    $("#scheduleEnd").value = schedule.end_time;
+    $("#scheduleRoom").value = schedule.room || "";
+    $("#scheduleStatus").value = schedule.status === "archived" ? "archived" : "active";
+  }
+  editor.hidden = false;
+  $("#scheduleDay").focus();
+}
+
+function closeScheduleEditor() {
+  $("#scheduleEditor").hidden = true;
+  $("#scheduleForm").reset();
+}
+
+$("#scheduleForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const id = $("#scheduleId").value.trim();
+  const formData = {
+    course_offering_id: $("#scheduleOffering").value,
+    day_of_week: $("#scheduleDay").value,
+    start_time: $("#scheduleStart").value,
+    end_time: $("#scheduleEnd").value,
+    room: $("#scheduleRoom").value.trim(),
+    status: $("#scheduleStatus").value,
+  };
+  const result = id ? await AttendIQSupabase.updateClassSchedule({ id, ...formData }) : await AttendIQSupabase.createClassSchedule(formData);
+  if (!result.ok) return showToast(result.error);
+  closeScheduleEditor();
+  await loadAdminCourses();
+  showToast(id ? "Class schedule updated." : "Class schedule created.");
+});
+$("#scheduleCancel").addEventListener("click", closeScheduleEditor);
+
+
 $("#offeringCancel").addEventListener("click", closeOfferingEditor);
 
 document.addEventListener("change", async (event) => {
@@ -861,6 +1044,16 @@ document.addEventListener("click", async (event) => {
     if (target === "course") {
       openTab("courses");
       openSubjectEditor();
+    }
+    if (target === "event") {
+      openTab("settings");
+      openEventEditor();
+      return;
+    }
+    if (target === "schedule") {
+      openTab("settings");
+      openScheduleEditor();
+      return;
     }
     if (target === "report") {
       if (!students.length) return showToast("There is no student attendance data to export.");
@@ -977,6 +1170,58 @@ document.addEventListener("click", async (event) => {
     if (!result.ok) return showToast(result.error);
     await loadAdminCourses();
     showToast(`${subject.code} restored.`);
+    return;
+  }
+  const editEventButton = event.target.closest("[data-edit-event]");
+  if (editEventButton) {
+    const eventRow = academicEvents.find((item) => item.id === editEventButton.dataset.editEvent);
+    if (eventRow) openEventEditor(eventRow);
+    return;
+  }
+  const archiveEventButton = event.target.closest("[data-archive-event]");
+  if (archiveEventButton) {
+    const eventRow = academicEvents.find((item) => item.id === archiveEventButton.dataset.archiveEvent);
+    if (!eventRow || !window.confirm(`Archive ${eventRow.title}? The calendar entry will be preserved.`)) return;
+    const result = await AttendIQSupabase.archiveAcademicEvent(eventRow.id);
+    if (!result.ok) return showToast(result.error);
+    await loadAdminCourses();
+    showToast("Academic event archived.");
+    return;
+  }
+  const restoreEventButton = event.target.closest("[data-restore-event]");
+  if (restoreEventButton) {
+    const eventRow = academicEvents.find((item) => item.id === restoreEventButton.dataset.restoreEvent);
+    if (!eventRow) return;
+    const result = await AttendIQSupabase.updateAcademicEvent({ ...eventRow, status: "active" });
+    if (!result.ok) return showToast(result.error);
+    await loadAdminCourses();
+    showToast("Academic event restored.");
+    return;
+  }
+  const editScheduleButton = event.target.closest("[data-edit-schedule]");
+  if (editScheduleButton) {
+    const schedule = classSchedules.find((item) => item.id === editScheduleButton.dataset.editSchedule);
+    if (schedule) openScheduleEditor(schedule);
+    return;
+  }
+  const archiveScheduleButton = event.target.closest("[data-archive-schedule]");
+  if (archiveScheduleButton) {
+    const schedule = classSchedules.find((item) => item.id === archiveScheduleButton.dataset.archiveSchedule);
+    if (!schedule || !window.confirm("Archive this class schedule? Existing attendance history will be preserved.")) return;
+    const result = await AttendIQSupabase.archiveClassSchedule(schedule.id);
+    if (!result.ok) return showToast(result.error);
+    await loadAdminCourses();
+    showToast("Class schedule archived.");
+    return;
+  }
+  const restoreScheduleButton = event.target.closest("[data-restore-schedule]");
+  if (restoreScheduleButton) {
+    const schedule = classSchedules.find((item) => item.id === restoreScheduleButton.dataset.restoreSchedule);
+    if (!schedule) return;
+    const result = await AttendIQSupabase.updateClassSchedule({ ...schedule, status: "active" });
+    if (!result.ok) return showToast(result.error);
+    await loadAdminCourses();
+    showToast("Class schedule restored.");
     return;
   }
   const leaveButton = event.target.closest("[data-leave]");

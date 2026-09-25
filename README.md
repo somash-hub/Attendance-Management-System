@@ -61,39 +61,35 @@ plain HTML, CSS, and JavaScript.
 
 ## Supabase status
 
-The hosted project `yvvgvteijtxnuwtncfio` is connected. The initial migration,
-Phase 1 security migration, Phase 2 academic data-model migration, Phase 3
-student CRUD migration, Phase 3 faculty CRUD migration, the subject catalog,
-course-offering, and enrollment-management slices are present in the repository.
-The latest three Phase 3 migrations are still pending hosted application because
-the terminal database password is not authenticated. The
-`admin-create-user`, `admin-update-faculty`, `admin-delete-user`, and
-`upload-leave-document` Edge Functions are deployed, and `shared/supabase.js`
-contains only the public publishable key. Phase 2 backfills the current academic
-year, Semester 7, BSc CSIT Section A, five course offerings, and eight active
-student enrollments while preserving legacy attendance and leave rows. Phase 3
-adds administrator student and faculty create/edit/archive operations, including
-linked account creation, faculty metadata updates, and enrollment synchronization.
-Phase 4 adds explicit relationship-scoped teacher and student reads for course
-offerings, rosters, attendance, and leave requests; administrator queries remain
+The hosted project `yvvgvteijtxnuwtncfio` is connected. All repository migrations
+through `20260924001100_phase3_schedule_integrity.sql` are applied to the
+hosted database, and the linked database lint passes. The project includes Phase 1
+security, Phase 2 academic relationships, and the complete Phase 3 administrator
+student, faculty, subject, course-offering, enrollment, academic-calendar, and
+class-schedule administration slices. The `admin-create-user`,
+`admin-update-faculty`, `admin-delete-user`, and `upload-leave-document` Edge
+Functions are deployed, and `shared/supabase.js` contains only the public
+publishable key. Phase 2 backfills the current academic year, Semester 7, BSc
+CSIT Section A, five course offerings, and eight active student enrollments while
+preserving legacy attendance and leave rows. Phase 3 adds linked account and
+academic-resource management without deleting historical attendance records. Phase
+4 adds explicit relationship-scoped teacher and student reads for course offerings,
+rosters, attendance, and leave requests; administrator queries remain
 institution-wide by design. The frontend calls the backend through
 `shared/supabase-store.js`; a configured client never silently falls back to
 localStorage after a request error. The local store is available only in explicit
-demo mode (`?demo=1`). See `supabase/SETUP.md` for the setup and security notes.
+demo mode (`?demo=1`). See `supabase/SETUP.md` for setup and security notes.
 
 ## Planned Frontend Work
 
 The Supabase data layer and the main attendance, leave, account, settings, and
 report flows are connected. Remaining iterations are:
 
-1. Replace the remaining demo panels with database queries: class schedule,
-   notifications, monthly trend, and the administrator dashboard charts and
-   metrics.
-2. Add administrator forms for subjects, course offerings, and
-   academic structure so the remaining directory and catalog data can be
-   managed instead of seeded with SQL.
-3. Add leave-document viewing for reviewers and richer empty/loading states.
-4. Consolidate duplicated panel helpers and styles into shared files.
+1. Replace the remaining demo panels with database queries: dashboard charts,
+   notifications, monthly trends, and any remaining summary metrics.
+2. Add reviewer-facing leave-document viewing with signed, short-lived URLs.
+3. Consolidate duplicated panel helpers and styles into shared files.
+4. Add automated JavaScript, database/RLS, and browser workflow tests.
 
 ## Project Structure
 
@@ -143,7 +139,9 @@ report flows are connected. Remaining iterations are:
 │       ├── 20260924000600_phase3_faculty_crud.sql
 │       ├── 20260924000700_phase3_subject_crud.sql
 │       ├── 20260924000800_phase3_course_offering_crud.sql
-│       └── 20260924000900_phase3_enrollment_management.sql
+│       ├── 20260924000900_phase3_enrollment_management.sql
+│       ├── 20260924001000_phase3_academic_calendar_schedule.sql
+│       └── 20260924001100_phase3_schedule_integrity.sql
 └── .vscode/
     ├── mcp.json
     └── settings.json
@@ -183,13 +181,15 @@ source of truth in normal operation. Do not use these demo passwords for real
 users.
 
 The administrator portal now loads students, faculty, attendance percentages,
-leave requests, users, and settings from Supabase. Dashboard metrics, program
-charts, course cards, and the academic calendar still use demo data.
+leave requests, users, settings, academic events, and class schedules from
+Supabase. Dashboard metrics, program charts, notifications, and monthly trends
+still use demo data. The admin portal manages academic events and recurring class
+schedules in **Settings**.
 
 The student portal now loads the signed-in student's attendance dashboard,
 attendance log, subject percentages, threshold warning, leave submission, and
-CSV export from Supabase. The weekly class schedule and notification copy
-remain demo data.
+CSV export from Supabase. The student schedule and notification copy are still
+separate follow-up work.
 
 The teacher portal now loads the roster, assigned subjects, daily attendance
 marking, semester reports, leave review, settings, and CSV export from

@@ -90,15 +90,18 @@ checks confirm the expected visibility boundaries.
 
 ## Phase 3 — Administrator CRUD, one vertical slice at a time
 
-**Status: in progress — student, faculty, and subject catalog slices complete locally**
+**Status: complete — all Phase 3 administration slices are implemented and hosted**
 
 The completed vertical slices are:
 
 - `20260924000400_phase3_student_crud.sql` with lint follow-up
   `20260924000500_phase3_student_crud_lint_fix.sql`
 - `20260924000600_phase3_faculty_crud.sql`
+- `20260924000700_phase3_subject_crud.sql`
 - `20260924000800_phase3_course_offering_crud.sql`
-- `20260924000900_phase3_enrollment_management.sql` (implemented locally; hosted push still requires an authenticated database password)
+- `20260924000900_phase3_enrollment_management.sql`
+- `20260924001000_phase3_academic_calendar_schedule.sql`
+- `20260924001100_phase3_schedule_integrity.sql` (relationship-aware schedule reads and stable slot uniqueness)
 
 1. **Student create/edit/archive — complete.** The admin portal can create a
    linked student login, student record, and current enrollment; edit directory
@@ -108,10 +111,10 @@ The completed vertical slices are:
    and archives faculty while preserving the faculty record and history. The
    privileged `admin-update-faculty` function keeps Auth, profiles, and faculty
    records synchronized.
-3. **Subject create/edit/archive — implemented locally, pending hosted migration push.** The admin portal manages the subject catalog with permanent subject codes, editable metadata, credits and course type, plus archive/restore actions. Existing attendance and course-offering history is preserved. The migration is `20260924000700_phase3_subject_crud.sql`; it must be applied to the hosted project before the live UI can use these RPCs.
-4. Course offering creation and teacher assignment — implemented locally, pending hosted migration push. The admin portal assigns subjects to current sections and faculty members, with archive/restore support.
-5. **Student enrollment management — implemented locally, pending hosted migration push.** Administrators can transfer a student to another current section or archive the current enrollment while preserving historical attendance and leave records.
-6. Academic calendar and schedule management.
+3. **Subject create/edit/archive — complete.** The admin portal manages the subject catalog with permanent subject codes, editable metadata, credits and course type, plus archive/restore actions. Existing attendance and course-offering history is preserved.
+4. **Course offering creation and teacher assignment — complete.** The admin portal assigns subjects to current sections and faculty members, with archive/restore support.
+5. **Student enrollment management — complete.** Administrators can transfer a student to another current section or archive the current enrollment while preserving historical attendance and leave records.
+6. **Academic calendar and schedule management — complete.** Administrators can create, edit, archive, and restore date-based academic events and recurring course-offering schedules.
 
 Each slice must include database migration, RLS, JavaScript adapter method, HTML form, validation, success/error states, tests, and documentation. No SQL should be required for normal administration.
 
@@ -140,9 +143,15 @@ JavaScript, Edge Functions, and repository diff checks pass.
 
 ## Phase 5 — Schedule and attendance sessions
 
-Add `class_schedules`, `attendance_sessions`, and session-based attendance records. Migrate existing date/time attendance into sessions and compare reports before removing the legacy path.
+**Status: planning — class schedule administration is complete; session-based attendance remains.**
 
-**Exit gate:** a teacher marks attendance only for an assigned scheduled session and its enrolled roster.
+Phase 3 now provides the `class_schedules` table and admin UI. The next slice
+adds `attendance_sessions` and session-based attendance records, migrates the
+existing date/time attendance into sessions, and compares reports before removing
+the legacy path.
+
+**Exit gate:** a teacher marks attendance only for an assigned scheduled session
+and its enrolled roster.
 
 ## Phase 6 — Leave and document completion
 
