@@ -634,6 +634,38 @@
     }, "The course offering could not be archived.");
   }
 
+  function getEnrollmentStudents() {
+    if (!client()) return Promise.resolve(unsupportedLocal("Enrollment records"));
+    return remote(function () {
+      return client().from("students")
+        .select("id, profile_id, roll, name, email, program, batch, section, active, archived_at, enrollments(id, section_id, status, enrolled_at, archived_at)")
+        .eq("active", true)
+        .order("roll", { ascending: true });
+    }, "Student enrollment records could not be loaded.");
+  }
+
+  function setStudentEnrollment(input) {
+    var value = input || {};
+    if (!client()) return Promise.resolve(unsupportedLocal("Enrollment management"));
+    if (!value.student_id || !value.section_id) {
+      return Promise.resolve(failure("Student and section are required.", "supabase"));
+    }
+    return remote(function () {
+      return client().rpc("admin_set_student_enrollment", {
+        p_student_id: String(value.student_id).trim(),
+        p_section_id: String(value.section_id).trim(),
+      }).single();
+    }, "The student enrollment could not be updated.");
+  }
+
+  function archiveStudentEnrollment(studentId) {
+    if (!client()) return Promise.resolve(unsupportedLocal("Enrollment management"));
+    if (!studentId) return Promise.resolve(failure("Student is required.", "supabase"));
+    return remote(function () {
+      return client().rpc("admin_archive_student_enrollment", { p_student_id: String(studentId).trim() }).single();
+    }, "The student enrollment could not be archived.");
+  }
+
   function updateStudent(input) {
     if (!client()) return Promise.resolve(unsupportedLocal("Student records"));
     var value = input || {};
@@ -917,6 +949,9 @@
   api.createCourseOffering = createCourseOffering;
   api.updateCourseOffering = updateCourseOffering;
   api.archiveCourseOffering = archiveCourseOffering;
+  api.getEnrollmentStudents = getEnrollmentStudents;
+  api.setStudentEnrollment = setStudentEnrollment;
+  api.archiveStudentEnrollment = archiveStudentEnrollment;
   api.updateStudent = updateStudent;
   api.archiveStudent = archiveStudent;
   api.getSubjects = getSubjects;

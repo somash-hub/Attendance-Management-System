@@ -32,6 +32,8 @@ Apply the migrations in order from `supabase/migrations/`:
 5. `20260924000500_phase3_student_crud_lint_fix.sql`
 6. `20260924000600_phase3_faculty_crud.sql`
 7. `20260924000700_phase3_subject_crud.sql`
+8. `20260924000800_phase3_course_offering_crud.sql`
+9. `20260924000900_phase3_enrollment_management.sql`
 
 Use separate SQL Editor queries, or paste them in order and run each query.
 
@@ -67,6 +69,8 @@ It creates:
 - Administrator subject catalog CRUD is implemented in the admin portal; subject
   codes are permanent, and archive/restore preserves historical attendance and
   course-offering references
+- Administrator course-offering and enrollment operations are implemented in the
+  admin portal; transfers and enrollment archival preserve historical records
 - Phase 4 adapter methods scope teacher and student reads to assigned course
   offerings, sections, enrollments, attendance, and leave requests
 - The private `leave-documents` storage bucket; students can upload and read

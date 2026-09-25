@@ -209,13 +209,8 @@
                   <h2>Student Directory</h2>
                   <p>Manage enrolled students and attendance status</p>
                 </div>
-                <button
-                  class="button button-primary"
-                  type="button"
-                  data-action="student"
-                >
-                  ＋ Add student
-                </button>
+                <button class="button button-primary" type="button" data-action="student">＋ Add student</button>
+                <button class="button button-secondary" type="button" data-action="enrollment">Manage enrollment</button>
               </div>
               <div class="student-editor" id="studentEditor" hidden>
                 <div class="card-heading">
@@ -273,6 +268,16 @@
                   <tbody id="studentRows"></tbody>
                 </table>
               </div>
+              <div class="student-editor" id="enrollmentEditor" hidden>
+                <div class="card-heading"><div><h2 id="enrollmentFormTitle">Manage enrollment</h2><p>Move a student between current sections or archive their current enrollment.</p></div></div>
+                <form id="enrollmentForm" class="date-grid student-form">
+                  <input id="enrollmentStudentId" type="hidden" />
+                  <label>Student<select id="enrollmentStudent" required></select></label>
+                  <label>Current section<select id="enrollmentSection" required></select></label>
+                  <div class="student-form-actions"><button class="button button-primary" id="enrollmentSave" type="submit">Save enrollment</button><button class="button button-secondary" id="enrollmentArchive" type="button">Archive enrollment</button><button class="button button-secondary" id="enrollmentCancel" type="button">Cancel</button></div>
+                </form>
+              </div>
+              <div class="table-wrap enrollment-table"><table><thead><tr><th>Student</th><th>Roll number</th><th>Current section</th><th>Enrollment status</th><th>Action</th></tr></thead><tbody id="enrollmentRows"></tbody></table></div>
             </div>
           </section>
 

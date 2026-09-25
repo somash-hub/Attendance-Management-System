@@ -97,7 +97,8 @@ The completed vertical slices are:
 - `20260924000400_phase3_student_crud.sql` with lint follow-up
   `20260924000500_phase3_student_crud_lint_fix.sql`
 - `20260924000600_phase3_faculty_crud.sql`
-- `20260924000700_phase3_subject_crud.sql` (implemented locally; hosted push still requires an authenticated database password)
+- `20260924000800_phase3_course_offering_crud.sql`
+- `20260924000900_phase3_enrollment_management.sql` (implemented locally; hosted push still requires an authenticated database password)
 
 1. **Student create/edit/archive — complete.** The admin portal can create a
    linked student login, student record, and current enrollment; edit directory
@@ -108,8 +109,8 @@ The completed vertical slices are:
    privileged `admin-update-faculty` function keeps Auth, profiles, and faculty
    records synchronized.
 3. **Subject create/edit/archive — implemented locally, pending hosted migration push.** The admin portal manages the subject catalog with permanent subject codes, editable metadata, credits and course type, plus archive/restore actions. Existing attendance and course-offering history is preserved. The migration is `20260924000700_phase3_subject_crud.sql`; it must be applied to the hosted project before the live UI can use these RPCs.
-4. Course offering creation and teacher assignment.
-5. Student enrollment management beyond the create/edit flow.
+4. Course offering creation and teacher assignment — implemented locally, pending hosted migration push. The admin portal assigns subjects to current sections and faculty members, with archive/restore support.
+5. **Student enrollment management — implemented locally, pending hosted migration push.** Administrators can transfer a student to another current section or archive the current enrollment while preserving historical attendance and leave records.
 6. Academic calendar and schedule management.
 
 Each slice must include database migration, RLS, JavaScript adapter method, HTML form, validation, success/error states, tests, and documentation. No SQL should be required for normal administration.

@@ -123,6 +123,7 @@ let leaves = [
 
 let currentFilter = "all";
 let currentSections = [];
+let enrollmentStudents = [];
 
 // Shared DOM helpers.
 const $ = (selector) => document.querySelector(selector);
@@ -296,6 +297,89 @@ function loadAdminLeaves() {
 }
 
 // Load real students, current sections, and attendance percentages.
+function renderEnrollmentRows() {
+  $("#enrollmentRows").innerHTML = enrollmentStudents.map((student) => {
+    const enrollment = (student.enrollments || []).find((row) => row.status === "active") || {};
+    const section = currentSections.find((item) => item.id === enrollment.section_id);
+    return `<tr><td><strong>${h(student.name)}</strong><small>${h(student.email || "")}</small></td><td>${h(student.roll)}</td><td>${section ? `${h(section.program)} · ${h(section.batch)} · ${h(section.name)}` : "Unassigned"}</td><td>${statusBadge(enrollment.status === "archived" ? "Archived" : enrollment.status ? "Active" : "Unassigned")}</td><td><div class="student-row-actions"><button type="button" data-edit-enrollment="${h(student.id)}">Manage</button></div></td></tr>`;
+  }).join("");
+}
+
+function loadEnrollmentStudents() {
+  if (!window.AttendIQDb) {
+    return AttendIQSupabase.getSections().then(function (sectionResult) {
+      if (!sectionResult.ok) return showToast(sectionResult.error);
+      currentSections = sectionResult.data;
+      enrollmentStudents = students.map(function (student, index) {
+        return Object.assign({}, student, {
+          id: "demo-student-" + (index + 1),
+          enrollments: currentSections.length ? [{ section_id: currentSections[0].id, status: "active" }] : [],
+        });
+      });
+      renderEnrollmentRows();
+    });
+  }
+  return AttendIQSupabase.getEnrollmentStudents().then(function (result) {
+    if (!result.ok) return showToast(result.error);
+    enrollmentStudents = result.data;
+    renderEnrollmentRows();
+  });
+}
+
+function populateEnrollmentSelectors() {
+  const studentSelect = $("#enrollmentStudent");
+  const sectionSelect = $("#enrollmentSection");
+  const previousStudent = studentSelect.value;
+  const previousSection = sectionSelect.value;
+  studentSelect.innerHTML = enrollmentStudents.map((student) => `<option value="${h(student.id)}">${h(student.name)} · ${h(student.roll)}</option>`).join("");
+  sectionSelect.innerHTML = currentSections.map((section) => `<option value="${h(section.id)}">${h(section.program)} · ${h(section.batch)} · ${h(section.name)}</option>`).join("");
+  if (previousStudent) studentSelect.value = previousStudent;
+  if (previousSection) sectionSelect.value = previousSection;
+}
+
+function openEnrollmentEditor(student) {
+  populateEnrollmentSelectors();
+  const editor = $("#enrollmentEditor");
+  $("#enrollmentStudentId").value = student ? student.id : "";
+  $("#enrollmentStudent").value = student ? student.id : "";
+  if (student) {
+    const enrollment = (student.enrollments || []).find((row) => row.status === "active");
+    if (enrollment) $("#enrollmentSection").value = enrollment.section_id;
+  }
+  editor.hidden = false;
+  $("#enrollmentStudent").focus();
+}
+
+function closeEnrollmentEditor() {
+  $("#enrollmentEditor").hidden = true;
+  $("#enrollmentForm").reset();
+}
+
+$("#enrollmentForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const result = await AttendIQSupabase.setStudentEnrollment({
+    student_id: $("#enrollmentStudent").value,
+    section_id: $("#enrollmentSection").value,
+  });
+  if (!result.ok) return showToast(result.error);
+  closeEnrollmentEditor();
+  await Promise.all([loadAdminStudents(), loadEnrollmentStudents()]);
+  showToast("Student enrollment updated.");
+});
+
+$("#enrollmentArchive").addEventListener("click", async () => {
+  const studentId = $("#enrollmentStudent").value;
+  const student = enrollmentStudents.find((item) => item.id === studentId);
+  if (!student || !window.confirm(`Archive ${student.name}'s current enrollment? Historical records will be preserved.`)) return;
+  const result = await AttendIQSupabase.archiveStudentEnrollment(studentId);
+  if (!result.ok) return showToast(result.error);
+  closeEnrollmentEditor();
+  await Promise.all([loadAdminStudents(), loadEnrollmentStudents()]);
+  showToast("Student enrollment archived.");
+});
+
+$("#enrollmentCancel").addEventListener("click", closeEnrollmentEditor);
+
 function loadAdminStudents() {
   if (!window.AttendIQDb) return Promise.resolve();
   return Promise.all([
@@ -314,6 +398,7 @@ function loadAdminStudents() {
     }
     currentSections = sectionsResult.data;
     currentSemesters = semestersResult.data;
+    renderEnrollmentRows();
     const sectionSelect = $("#studentSection");
     sectionSelect.innerHTML = currentSections
       .map((section) => `<option value="${h(section.id)}">${h(section.program)} · ${h(section.batch)} · ${h(section.name)}</option>`)
@@ -757,6 +842,10 @@ document.addEventListener("click", async (event) => {
   const action = event.target.closest("[data-action]");
   if (action) {
     const target = action.dataset.action;
+    if (target === "enrollment") {
+      openTab("students");
+      openEnrollmentEditor();
+    }
     if (target === "student") {
       openTab("students");
       openStudentEditor();
@@ -791,6 +880,12 @@ document.addEventListener("click", async (event) => {
     if (target === "reset") showToast("Reset requires backend confirmation.");
     if (target === "archive")
       showToast("Archive requires backend confirmation.");
+  }
+  const editEnrollmentButton = event.target.closest("[data-edit-enrollment]");
+  if (editEnrollmentButton) {
+    const student = enrollmentStudents.find((item) => item.id === editEnrollmentButton.dataset.editEnrollment);
+    if (student) openEnrollmentEditor(student);
+    return;
   }
   const editButton = event.target.closest("[data-edit-student]");
   if (editButton) {
@@ -944,6 +1039,7 @@ $("#signOut").addEventListener("click", async (event) => {
     loadAdminFaculty(),
     loadAdminLeaves(),
     loadAdminStudents(),
+    loadEnrollmentStudents(),
     loadAdminCourses(),
   ]);
   });

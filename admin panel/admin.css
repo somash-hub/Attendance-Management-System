@@ -1064,7 +1064,19 @@ td small {
   font-size: 10px;
   margin-top: 3px;
 }
+.enrollment-table {
+  margin-top: 18px;
+}
+.enrollment-table small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 3px;
+}
 .subject-form small {
+  color: var(--muted);
+  font-size: 10px;
+}
   color: var(--muted);
   font-size: 10px;
 }
