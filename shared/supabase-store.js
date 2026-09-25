@@ -199,6 +199,25 @@
     });
   }
 
+  function requestPasswordReset(email) {
+    var value = cleanEmail(email);
+    if (!value) return Promise.resolve(failure("Enter your account email.", "supabase"));
+    if (!client()) return Promise.resolve(unsupportedLocal("Password recovery"));
+    return remote(function () {
+      var redirectTo = window.location.origin + window.location.pathname;
+      return client().auth.resetPasswordForEmail(value, { redirectTo: redirectTo });
+    }, "The password reset email could not be sent.");
+  }
+
+  function updatePassword(password) {
+    var value = String(password || "");
+    if (value.length < 8) return Promise.resolve(failure("Use at least 8 characters for the new password.", "supabase"));
+    if (!client()) return Promise.resolve(unsupportedLocal("Password recovery"));
+    return remote(function () {
+      return client().auth.updateUser({ password: value });
+    }, "The password could not be updated.");
+  }
+
   function signOut() {
     if (!client()) {
       return local(function (store) { store.clearSession(); return null; }, "Sign-out failed.");
@@ -501,6 +520,24 @@
     });
   }
 
+  function getMyClassSchedules() {
+    return getMySubjects().then(function (subjectResult) {
+      if (!subjectResult.ok) return subjectResult;
+      var offeringIds = Array.from(new Set(subjectResult.data.map(function (row) {
+        return row.course_offering_id;
+      }).filter(Boolean)));
+      if (!offeringIds.length) return success([], "supabase");
+      return remote(function () {
+        return client().from("class_schedules")
+          .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, course_offerings!inner(id, subject_code, section_id, subjects!inner(code, name), sections!inner(program, batch, name))")
+          .in("course_offering_id", offeringIds)
+          .eq("status", "active")
+          .order("day_of_week", { ascending: true })
+          .order("start_time", { ascending: true });
+      }, "Your class schedules could not be loaded.");
+    });
+  }
+
   function getMyAttendance(filters) {
     return getMyStudentProfile().then(function (profileResult) {
       if (!profileResult.ok) return profileResult;
@@ -606,7 +643,7 @@
       var value = filters || {};
       return remote(function () {
         var query = client().from("leaves")
-          .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, reviewed_by, created_at")
+          .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
           .eq("student_id", profileResult.data.id)
           .order("created_at", { ascending: false });
         if (value.status) query = query.eq("status", value.status);
@@ -937,7 +974,7 @@
       var value = filters || {};
       return remote(function () {
         var query = client().from("leaves")
-          .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, reviewed_by, created_at")
+          .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
           .in("section_id", sectionIds)
           .order("created_at", { ascending: false });
         if (value.status) query = query.eq("status", value.status);
@@ -1046,7 +1083,7 @@
     var value = filters || {};
     return remote(function () {
       var query = client().from("leaves")
-        .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, reviewed_by, created_at")
+        .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
         .order("created_at", { ascending: false });
       if (value.student_id) query = query.eq("student_id", value.student_id);
       if (value.status) query = query.eq("status", value.status);
@@ -1093,31 +1130,60 @@
         };
         return remote(function () {
           return client().from("leaves").insert(row)
-            .select("id, student_id, type, from_date, to_date, reason, status, document_url, reviewed_by, created_at")
+            .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
             .single();
         }, "The leave request could not be saved.");
       });
     });
   }
 
-  function reviewLeave(leaveId, status) {
+  function reviewLeave(leaveId, status, comment) {
     if (!client()) return Promise.resolve(unsupportedLocal("Leave review"));
     if (LEAVE_STATUSES.indexOf(status) === -1) {
       return Promise.resolve(failure("Choose pending, approved, or rejected.", "supabase"));
     }
-    return currentProfile().then(function (profileResult) {
-      if (!profileResult.ok) return profileResult;
-      return remote(function () {
-        return client().from("leaves")
-          .update({
-            status: status,
-            reviewed_by: status === "pending" ? null : profileResult.data.user.id,
-          })
-          .eq("id", leaveId)
-          .select("id, student_id, type, from_date, to_date, reason, status, document_url, reviewed_by, created_at")
-          .single();
-      }, "The leave request could not be reviewed.");
-    });
+    return remote(function () {
+      return client().rpc("review_leave_request", {
+        p_leave_id: leaveId,
+        p_status: status,
+        p_comment: String(comment || "").trim(),
+      }).single();
+    }, "The leave request could not be reviewed.");
+  }
+
+  function cancelLeave(leaveId) {
+    if (!client()) return Promise.resolve(unsupportedLocal("Leave cancellation"));
+    return remote(function () {
+      return client().rpc("cancel_leave_request", { p_leave_id: leaveId }).single();
+    }, "The leave request could not be cancelled.");
+  }
+
+  function getNotifications(includeRead) {
+    if (!client()) return Promise.resolve(unsupportedLocal("Notifications"));
+    return remote(function () {
+      var query = client().from("notifications")
+        .select("id, notification_type, title, message, related_table, related_id, read_at, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (!includeRead) query = query.is("read_at", null);
+      return query;
+    }, "Notifications could not be loaded.");
+  }
+
+  function markNotificationsRead(ids) {
+    if (!client()) return Promise.resolve(unsupportedLocal("Notifications"));
+    if (!Array.isArray(ids) || !ids.length) return Promise.resolve(failure("No notifications were selected.", "supabase"));
+    return remote(function () {
+      return client().from("notifications").update({ read_at: new Date().toISOString() }).in("id", ids).select("id, read_at");
+    }, "Notifications could not be updated.");
+  }
+
+  function getLeaveDocumentUrl(path) {
+    if (!client()) return Promise.resolve(unsupportedLocal("Leave documents"));
+    if (!path) return Promise.resolve(failure("No document is attached to this request.", "supabase"));
+    return remote(function () {
+      return client().storage.from("leave-documents").createSignedUrl(String(path), 300);
+    }, "The leave document could not be opened.");
   }
 
   function uploadLeaveDocument(file) {
@@ -1135,6 +1201,8 @@
   }
 
   api.signIn = signIn;
+  api.requestPasswordReset = requestPasswordReset;
+  api.updatePassword = updatePassword;
   api.signOut = signOut;
   api.getSession = getSession;
   api.getCurrentProfile = getCurrentProfile;
@@ -1156,6 +1224,7 @@
   api.getTeacherLeaves = getTeacherLeaves;
   api.getMyStudentProfile = getMyStudentProfile;
   api.getMySubjects = getMySubjects;
+  api.getMyClassSchedules = getMyClassSchedules;
   api.getMyAttendance = getMyAttendance;
   api.getMyAttendanceSessions = getMyAttendanceSessions;
   api.getMyLeaves = getMyLeaves;
@@ -1192,6 +1261,10 @@
   api.getLeaves = getLeaves;
   api.createLeave = createLeave;
   api.reviewLeave = reviewLeave;
+  api.cancelLeave = cancelLeave;
+  api.getNotifications = getNotifications;
+  api.markNotificationsRead = markNotificationsRead;
+  api.getLeaveDocumentUrl = getLeaveDocumentUrl;
   api.uploadLeaveDocument = uploadLeaveDocument;
   root.AttendIQSupabase = api;
 })(typeof window !== "undefined" ? window : globalThis);

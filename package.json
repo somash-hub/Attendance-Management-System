@@ -1,0 +1,10 @@
+{
+  "name": "attendiq",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Supabase-backed student attendance system",
+  "scripts": {
+    "check": "node scripts/validate.mjs",
+    "check:syntax": "node scripts/validate.mjs"
+  }
+}

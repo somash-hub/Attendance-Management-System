@@ -34,8 +34,8 @@
               id="search"
               type="search"
               placeholder="Search records" /></label
-          ><button class="notification" id="notification" type="button">
-            ♢<b>2</b></button
+          ><button class="notification" id="notification" type="button" aria-label="Notifications">
+            ♢<b id="notificationCount">0</b></button
           ><span class="avatar" id="userAvatar">AK</span
           ><span class="user-copy"
             ><strong id="userName">Aryan Kumar</strong
@@ -141,12 +141,12 @@
             <article class="card trend">
               <h2>Monthly Trend</h2>
               <p>Attendance percentage</p>
-              <div class="mini-chart">
+              <div class="mini-chart" id="trendChart">
                 <b style="height: 91%"></b><b style="height: 88%"></b
                 ><b style="height: 82%"></b><b style="height: 79%"></b
                 ><b style="height: 84%"></b>
               </div>
-              <div class="months">
+              <div class="months" id="trendMonths">
                 <span>Mar</span><span>Apr</span><span>May</span><span>Jun</span
                 ><span>Jul</span>
               </div>
@@ -281,12 +281,21 @@
             </form>
           </article>
         </section>
+          <article class="card">
+            <div class="card-heading">
+              <div>
+                <h2>My Leave Requests</h2>
+                <p>Review, cancel, and open supporting documents.</p>
+              </div>
+            </div>
+            <div class="request-list" id="studentLeaveList"></div>
+          </article>
+
       </main>
     </div>
     <div class="notification-pop" id="notificationPop">
       <strong>Notifications</strong>
-      <p>CSC421 attendance dropped below the 80% threshold.</p>
-      <p>Your leave request was approved.</p>
+      <div id="notificationList"></div>
     </div>
     <div class="toast" id="toast"></div>
   </body>

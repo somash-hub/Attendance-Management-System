@@ -58,47 +58,59 @@ plain HTML, CSS, and JavaScript.
   attendance, and leave requests
 - Scheduled attendance sessions with relationship-scoped RLS, atomic session
   attendance saving, and a separate lint-correction migration
+- Student schedules, leave history, cancellation, reviewer notes, signed document
+  links, and database-backed notifications
+- Live student monthly attendance trend and administrator/teacher metrics derived
+  from current database attendance records
 - Supabase browser SDK loading and a public publishable-key guard; the
   service-role key is never included in frontend files
 - Password visibility toggle, client-side validation, and responsive styling
   for the login screen and all portals
+- A password-reset link returns to this login page. Use **Forgot password?** to request
+  the email; the recovery screen then updates the password through Supabase Auth.
+- The hosted project has all migrations through
+  `20260924001302_phase6_8_function_sync.sql` applied. The linked database lint passes.
 
 ## Supabase status
 
 The hosted project `yvvgvteijtxnuwtncfio` is connected. All repository migrations
-through `20260924001201_phase5_attendance_sessions_lint_fix.sql` are applied to
-the hosted database, and the linked database lint passes. The project includes
-Phase 1 security, Phase 2 academic relationships, and the complete Phase 3
-administrator student, faculty, subject, course-offering, enrollment,
-academic-calendar, and class-schedule administration slices. The
-`admin-create-user`, `admin-update-faculty`, `admin-delete-user`, and
-`upload-leave-document` Edge Functions are deployed, and `shared/supabase.js`
-contains only the public publishable key. Phase 2 backfills the current academic
-year, Semester 7, BSc CSIT Section A, five course offerings, and eight active
-student enrollments while preserving legacy attendance and leave rows. Phase 3
-adds linked account and academic-resource management without deleting historical
-attendance records. Phase 4 adds explicit relationship-scoped teacher and
-student reads for course offerings, rosters, attendance, and leave requests;
-administrator queries remain institution-wide by design. Phase 5 adds
-`attendance_sessions`, teacher-assignment checks for opening sessions, atomic
-session attendance RPCs, relationship-aware RLS, and adapter methods for
-teacher/student session reads. The teacher portal now connects the schedule → open session → mark roster → save → close flow; the student portal will then read session-linked attendance. The current hosted database has five assigned course offerings but no active class schedules yet, so an administrator must add a schedule before a teacher can open a live session.
+through `20260924001302_phase6_8_function_sync.sql` are applied to the hosted
+database, and the linked database lint passes. The project includes Phase 1
+security, Phase 2 academic relationships, and the complete Phase 3 administrator
+student, faculty, subject, course-offering, enrollment, academic-calendar, and
+class-schedule administration slices. The `admin-create-user`,
+`admin-update-faculty`, `admin-delete-user`, and `upload-leave-document` Edge
+Functions are deployed, and `shared/supabase.js` contains only the public
+publishable key. Phase 5 adds `attendance_sessions`, teacher-assignment checks
+for opening sessions, atomic session attendance RPCs, relationship-aware RLS,
+and adapter methods for teacher/student session reads. The teacher portal now
+connects the schedule → open session → mark roster → save → close flow; the
+student portal loads its enrolled course schedules, database notifications,
+leave history, signed document links, and real monthly attendance trend. Phase 6
+adds server-validated leave overlap protection, reviewer notes/timestamps,
+student cancellation, and notifications. Phase 8 metrics and charts use the
+same current attendance records as the directory/report views. The current
+hosted database has five assigned course offerings but no active class schedules
+yet, so an administrator must add a schedule before a teacher can open a live
+session.
 
 The frontend calls the backend through `shared/supabase-store.js`; a configured
 client never silently falls back to localStorage after a request error. The
 local store is available only in explicit demo mode (`?demo=1`). See
 `supabase/SETUP.md` for setup and security notes.
 
-## Planned Frontend Work
+## Current remaining work
 
-The Supabase data layer and the main attendance, leave, account, settings, and
-report flows are connected. Remaining iterations are:
+The core attendance, student, teacher, administrator, leave, notification, and
+scheduled-session flows are connected to Supabase. Remaining work is production
+hardening and scale-oriented improvements:
 
-1. Replace the remaining demo panels with database queries: dashboard charts,
-   notifications, monthly trends, and any remaining summary metrics.
-2. Add reviewer-facing leave-document viewing with signed, short-lived URLs.
-3. Consolidate duplicated panel helpers and styles into shared files.
-4. Add automated JavaScript, database/RLS, and browser workflow tests.
+1. Add automated browser and RLS/session-workflow tests beyond the static checks.
+2. Configure a production Supabase Site URL and allowed redirect URLs.
+3. Set the `ALLOWED_ORIGINS` Edge Function secret to the real frontend origin, for example:
+   `https://attendance.example.com` (use comma-separated origins for multiple deployments).
+4. Deploy the hardened Edge Functions and configure administrator MFA.
+5. Add rate limits, backups, accessibility/responsive testing, and production deployment.
 
 ## Project Structure
 
@@ -153,6 +165,11 @@ report flows are connected. Remaining iterations are:
 │       ├── 20260924001100_phase3_schedule_integrity.sql
 │       ├── 20260924001200_phase5_attendance_sessions.sql
 │       └── 20260924001201_phase5_attendance_sessions_lint_fix.sql
+│       ├── 20260924001300_phase6_8_notifications_and_leave_safeguards.sql
+│       ├── 20260924001301_phase6_8_rls_correction.sql
+│       └── 20260924001302_phase6_8_function_sync.sql
+│       └── 20260924001302_phase6_8_function_sync.sql
+
 └── .vscode/
     ├── mcp.json
     └── settings.json
@@ -191,18 +208,17 @@ explicit `?demo=1` sessions; the hosted accounts and all attendance data are the
 source of truth in normal operation. Do not use these demo passwords for real
 users.
 
-The administrator portal now loads students, faculty, attendance percentages,
-leave requests, users, settings, academic events, and class schedules from
-Supabase. Dashboard metrics, program charts, notifications, and monthly trends
-still use demo data. The admin portal manages academic events and recurring class
+The administrator portal loads students, faculty, attendance percentages, leave
+requests, users, settings, academic events, and class schedules from Supabase.
+Dashboard metrics and program charts are calculated from the same current
+attendance records. The admin portal manages academic events and recurring class
 schedules in **Settings**.
 
-The student portal now loads the signed-in student's attendance dashboard,
-attendance log, subject percentages, threshold warning, leave submission, and
-CSV export from Supabase. The student schedule and notification copy are still
-separate follow-up work.
+The student portal loads the signed-in student's attendance dashboard, attendance
+log, subject percentages, threshold warning, enrolled class schedule, leave
+history, signed document links, notifications, and CSV export from Supabase.
 
-The teacher portal now loads the roster, assigned subjects, daily attendance
-marking, semester reports, leave review, settings, and CSV export from
-Supabase. Dashboard subject averages and some summary metrics still use demo
-data.
+The teacher portal loads the assigned roster, subjects, schedules, daily
+attendance marking, semester reports, leave review, notifications-ready data, and
+CSV export from Supabase. Dashboard totals and at-risk metrics are calculated
+from current assigned attendance records.

@@ -111,21 +111,21 @@
           <section class="tab-panel active" data-panel="dashboard">
             <div class="metric-grid">
               <article class="metric-card">
-                <span class="metric-icon blue">♙</span><strong>240</strong
-                ><small>Total Students</small><em>↑ 12 this semester</em>
+                <span class="metric-icon blue">♙</span><strong id="totalStudents">0</strong
+                ><small>Total Students</small><em id="studentScopeCopy">Current enrollments</em>
               </article>
               <article class="metric-card">
-                <span class="metric-icon purple">♧</span><strong>5</strong
-                ><small>Faculty Members</small><em>All departments</em>
+                <span class="metric-icon purple">♧</span><strong id="facultyCount">0</strong
+                ><small>Faculty Members</small><em id="facultyScopeCopy">Current directory</em>
               </article>
               <article class="metric-card">
-                <span class="metric-icon yellow">▣</span><strong>5</strong
-                ><small>Active Subjects</small><em>Semester 7 · BSc CSIT</em>
+                <span class="metric-icon yellow">▣</span><strong id="activeSubjectCount">0</strong
+                ><small>Active Subjects</small><em id="subjectScopeCopy">Current catalog</em>
               </article>
               <article class="metric-card">
-                <span class="metric-icon green">↗</span><strong>82%</strong
+                <span class="metric-icon green">↗</span><strong id="averageAttendance">0%</strong
                 ><small>Average Attendance</small
-                ><em class="positive">↑ 3.2% from last month</em>
+                ><em class="positive" id="attendanceScopeCopy">Current marks</em>
               </article>
               <article class="metric-card">
                 <span class="metric-icon red">!</span
@@ -144,7 +144,7 @@
                   </div>
                   <button class="more-button" type="button">•••</button>
                 </div>
-                <div class="bar-chart" aria-label="Program attendance chart">
+                <div class="bar-chart" id="programChart" aria-label="Program attendance chart">
                   <div class="chart-row">
                     <span>CSIT</span><i><b style="width: 82%"></b></i
                     ><strong>82%</strong>

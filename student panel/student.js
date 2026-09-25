@@ -125,9 +125,58 @@ function renderRecords() {
     .join("");
 }
 
-// Build the weekly schedule cards from the schedule data above.
+// The demo timetable is used only when no Supabase client is configured. In
+// live mode loadStudentDashboard replaces it with schedules for this student's
+// enrolled course offerings.
+let liveSchedule = null;
+let liveNotifications = [];
+let liveLeaves = [];
+
+// Render live leave history with secure document and cancellation actions.
+function renderLeaves() {
+  const list = $("#studentLeaveList");
+  if (!list) return;
+  list.innerHTML = liveLeaves.length ? liveLeaves.map(function (leave) {
+    const dates = leave.from_date === leave.to_date ? leave.from_date : leave.from_date + " → " + leave.to_date;
+    const documentButton = leave.document_url ? `<button type="button" data-leave-document="${h(leave.document_url)}">Open document</button>` : "";
+    const cancelButton = leave.status === "pending" ? `<button type="button" data-cancel-leave="${h(leave.id)}">Cancel</button>` : "";
+    return `<div class="request-row"><div><strong>${h(leave.type)}</strong>${badge(leave.status)}<p>${h(dates)} · ${h(leave.reason)}</p>${leave.review_comment ? `<small>Reviewer: ${h(leave.review_comment)}</small>` : ""}</div><div class="request-actions">${documentButton}${cancelButton}</div></div>`;
+  }).join("") : "<p><small>No leave requests submitted.</small></p>";
+}
+
+function loadLeaves() {
+  if (!window.AttendIQDb) return Promise.resolve();
+  return AttendIQSupabase.getMyLeaves().then(function (result) {
+    if (!result.ok) return toast(result.error);
+    liveLeaves = result.data;
+    renderLeaves();
+  });
+}
+
+// Render the database-backed notification list. Unread rows are marked only
+// after the user opens the notification panel.
+function renderNotifications() {
+  const list = $("#notificationList");
+  if (!list) return;
+  list.innerHTML = liveNotifications.length
+    ? liveNotifications.map(function (item) {
+        return `<p>${h(item.title)}<small>${h(item.message)}</small></p>`;
+      }).join("")
+    : "<p><small>No notifications yet.</small></p>";
+  const unread = liveNotifications.filter(function (item) { return !item.read_at; }).length;
+  $("#notificationCount").textContent = unread;
+  $("#notificationCount").hidden = unread === 0;
+}
+
+// Build the weekly schedule cards from the active timetable.
 function renderSchedule() {
-  $("#scheduleGrid").innerHTML = Object.entries(schedule)
+  const source = liveSchedule || schedule;
+  const groups = Object.entries(source).filter(([, slots]) => slots.length);
+  if (!groups.length) {
+    $("#scheduleGrid").innerHTML = '<div class="empty-state"><h2>No class schedule published yet</h2><p>Your administrator will publish the timetable here.</p></div>';
+    return;
+  }
+  $("#scheduleGrid").innerHTML = groups
     .map(
       ([day, slots]) =>
         `<article class="card day-card"><h2>${h(day)}</h2><p>${h(slots.length)} classes</p>${slots.map((s) => `<div class="class-slot"><span>◷</span><div><strong>${h(s[2])}</strong><small>${h(s[0])} · ${h(s[1])} · ${h(s[3])}</small></div></div>`).join("")}</article>`,
@@ -167,6 +216,24 @@ function renderDashboard(attendanceRows, subjects) {
   var totalClasses = attendanceRows.length;
   var presentCount = attendanceRows.filter(function (row) { return row.status === "Present"; }).length;
   var absentCount = attendanceRows.filter(function (row) { return row.status === "Absent"; }).length;
+  var months = {};
+  attendanceRows.forEach(function (row) {
+    var month = String(row.date_ad || "").slice(0, 7);
+    if (!month) return;
+    var entry = months[month] || { total: 0, present: 0 };
+    entry.total += 1;
+    if (row.status === "Present") entry.present += 1;
+    months[month] = entry;
+  });
+  var monthKeys = Object.keys(months).sort().slice(-5);
+  $("#trendChart").innerHTML = monthKeys.map(function (month) {
+    var entry = months[month];
+    var percent = entry.total ? Math.round((entry.present / entry.total) * 100) : 0;
+    return `<b style="height:${Math.max(4, percent)}%"></b>`;
+  }).join("") || "<small>No trend data available.</small>";
+  $("#trendMonths").innerHTML = monthKeys.map(function (month) {
+    return `<span>${h(month.slice(5))}</span>`;
+  }).join("");
 
   $("#overallPercent").textContent = (totalClasses ? Math.round((presentCount / totalClasses) * 100) : 0) + "%";
   $("#overallClasses").textContent = presentCount + " / " + totalClasses + " classes";
@@ -211,17 +278,43 @@ function loadStudentDashboard() {
       toast("Your student record is not linked to this login.");
       return;
     }
-    return AttendIQSupabase.getMyAttendance().then(function (attendanceResult) {
-      if (!attendanceResult.ok) {
-        toast(attendanceResult.error);
+    return Promise.all([
+      AttendIQSupabase.getMyAttendance(),
+      AttendIQSupabase.getMyClassSchedules(),
+      AttendIQSupabase.getNotifications(true),
+    ]).then(function (results) {
+      var attendanceResult = results[0];
+      var schedulesResult = results[1];
+      var notificationsResult = results[2];
+      if (!attendanceResult.ok || !schedulesResult.ok || !notificationsResult.ok) {
+        toast(attendanceResult.error || schedulesResult.error || notificationsResult.error || "Attendance data could not be loaded.");
         return;
       }
+      liveNotifications = notificationsResult.data;
+      renderNotifications();
+      return loadLeaves().then(function () {
       records = attendanceResult.data.map(function (row) {
         return [row.date_bs || row.date_ad, weekdayName(row.date_ad), row.subject_code, row.time, row.status];
       });
+      liveSchedule = schedulesResult.data.reduce(function (grouped, row) {
+        var offering = Array.isArray(row.course_offerings) ? row.course_offerings[0] : row.course_offerings || {};
+        var subject = offering.subjects && (Array.isArray(offering.subjects) ? offering.subjects[0] : offering.subjects);
+        var day = WEEKDAYS[Number(row.day_of_week)] || "Unscheduled";
+        if (!grouped[day]) grouped[day] = [];
+        grouped[day].push([
+          String(row.start_time || "").slice(0, 5) + "–" + String(row.end_time || "").slice(0, 5),
+          subject ? subject.name : offering.subject_code || "Class",
+          subject ? subject.code : offering.subject_code || "—",
+          row.room || "Room TBA",
+        ]);
+        return grouped;
+      }, {});
+      renderSchedule();
       renderDashboard(attendanceResult.data, subjectsResult.data);
       renderWarning();
       renderRecords();
+      return renderLeaves();
+      });
     });
   });
 }
@@ -272,9 +365,18 @@ $("#search").addEventListener("input", (e) => {
     renderRecords();
   }
 });
-$("#notification").addEventListener("click", () =>
-  $("#notificationPop").classList.toggle("open"),
-);
+$("#notification").addEventListener("click", async () => {
+  $("#notificationPop").classList.toggle("open");
+  if (!$("#notificationPop").classList.contains("open")) return;
+  const unreadIds = liveNotifications.filter(function (item) { return !item.read_at; }).map(function (item) { return item.id; });
+  if (!unreadIds.length || !window.AttendIQDb) return;
+  const result = await AttendIQSupabase.markNotificationsRead(unreadIds);
+  if (!result.ok) return toast(result.error);
+  liveNotifications = liveNotifications.map(function (item) {
+    return Object.assign({}, item, { read_at: new Date().toISOString() });
+  });
+  renderNotifications();
+});
 $("#export").addEventListener("click", () => {
   if (!records.length) return toast("There are no attendance records to export.");
   try {
@@ -326,12 +428,29 @@ $("#leaveForm").addEventListener("submit", async (e) => {
     document_url: documentUrl,
   });
   if (!result.ok) return toast(result.error);
+  await loadLeaves();
 
   $("#leaveCard").innerHTML =
     `<div class="success-state"><span>✓</span><h2>Request Submitted</h2><p>Your leave application has been forwarded to your class advisor for approval.</p><button class="button primary" id="another">Submit another request</button></div>`;
   $("#another").addEventListener("click", () => location.reload());
 });
-// Reflect the signed-in student in the topbar and support sign-out.
+document.addEventListener("click", async (event) => {
+  const documentButton = event.target.closest("[data-leave-document]");
+  if (documentButton) {
+    const result = await AttendIQSupabase.getLeaveDocumentUrl(documentButton.dataset.leaveDocument);
+    if (!result.ok) return toast(result.error);
+    window.open(result.data.signedUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+  const cancelButton = event.target.closest("[data-cancel-leave]");
+  if (cancelButton) {
+    if (!window.confirm("Cancel this pending leave request?")) return;
+    const result = await AttendIQSupabase.cancelLeave(cancelButton.dataset.cancelLeave);
+    if (!result.ok) return toast(result.error);
+    await loadLeaves();
+    toast("Leave request cancelled.");
+  }
+});
 if (session) {
   $("#userName").textContent = session.name;
   $("#userAvatar").textContent = session.name

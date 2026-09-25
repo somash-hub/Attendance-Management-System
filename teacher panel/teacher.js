@@ -24,7 +24,7 @@ function initializePortal(session) {
     const settings = result.data;
 
 // Demo class roster and leave data used by the teacher portal.
-const students = [
+let students = [
   ["Aryan Kumar", "2079CSIT042", 84, "present"],
   ["Sneha Patel", "2079CSIT043", 91, "present"],
   ["Riya Desai", "2079CSIT044", 72, "absent"],
@@ -250,6 +250,9 @@ function loadTeacherData() {
       name: student.name,
       roll: student.roll,
     }));
+    students = studentsResult.data.map(function (student) {
+      return [student.name, student.roll, 0, "present"];
+    });
     studentDirectory = Object.fromEntries(
       studentsResult.data.map((student) => [student.id, { name: student.name, roll: student.roll }]),
     );
@@ -307,6 +310,7 @@ function loadTeacherReports() {
     reportRows = markingStudents.map(function (student) {
       const entry = totals[student.id] || { total: 0, present: 0, absent: 0, late: 0 };
       return {
+        id: student.id,
         name: student.name,
         roll: student.roll,
         total: entry.total,
@@ -316,7 +320,10 @@ function loadTeacherReports() {
         percent: entry.total ? Math.round((entry.present / entry.total) * 100) : 0,
       };
     });
+    students = reportRows.map(function (row) { return [row.name, row.roll, row.percent, "present"]; });
     renderReports();
+    renderTeacherMetrics();
+    renderThreshold();
   });
 }
 
@@ -328,7 +335,7 @@ function renderLeaves() {
         `<div class="leave-row"><div class="leave-main"><span class="student-avatar">${h(l.name
           .split(" ")
           .map((x) => x[0])
-          .join(""))}</span><div><div><strong>${h(l.name)}</strong> <small class="mono">${h(l.roll)}</small> ${status(l.status)}</div><p>${h(l.type)} · ${h(l.date)} · ${h(l.reason)}</p>${l.doc ? '<small class="document">✓ Supporting document attached</small>' : ""}</div></div>${l.status === "pending" ? `<div class="leave-actions"><button class="approve" data-leave="${h(l.id)}" data-state="approved">Approve</button><button class="reject" data-leave="${h(l.id)}" data-state="rejected">Reject</button></div>` : `<button class="undo" data-leave="${h(l.id)}" data-state="pending">Undo</button>`}</div>`,
+          .join(""))}</span><div><div><strong>${h(l.name)}</strong> <small class="mono">${h(l.roll)}</small> ${status(l.status)}</div><p>${h(l.type)} · ${h(l.date)} · ${h(l.reason)}</p>${l.reviewComment ? `<small>Reviewer: ${h(l.reviewComment)}</small>` : ""}${l.doc ? `<small class="document">✓ Supporting document attached</small><button type="button" data-review-document="${h(l.docPath)}">Open document</button>` : ""}</div></div>${l.status === "pending" ? `<div class="leave-actions"><button class="approve" data-leave="${h(l.id)}" data-state="approved">Approve</button><button class="reject" data-leave="${h(l.id)}" data-state="rejected">Reject</button></div>` : `<button class="undo" data-leave="${h(l.id)}" data-state="pending">Undo</button>`}</div>`,
     )
     .join("");
 }
@@ -361,15 +368,27 @@ function loadTeacherLeaves() {
         reason: row.reason,
         status: row.status,
         doc: !!row.document_url,
+        docPath: row.document_url,
+        reviewComment: row.review_comment || "",
       };
     });
     renderLeaves();
+    renderTeacherMetrics();
   });
+}
+
+// Dashboard metrics use the same assigned roster and report rows as the rest
+// of the teacher portal.
+function renderTeacherMetrics() {
+  $("#teacherStudentCount").textContent = markingStudents.length;
+  $("#teacherClassCount").textContent = reportRows.reduce(function (sum, row) { return sum + Number(row.total || 0); }, 0);
+  $("#teacherPendingLeaves").textContent = leaves.filter(function (leave) { return leave.status === "pending"; }).length;
 }
 
 // Keep the at-risk metric, the section heading, and the risk list aligned
 // with the shared attendance threshold.
 function renderThreshold() {
+  renderTeacherMetrics();
   const atRisk = students
     .filter((student) => student[2] < settings.threshold)
     .sort((a, b) => a[2] - b[2]);
@@ -454,10 +473,19 @@ document.addEventListener("click", (e) => {
   }
   const leave = e.target.closest("[data-leave]");
   if (leave) {
-    AttendIQSupabase.reviewLeave(leave.dataset.leave, leave.dataset.state).then(function (result) {
+    const comment = window.prompt("Optional reviewer note:", "") || "";
+    AttendIQSupabase.reviewLeave(leave.dataset.leave, leave.dataset.state, comment).then(function (result) {
       if (!result.ok) return toast(result.error);
       toast("Leave request updated.");
       return loadTeacherLeaves();
+    });
+    return;
+  }
+  const documentButton = e.target.closest("[data-review-document]");
+  if (documentButton) {
+    AttendIQSupabase.getLeaveDocumentUrl(documentButton.dataset.reviewDocument).then(function (result) {
+      if (!result.ok) return toast(result.error);
+      window.open(result.data.signedUrl, "_blank", "noopener,noreferrer");
     });
   }
 });

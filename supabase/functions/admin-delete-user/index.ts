@@ -3,22 +3,32 @@
 // foreign key (on delete cascade). Administrators cannot delete themselves.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const allowedOrigins = (Deno.env.get("ALLOWED_ORIGINS") || "http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-function json(body: unknown, status = 200) {
+function corsHeaders(req: Request) {
+  const origin = req.headers.get("Origin");
+  const allowedOrigin = origin && allowedOrigins.includes(origin) ? origin : null;
+  return {
+    ...(allowedOrigin ? { "Access-Control-Allow-Origin": allowedOrigin } : {}),
+    "Access-Control-Allow-Headers": "authorization, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    Vary: "Origin",
+  };
+}
+
+function json(req: Request, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders(req) });
   }
 
   // Identify the caller by their access token.
@@ -31,7 +41,7 @@ Deno.serve(async (req) => {
   const {
     data: { user },
   } = await callerClient.auth.getUser();
-  if (!user) return json({ error: "Not signed in." }, 401);
+  if (!user) return json(req, { error: "Not signed in." }, 401);
 
   // Only administrators may remove accounts.
   const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -41,19 +51,19 @@ Deno.serve(async (req) => {
     .eq("id", user.id)
     .single();
   if (!caller || caller.role !== "admin") {
-    return json({ error: "Only administrators can remove accounts." }, 403);
+    return json(req, { error: "Only administrators can remove accounts." }, 403);
   }
 
   let input: { id?: string };
   try {
     input = await req.json();
   } catch {
-    return json({ error: "Send a JSON body." }, 400);
+    return json(req, { error: "Send a JSON body." }, 400);
   }
   const id = String(input.id ?? "");
-  if (!id) return json({ error: "Missing account id." }, 400);
+  if (!id) return json(req, { error: "Missing account id." }, 400);
   if (id === user.id) {
-    return json({ error: "You cannot remove your own account." }, 400);
+    return json(req, { error: "You cannot remove your own account." }, 400);
   }
 
   const { data: target, error: targetError } = await admin
@@ -62,7 +72,7 @@ Deno.serve(async (req) => {
     .eq("id", id)
     .single();
   if (targetError || !target) {
-    return json({ error: targetError?.message || "Account not found." }, 404);
+    return json(req, { error: targetError?.message || "Account not found." }, 404);
   }
 
   // Archive application records before removing the login. Attendance and
@@ -72,13 +82,13 @@ Deno.serve(async (req) => {
       .from("students")
       .update({ active: false, archived_at: new Date().toISOString() })
       .eq("profile_id", id);
-    if (archiveError) return json({ error: archiveError.message }, 400);
+    if (archiveError) return json(req, { error: archiveError.message }, 400);
   } else if (target.role === "teacher") {
     const { error: archiveError } = await admin
       .from("faculty")
       .update({ status: "archived", archived_at: new Date().toISOString() })
       .eq("profile_id", id);
-    if (archiveError) return json({ error: archiveError.message }, 400);
+    if (archiveError) return json(req, { error: archiveError.message }, 400);
   }
 
   const { error: auditError } = await admin.from("audit_logs").insert({
@@ -88,10 +98,10 @@ Deno.serve(async (req) => {
     entity_id: id,
     old_values: { name: target.name, email: target.email, role: target.role },
   });
-  if (auditError) return json({ error: auditError.message }, 500);
+  if (auditError) return json(req, { error: auditError.message }, 500);
 
   const { error } = await admin.auth.admin.deleteUser(id);
-  if (error) return json({ error: error.message }, 400);
+  if (error) return json(req, { error: error.message }, 400);
 
-  return json({ ok: true });
+  return json(req, { ok: true });
 });

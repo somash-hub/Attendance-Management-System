@@ -199,6 +199,7 @@ function loadAdminCourses() {
     currentSections = sectionsResult.data;
     renderCourses();
     renderOfferings();
+    renderAdminMetrics();
     return Promise.all([
       AttendIQSupabase.getAcademicYears(),
       AttendIQSupabase.getAcademicEvents({ include_archived: true }),
@@ -299,7 +300,7 @@ function requestMarkup(request, actions = true) {
     .split(" ")
     .map((part) => part[0])
     .join("");
-  return `<div class="request-row"><div class="request-main"><span class="request-avatar">${h(initials)}</span><div><div class="request-title"><strong>${h(request.name)}</strong><span class="mono">${h(request.roll)}</span>${statusBadge(request.status)}</div><p>${h(request.type)} · ${h(request.dates)} · ${h(request.reason)}</p>${request.doc ? '<small class="document">✓ Document submitted</small>' : ""}</div></div>${actionMarkup}</div>`;
+  return `<div class="request-row"><div class="request-main"><span class="request-avatar">${h(initials)}</span><div><div class="request-title"><strong>${h(request.name)}</strong><span class="mono">${h(request.roll)}</span>${statusBadge(request.status)}</div><p>${h(request.type)} · ${h(request.dates)} · ${h(request.reason)}</p>${request.reviewComment ? `<small>Reviewer: ${h(request.reviewComment)}</small>` : ""}${request.doc ? `<small class="document">✓ Document submitted</small><button type="button" data-review-document="${h(request.docPath)}">Open document</button>` : ""}</div></div>${actionMarkup}</div>`;
 }
 
 function renderLeaves(target = "#leaveRequests", limit = false) {
@@ -349,6 +350,8 @@ function loadAdminLeaves() {
         reason: row.reason,
         status: row.status,
         doc: !!row.document_url,
+        docPath: row.document_url,
+        reviewComment: row.review_comment || "",
       };
     });
     renderLeaves();
@@ -486,6 +489,7 @@ function loadAdminStudents() {
     });
     renderStudents();
     renderThreshold();
+    renderAdminMetrics();
   });
 }
 
@@ -498,6 +502,7 @@ function loadAdminFaculty() {
     }
     faculty = result.data;
     renderFaculty();
+    renderAdminMetrics();
   });
 }
 
@@ -508,16 +513,37 @@ function showToast(message) {
   setTimeout(() => toast.classList.remove("visible"), 2600);
 }
 
-// Keep the rules form and the at-risk dashboard metric aligned with the
-// shared attendance settings.
+// Update dashboard counts from the same current records used by the
+// attendance table; no display metric is independent demo data.
+function renderAdminMetrics() {
+  const total = students.length;
+  const present = students.reduce(function (sum, student) { return sum + Number(student.attendance || 0); }, 0);
+  const average = total ? Math.round(present / total) : 0;
+  $("#totalStudents").textContent = total;
+  $("#facultyCount").textContent = faculty.length;
+  $("#activeSubjectCount").textContent = courses.filter(function (course) { return course.active !== false; }).length;
+  $("#averageAttendance").textContent = average + "%";
+  $("#attendanceScopeCopy").textContent = "Current marks";
+  $("#atRiskCount").textContent = students.filter(function (student) { return student.attendance < settings.threshold; }).length;
+  const programGroups = {};
+  students.forEach(function (student) {
+    const entry = programGroups[student.dept] || { total: 0, present: 0 };
+    entry.total += 1;
+    entry.present += Number(student.attendance || 0);
+    programGroups[student.dept] = entry;
+  });
+  $("#programChart").innerHTML = Object.entries(programGroups).map(function ([program, entry]) {
+    const percent = entry.total ? Math.round(entry.present / entry.total) : 0;
+    return `<div class="chart-row"><span>${h(program)}</span><i><b style="width:${Math.min(100, percent)}%"></b></i><strong>${percent}%</strong></div>`;
+  }).join("") || "<p>No attendance data available.</p>";
+}
+
 function renderThreshold() {
   $("#threshold").value = settings.threshold;
   $("#thresholdValue").textContent = `${settings.threshold}%`;
   $("#thresholdCopy").textContent = `${settings.threshold}%`;
   $("#atRiskCopy").textContent = `Below ${settings.threshold}% threshold`;
-  $("#atRiskCount").textContent = students.filter(
-    (student) => student.attendance < settings.threshold,
-  ).length;
+  renderAdminMetrics();
 }
 
 // Role labels shared by the user table and its feedback messages.
@@ -1226,10 +1252,19 @@ document.addEventListener("click", async (event) => {
   }
   const leaveButton = event.target.closest("[data-leave]");
   if (leaveButton) {
-    AttendIQSupabase.reviewLeave(leaveButton.dataset.leave, leaveButton.dataset.status).then(function (result) {
+    const comment = window.prompt("Optional reviewer note:", "") || "";
+    AttendIQSupabase.reviewLeave(leaveButton.dataset.leave, leaveButton.dataset.status, comment).then(function (result) {
       if (!result.ok) return showToast(result.error);
       showToast(`Leave request ${leaveButton.dataset.status}.`);
       return loadAdminLeaves();
+    });
+    return;
+  }
+  const documentButton = event.target.closest("[data-review-document]");
+  if (documentButton) {
+    AttendIQSupabase.getLeaveDocumentUrl(documentButton.dataset.reviewDocument).then(function (result) {
+      if (!result.ok) return showToast(result.error);
+      window.open(result.data.signedUrl, "_blank", "noopener,noreferrer");
     });
   }
 });

@@ -84,13 +84,25 @@
 
             <!-- Forgot Password -->
             <div class="forgot-password">
-              <a href="#forgot">Forgot password?</a>
+              <a href="#" id="forgotPassword">Forgot password?</a>
             </div>
           </div>
 
           <!-- Submmit Button -->
           <button type="submit" class="login-button">Sign in</button>
         </form>
+
+        <!-- Password recovery is available without exposing account creation. -->
+        <section id="passwordRecovery" class="password-recovery" hidden>
+          <h2 id="recoveryTitle">Reset your password</h2>
+          <p id="recoveryCopy">Enter your account email and we will send a recovery link.</p>
+          <form id="recoveryForm">
+            <label id="recoveryEmailField">Account email<input id="recoveryEmail" type="email" autocomplete="email" required /></label>
+            <label id="newPasswordField" hidden>New password<input id="recoveryPassword" type="password" minlength="8" autocomplete="new-password" required /></label>
+            <button class="login-button" type="submit" id="recoverySubmit">Send recovery link</button>
+          </form>
+          <button class="text-button" type="button" id="recoveryCancel">Back to sign in</button>
+        </section>
 
         <!-- Demo credentials are revealed only by login.js in explicit demo mode. -->
         <div class="demo-accounts" id="demoAccountsPanel" hidden>

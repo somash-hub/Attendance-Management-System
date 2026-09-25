@@ -244,6 +244,55 @@ body {
   text-decoration: underline;
 }
 
+.password-recovery {
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+  padding-top: 18px;
+}
+.password-recovery h2 {
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+.password-recovery p {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+.password-recovery form {
+  display: grid;
+  gap: 12px;
+}
+.password-recovery label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.password-recovery input {
+  width: 100%;
+  height: 40px;
+  padding: 9px 11px;
+  border: 1px solid rgba(26, 27, 46, 0.1);
+  border-radius: 7px;
+  background: #f4f5f7;
+}
+.password-recovery input:focus {
+  outline: none;
+  border-color: var(--indigo);
+  box-shadow: 0 0 0 4px rgba(61, 56, 245, 0.12);
+}
+.text-button {
+  border: 0;
+  background: transparent;
+  color: var(--indigo);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 12px;
+  padding: 4px 0;
+}
+
 /* .login-button is the primary action used by the HTML form. */
 .login-button {
   width: 100%;

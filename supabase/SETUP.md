@@ -3,10 +3,8 @@
 Project reference: `yvvgvteijtxnuwtncfio`
 Everything in this folder is **re-runnable** — the schema drops and recreates
 its named policies before enabling them, so policy changes can be applied
-again safely. The hosted project has the migration and both Edge Functions
-applied; the steps below can be used to reproduce or update the setup. The hosted
-project has all migrations through `20260924001100_phase3_schedule_integrity.sql`
-and all four Edge Functions applied.
+again safely. The hosted project has all migrations through
+`20260924001302_phase6_8_function_sync.sql` and all four Edge Functions applied.
 
 ## 1. Create the three demo accounts
 
@@ -40,6 +38,9 @@ Apply the migrations in order from `supabase/migrations/`:
 11. `20260924001100_phase3_schedule_integrity.sql`
 12. `20260924001200_phase5_attendance_sessions.sql`
 13. `20260924001201_phase5_attendance_sessions_lint_fix.sql`
+14. `20260924001300_phase6_8_notifications_and_leave_safeguards.sql`
+15. `20260924001301_phase6_8_rls_correction.sql`
+16. `20260924001302_phase6_8_function_sync.sql`
 
 Use separate SQL Editor queries, or paste them in order and run each query.
 
@@ -59,7 +60,7 @@ It creates:
 - Tables: `profiles`, `settings`, `subjects`, `students`, `attendance`,
   `leaves`, `faculty`, `audit_logs`, `academic_years`, `semesters`,
   `sections`, `enrollments`, `course_offerings`, `academic_events`,
-  `class_schedules`, and `attendance_sessions`
+  `class_schedules`, `attendance_sessions`, and `notifications`
 - Role helpers (`role_of`, `is_admin`, `is_staff`, `student_id_of`) and all
   row level security policies
 - Teacher attendance access restricted to assigned subjects, and student leave
@@ -85,12 +86,24 @@ It creates:
   offerings, sections, enrollments, attendance, and leave requests
 - Phase 5 adds scheduled attendance sessions with teacher-assignment checks,
   atomic session attendance saving, relationship-aware RLS, and a lint follow-up
+- Phase 6 adds leave overlap protection, reviewer comments/timestamps, student
+  cancellation, signed document access, and database notifications
 - The private `leave-documents` storage bucket; students can upload and read
   their own documents, while assigned staff can review related documents
 - Demo seeds: 5 subjects (CSC419–CSC425), the 2079 batch roster, Aryan's
   attendance history, and the 4 demo leave requests
 
 ## 3. Deploy the edge functions
+
+Before deploying the hardened functions, set the allowed frontend origin as an
+Edge Function secret. Do not use a wildcard in production.
+
+```bash
+npx supabase secrets set ALLOWED_ORIGINS=https://attendance.example.com
+```
+
+Replace the example with the actual deployed frontend origin. For local testing,
+use `http://localhost:3000`. Multiple origins may be comma-separated.
 
 These four functions are the privileged operations (creating/updating/deleting
  accounts and validating leave-document uploads). The service role key stays
@@ -155,6 +168,7 @@ select count(*) from public.enrollments;   -- 8 active enrollments
 select count(*) from public.academic_events; -- 0 until an administrator adds one
 select count(*) from public.class_schedules; -- 0 until an administrator adds one
 select count(*) from public.attendance_sessions; -- 0 until a teacher opens a session
+select count(*) from public.notifications;       -- decision notifications appear after leave review
 ```
 
 ## Access rules at a glance
@@ -170,6 +184,7 @@ select count(*) from public.attendance_sessions; -- 0 until a teacher opens a se
 | `academic_events`     | read                            | read                                  | all   |
 | `class_schedules`     | read enrolled schedules         | read assigned schedules              | all   |
 | `attendance_sessions` | read enrolled sessions          | read/create assigned sessions        | all   |
+| `notifications`       | read/mark own                  | read/mark own                        | all   |
 | `academic_years`      | read                            | read                                  | all   |
 | `semesters`           | read                            | read                                 | all   |
 | `sections`            | read                            | read                                 | all   |
@@ -177,10 +192,10 @@ select count(*) from public.attendance_sessions; -- 0 until a teacher opens a se
 | `profiles`            | read own                        | read own                             | all   |
 | `faculty`             | no directory access             | read own record                      | all   |
 
-## Still to do later (not part of this setup)
+## Remaining production work
 
-- Replace the remaining demo dashboard panels, notifications, and monthly
-  attendance trends with database-backed queries.
-- Add reviewer-facing leave-document viewing with short-lived signed URLs.
-- Add automated JavaScript, RLS, and browser workflow tests before production
-  deployment.
+- Add automated browser, RLS, and session-workflow tests beyond the static checks.
+- Configure the production Supabase Site URL and Auth redirect URLs.
+- Set `ALLOWED_ORIGINS` before deploying the restricted Edge Functions.
+- Configure administrator MFA, rate limits, backups, and production SMTP.
+- Complete accessibility, responsive, and deployment testing.

@@ -670,6 +670,15 @@ td strong {
   font-size: 10px;
   margin-top: 4px;
 }
+.leave-main button[data-review-document] {
+  background: #eef2ff;
+  border: 0;
+  border-radius: 6px;
+  color: var(--indigo);
+  font-size: 10px;
+  margin-top: 5px;
+  padding: 6px 8px;
+}
 .leave-actions {
   display: flex;
   gap: 6px;

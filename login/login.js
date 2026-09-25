@@ -48,10 +48,81 @@ form.addEventListener("submit", async function (e) {
   }
 });
 
+const recovery = document.getElementById("passwordRecovery");
+const recoveryForm = document.getElementById("recoveryForm");
+const recoveryEmail = document.getElementById("recoveryEmail");
+const recoveryPassword = document.getElementById("recoveryPassword");
+const recoveryEmailField = document.getElementById("recoveryEmailField");
+const newPasswordField = document.getElementById("newPasswordField");
+const recoverySubmit = document.getElementById("recoverySubmit");
+const recoveryTitle = document.getElementById("recoveryTitle");
+const recoveryCopy = document.getElementById("recoveryCopy");
+
+function setRecoveryVisible(visible) {
+  recovery.hidden = !visible;
+  form.hidden = visible;
+  if (!visible) recovery.reset();
+}
+
+function showRecoveryUpdate() {
+  recoveryTitle.textContent = "Choose a new password";
+  recoveryCopy.textContent = "Set a new password for your AttendIQ account.";
+  recoveryEmailField.hidden = true;
+  newPasswordField.hidden = false;
+  recoverySubmit.textContent = "Update password";
+  setRecoveryVisible(true);
+  recoveryPassword.focus();
+}
+
+// Supabase sends the recovery link back with a recovery session in the URL hash.
+if (window.location.hash.includes("type=recovery")) showRecoveryUpdate();
+window.addEventListener("hashchange", function () {
+  if (window.location.hash.includes("type=recovery")) showRecoveryUpdate();
+});
+
+document.getElementById("forgotPassword").addEventListener("click", function (event) {
+  event.preventDefault();
+  recoveryEmail.value = emailInput.value.trim();
+  recoveryTitle.textContent = "Reset your password";
+  recoveryCopy.textContent = "Enter your account email and we will send a recovery link.";
+  recoveryEmailField.hidden = false;
+  newPasswordField.hidden = true;
+  recoverySubmit.textContent = "Send recovery link";
+  setRecoveryVisible(true);
+  recoveryEmail.focus();
+});
+
+document.getElementById("recoveryCancel").addEventListener("click", function () {
+  setRecoveryVisible(false);
+  emailInput.focus();
+});
+
+recoveryForm.addEventListener("submit", async function (event) {
+  event.preventDefault();
+  recoverySubmit.disabled = true;
+  try {
+    if (newPasswordField.hidden) {
+      const result = await AttendIQSupabase.requestPasswordReset(recoveryEmail.value.trim());
+      if (!result.ok) return showError(result.error || "The recovery email could not be sent.");
+      message.textContent = "If that account exists, a password recovery link has been sent.";
+      message.className = "message success";
+      return;
+    }
+    const result = await AttendIQSupabase.updatePassword(recoveryPassword.value);
+    if (!result.ok) return showError(result.error || "The password could not be updated.");
+    message.textContent = "Password updated. You can sign in with the new password.";
+    message.className = "message success";
+    setRecoveryVisible(false);
+  } catch (error) {
+    showError(error.message || "Password recovery failed. Please try again.");
+  } finally {
+    recoverySubmit.disabled = false;
+  }
+});
+
 togglePassword.addEventListener("click", function () {
   // Switch between masked and visible password text.
   const isPasswordHidden = passwordInput.type === "password";
-
   passwordInput.type = isPasswordHidden ? "text" : "password";
   togglePassword.textContent = isPasswordHidden ? "Hide" : "Show";
 });

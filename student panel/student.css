@@ -632,6 +632,50 @@ textarea {
   margin-top: 10px;
   padding-top: 10px;
 }
+.notification-pop p small {
+  color: var(--muted);
+  display: block;
+  font-size: 10px;
+  margin-top: 3px;
+}
+.request-list {
+  display: grid;
+  gap: 10px;
+}
+.request-row {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding-top: 12px;
+}
+.request-row p {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 4px;
+}
+.request-row small {
+  color: var(--muted);
+  display: block;
+  font-size: 10px;
+  margin-top: 3px;
+}
+.request-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 7px;
+}
+.request-actions button,
+.request-row button[data-leave-document],
+.request-row button[data-cancel-leave] {
+  background: #eeedff;
+  border: 0;
+  border-radius: 6px;
+  color: var(--indigo);
+  font-size: 10px;
+  padding: 7px 9px;
+}
 .toast {
   background: #1a1b2e;
   border-radius: 7px;

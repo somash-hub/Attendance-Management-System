@@ -4,11 +4,21 @@
 // browser never sees powerful credentials.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const allowedOrigins = (Deno.env.get("ALLOWED_ORIGINS") || "http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+function corsHeaders(req: Request) {
+  const origin = req.headers.get("Origin");
+  const allowedOrigin = origin && allowedOrigins.includes(origin) ? origin : null;
+  return {
+    ...(allowedOrigin ? { "Access-Control-Allow-Origin": allowedOrigin } : {}),
+    "Access-Control-Allow-Headers": "authorization, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    Vary: "Origin",
+  };
+}
 
 type CreateUserInput = {
   name?: string;
@@ -25,16 +35,16 @@ type CreateUserInput = {
   designation?: string;
 };
 
-function json(body: unknown, status = 200) {
+function json(req: Request, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders(req) });
   }
 
   // Identify the caller by their access token.
@@ -47,7 +57,7 @@ Deno.serve(async (req) => {
   const {
     data: { user },
   } = await callerClient.auth.getUser();
-  if (!user) return json({ error: "Not signed in." }, 401);
+  if (!user) return json(req, { error: "Not signed in." }, 401);
 
   // Only administrators may create accounts.
   const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -57,14 +67,14 @@ Deno.serve(async (req) => {
     .eq("id", user.id)
     .single();
   if (!caller || caller.role !== "admin") {
-    return json({ error: "Only administrators can create accounts." }, 403);
+    return json(req, { error: "Only administrators can create accounts." }, 403);
   }
 
   let input: CreateUserInput;
   try {
     input = await req.json();
   } catch {
-    return json({ error: "Send a JSON body." }, 400);
+    return json(req, { error: "Send a JSON body." }, 400);
   }
 
   const name = String(input.name ?? "").trim();
@@ -83,21 +93,21 @@ Deno.serve(async (req) => {
   const designation = String(input.designation ?? "").trim();
 
   // Mirror of the validation rules used by the client side form.
-  if (!name) return json({ error: "Enter the user's full name." }, 400);
+  if (!name) return json(req, { error: "Enter the user's full name." }, 400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return json({ error: "Enter a valid email address." }, 400);
+    return json(req, { error: "Enter a valid email address." }, 400);
   }
   if (!["student", "teacher", "admin"].includes(role)) {
-    return json({ error: "Choose a valid role." }, 400);
+    return json(req, { error: "Choose a valid role." }, 400);
   }
   if (role === "student" && !email.endsWith("@kct.edu.np")) {
-    return json({ error: "Student accounts must use an @kct.edu.np email." }, 400);
+    return json(req, { error: "Student accounts must use an @kct.edu.np email." }, 400);
   }
   if (role === "student" && (!roll || !batch)) {
-    return json({ error: "Enter the student's roll number and batch." }, 400);
+    return json(req, { error: "Enter the student's roll number and batch." }, 400);
   }
   if (role === "teacher" && !facultyId) {
-    return json({ error: "Enter the faculty ID." }, 400);
+    return json(req, { error: "Enter the faculty ID." }, 400);
   }
   if (
     password.length < 8 ||
@@ -107,6 +117,7 @@ Deno.serve(async (req) => {
     !/[^A-Za-z0-9]/.test(password)
   ) {
     return json(
+      req,
       { error: "Password must include uppercase, lowercase, number, and symbol." },
       400,
     );
@@ -126,9 +137,9 @@ Deno.serve(async (req) => {
       .limit(1);
     if (currentSectionId) sectionQuery = sectionQuery.eq("id", currentSectionId);
     const { data: sections, error: sectionError } = await sectionQuery;
-    if (sectionError) return json({ error: sectionError.message }, 400);
+    if (sectionError) return json(req, { error: sectionError.message }, 400);
     if (!sections || !sections.length) {
-      return json({ error: "No current section matches this program, batch, and section." }, 400);
+      return json(req, { error: "No current section matches this program, batch, and section." }, 400);
     }
     currentSectionId = sections[0].id;
   }
@@ -137,7 +148,7 @@ Deno.serve(async (req) => {
   const { data: created, error: createError } = await admin.auth.admin.createUser(
     { email, password, email_confirm: true, user_metadata: { name } },
   );
-  if (createError) return json({ error: createError.message }, 400);
+  if (createError) return json(req, { error: createError.message }, 400);
 
   // Store the app-specific details next to the auth account.
   const { error: profileError } = await admin
@@ -146,7 +157,7 @@ Deno.serve(async (req) => {
   if (profileError) {
     // Keep auth and profiles consistent if the second step fails.
     await admin.auth.admin.deleteUser(created.user.id);
-    return json({ error: profileError.message }, 400);
+    return json(req, { error: profileError.message }, 400);
   }
 
   // Create the role-specific directory row and audit event in the same
@@ -168,7 +179,7 @@ Deno.serve(async (req) => {
       .single();
     if (studentError) {
       await admin.auth.admin.deleteUser(created.user.id);
-      return json({ error: studentError.message }, 400);
+      return json(req, { error: studentError.message }, 400);
     }
     const { error: enrollmentError } = await admin.from("enrollments").insert({
       student_id: student.id,
@@ -178,7 +189,7 @@ Deno.serve(async (req) => {
     if (enrollmentError) {
       await admin.from("students").delete().eq("profile_id", created.user.id);
       await admin.auth.admin.deleteUser(created.user.id);
-      return json({ error: enrollmentError.message }, 400);
+      return json(req, { error: enrollmentError.message }, 400);
     }
   } else if (role === "teacher") {
     const { error: facultyError } = await admin.from("faculty").insert({
@@ -193,7 +204,7 @@ Deno.serve(async (req) => {
     });
     if (facultyError) {
       await admin.auth.admin.deleteUser(created.user.id);
-      return json({ error: facultyError.message }, 400);
+      return json(req, { error: facultyError.message }, 400);
     }
   }
 
@@ -211,8 +222,8 @@ Deno.serve(async (req) => {
       await admin.from("faculty").delete().eq("profile_id", created.user.id);
     }
     await admin.auth.admin.deleteUser(created.user.id);
-    return json({ error: "The account could not be created because its audit record failed." }, 500);
+    return json(req, { error: "The account could not be created because its audit record failed." }, 500);
   }
 
-  return json({ user: { id: created.user.id, name, email, role } });
+  return json(req, { user: { id: created.user.id, name, email, role } });
 });

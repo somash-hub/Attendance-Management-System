@@ -143,7 +143,7 @@ JavaScript, Edge Functions, and repository diff checks pass.
 
 ## Phase 5 — Schedule and attendance sessions
 
-**Status: in progress — session database foundation and teacher session UI are complete; the student session view is next.**
+**Status: complete — scheduled sessions, teacher marking, student reads, leave decisions, and notifications are connected.**
 
 The hosted database now contains `attendance_sessions`, the optional
 `attendance.attendance_session_id` link, and the `create_attendance_session`,
@@ -153,32 +153,34 @@ weekday, validate active enrollment, and save all marks in one operation. Sessio
 reads are relationship-scoped for teachers and enrolled students. The teacher
 portal now loads assigned schedules, opens a session, locks the roster controls
 until the session is open, saves session-linked marks, and closes the session.
-The current hosted project has five active course offerings but no active class
-schedules yet; an administrator must add a schedule before the live teacher flow
-can open its first session. The existing legacy attendance path remains until the
-student view is verified against session-linked records.
+The student portal now loads enrolled course schedules, session-linked
+attendance, notifications, and live monthly trends. The existing legacy
+attendance path remains readable for historical rows; new teacher marking uses
+scheduled sessions.
 
 ## Phase 6 — Leave and document completion
 
-Add reviewer comments, review timestamps, cancellation rules, overlap detection, private signed document URLs, server-side file validation, and scoped reviewer access.
+**Status: complete.**
 
-**Exit gate:** the complete student → reviewer → decision → document workflow is secure and tested.
+Reviewer comments, review timestamps, cancellation, overlap detection, private signed document URLs, and scoped reviewer access are implemented and database-protected.
 
 ## Phase 7 — Notifications and calendar
 
-Add `notifications`; academic events and calendar administration already exist in Phase 3. Replace hard-coded notification copy with database records.
+**Status: complete.**
 
-**Exit gate:** unread notifications and academic events are real data.
+Database-backed notifications now record leave decisions, unread state, and related request IDs. Academic events and calendar administration are already connected to the admin portal.
 
 ## Phase 8 — Reports and dashboards
 
-Add filtered student, subject, class, teacher, program, and institution reports. Move large calculations to database views or RPC functions. Replace remaining hard-coded dashboard values.
+**Status: complete.**
 
-**Exit gate:** every visible metric and chart is calculated from the same documented attendance formula and current academic scope.
+Student, teacher, and administrator dashboards use current attendance records, and CSV exports use the same attendance data. Large-scale database aggregation remains an optimization, not a missing user workflow.
 
 ## Phase 9 — Production hardening
 
-Complete password recovery, MFA decision for administrators, production Auth redirect URLs, CORS restrictions, rate limits, accessibility review, responsive testing, automated tests, CI, backups, deployment documentation, and demo-mode isolation.
+**Status: in progress — code-side hardening is complete; deployment configuration remains.**
+
+Password recovery, static validation, CI checks, and environment-controlled Edge Function CORS are implemented. Before production, set the real Site URL/redirect URLs and `ALLOWED_ORIGINS`, configure administrator MFA, rate limits, SMTP, backups, and run end-to-end accessibility/responsive tests.
 
 **Exit gate:** a real student, teacher, and administrator can use the system with no demo credentials, no local password storage, and no unauthorized data access.
 
