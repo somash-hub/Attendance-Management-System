@@ -469,6 +469,7 @@ h2 {
 }
 .selectors {
   display: flex;
+  flex-wrap: wrap;
   gap: 13px;
   margin-bottom: 17px;
 }
@@ -484,6 +485,42 @@ h2 {
   border-radius: 7px;
   font-size: 11px;
   padding: 8px;
+}
+.session-bar {
+  align-items: center;
+  background: #eef0ff;
+  border: 1px solid #d9d8ff;
+  border-radius: 7px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+}
+.session-status {
+  color: var(--muted);
+  font-size: 11px;
+}
+.session-status.open {
+  color: #047857;
+  font-weight: 600;
+}
+.session-status.closed {
+  color: var(--red);
+  font-weight: 600;
+}
+.session-actions {
+  display: flex;
+  gap: 7px;
+}
+.session-actions .button[hidden],
+.session-bar button[hidden] {
+  display: none;
+}
+.save-button:disabled,
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 .attendance-summary {
   align-items: center;

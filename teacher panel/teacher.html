@@ -148,6 +148,10 @@
             </div>
             <div class="selectors">
               <label
+                >Scheduled class<select id="markSchedule" required>
+                  <option value="">Select a schedule</option>
+                </select></label
+              ><label
                 >Date (AD)<input
                   id="markDate"
                   type="date"
@@ -159,11 +163,17 @@
                   value="Ashadh 26, 2082"
                   placeholder="e.g. Ashadh 26, 2082" /></label
               ><label
-                >Subject<select id="markSubject">
-                  <option value="CSC419">CSC419 · Advanced Java Programming</option>
-                  <option value="CSC420">CSC420 · Data Warehousing and Data Mining</option>
+                >Subject<select id="markSubject" disabled>
+                  <option value="">Select a subject</option>
                 </select></label
               >
+            </div>
+            <div class="session-bar" id="sessionBar">
+              <span id="sessionStatus">No attendance session open.</span>
+              <div class="session-actions">
+                <button class="button outline" id="openSession" type="button">Open session</button>
+                <button class="button outline" id="closeSession" type="button" hidden>Close session</button>
+              </div>
             </div>
             <div class="attendance-summary">
               <span><b id="presentCount">6</b> Present</span

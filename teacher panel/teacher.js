@@ -77,6 +77,8 @@ let leaves = [
 let attendance = Object.fromEntries(students.map((s) => [s[1], s[3]]));
 let markingStudents = students.map((s) => ({ id: s[1], name: s[0], roll: s[1] }));
 let studentDirectory = {};
+let classSchedules = [];
+let currentSession = null;
 let attendanceReady = false;
 
 // Shared DOM helpers.
@@ -101,11 +103,13 @@ function status(s) {
 function renderAttendance() {
   $("#attendanceRows").innerHTML = markingStudents
     .map(
-      (student) =>
-        `<div class="attendance-row"><div class="student"><span class="student-avatar">${h(student.name
+      (student) => {
+        const locked = window.AttendIQDb && !(currentSession && currentSession.status === "open");
+        return `<div class="attendance-row"><div class="student"><span class="student-avatar">${h(student.name
           .split(" ")
           .map((part) => part[0])
-          .join(""))}</span><strong>${h(student.name)}<small>${h(student.roll)}</small></strong></div><div class="attendance-options"><button class="${attendance[student.id] === "present" ? "chosen present" : ""}" data-student="${h(student.id)}" data-status="present">Present</button><button class="${attendance[student.id] === "absent" ? "chosen absent" : ""}" data-student="${h(student.id)}" data-status="absent">Absent</button><button class="${attendance[student.id] === "late" ? "chosen late" : ""}" data-student="${h(student.id)}" data-status="late">Late</button></div></div>`,
+          .join(""))}</span><strong>${h(student.name)}<small>${h(student.roll)}</small></strong></div><div class="attendance-options"><button${locked ? " disabled" : ""} class="${attendance[student.id] === "present" ? "chosen present" : ""}" data-student="${h(student.id)}" data-status="present">Present</button><button${locked ? " disabled" : ""} class="${attendance[student.id] === "absent" ? "chosen absent" : ""}" data-student="${h(student.id)}" data-status="absent">Absent</button><button${locked ? " disabled" : ""} class="${attendance[student.id] === "late" ? "chosen late" : ""}" data-student="${h(student.id)}" data-status="late">Late</button></div></div>`;
+      },
     )
     .join("");
   updateCounts();
@@ -140,46 +144,105 @@ function populateSubjectOptions(subjects) {
   });
 }
 
+function scheduleSubject(schedule) {
+  const offering = schedule && schedule.course_offerings;
+  return Array.isArray(offering) ? offering[0] : offering;
+}
+
+function populateScheduleOptions(schedules) {
+  const select = $("#markSchedule");
+  select.replaceChildren();
+  const empty = document.createElement("option");
+  empty.value = "";
+  empty.textContent = schedules.length ? "Select a schedule" : "No schedules assigned";
+  select.appendChild(empty);
+  schedules.forEach((schedule) => {
+    const offering = scheduleSubject(schedule);
+    const subject = offering && (Array.isArray(offering.subjects) ? offering.subjects[0] : offering.subjects);
+    const section = offering && (Array.isArray(offering.sections) ? offering.sections[0] : offering.sections);
+    const option = document.createElement("option");
+    option.value = schedule.id;
+    option.dataset.offeringId = schedule.course_offering_id;
+    option.dataset.subjectCode = subject && subject.code || "";
+    option.textContent = `${subject && subject.code || "Course"} · ${subject && subject.name || "Scheduled class"} · ${section && section.name || "Section"} · ${schedule.start_time}-${schedule.end_time}`;
+    select.appendChild(option);
+  });
+}
+
+function updateSessionUi() {
+  const open = Boolean(currentSession && currentSession.status === "open");
+  const statusElement = $("#sessionStatus");
+  const openButton = $("#openSession");
+  const closeButton = $("#closeSession");
+  if (currentSession) {
+    statusElement.textContent = `Session ${currentSession.status} · ${currentSession.date_bs || currentSession.date_ad}`;
+    statusElement.className = open ? "session-status open" : "session-status closed";
+  } else {
+    statusElement.textContent = "No attendance session open.";
+    statusElement.className = "session-status";
+  }
+  openButton.hidden = Boolean(currentSession);
+  closeButton.hidden = !open;
+  $("#saveAttendance").disabled = window.AttendIQDb && !open;
+}
+
+function resetSessionState() {
+  currentSession = null;
+  updateSessionUi();
+}
+
 function loadSelectedAttendance() {
   const dateAd = $("#markDate").value;
-  const selectedOption = $("#markSubject").selectedOptions[0];
-  const courseOfferingId = $("#markSubject").value;
-  const subjectCode = selectedOption ? selectedOption.dataset.subjectCode : "";
-  if (!dateAd || !courseOfferingId || !subjectCode) return Promise.resolve();
+  const selectedSchedule = $("#markSchedule").value;
+  if (!dateAd || !selectedSchedule) return Promise.resolve();
+  const schedule = classSchedules.find((item) => item.id === selectedSchedule);
+  const offering = scheduleSubject(schedule);
+  const courseOfferingId = offering && offering.id || schedule.course_offering_id;
+  if (!courseOfferingId) return Promise.resolve();
+  const subjectCode = offering && offering.subject_code || (selectedSchedule && $("#markSchedule").selectedOptions[0] && $("#markSchedule").selectedOptions[0].dataset.subjectCode);
+  if (!subjectCode) return Promise.resolve();
+  $("#markSubject").value = courseOfferingId;
 
-  return AttendIQSupabase.getTeacherAttendance({ date_ad: dateAd, subject_code: subjectCode, course_offering_id: courseOfferingId }).then(function (result) {
-    if (!result.ok) {
-      attendanceReady = false;
-      if (window.AttendIQDb) toast(result.error);
-      return;
-    }
-    const existing = {};
-    result.data.forEach((record) => {
-      existing[record.student_id] = displayStatus(record.status);
+  return AttendIQSupabase.getTeacherAttendanceSessions({ course_offering_id: courseOfferingId, date_ad: dateAd }).then(function (sessionResult) {
+    if (!sessionResult.ok) return toast(sessionResult.error);
+    currentSession = sessionResult.data.find((session) => session.schedule_id === selectedSchedule) || null;
+    updateSessionUi();
+    const attendanceFilter = currentSession
+      ? { attendance_session_id: currentSession.id }
+      : { date_ad: dateAd, subject_code: subjectCode, course_offering_id: courseOfferingId };
+    return AttendIQSupabase.getTeacherAttendance(attendanceFilter).then(function (result) {
+      if (!result.ok) {
+        attendanceReady = false;
+        return toast(result.error);
+      }
+      const existing = {};
+      result.data.forEach((record) => { existing[record.student_id] = displayStatus(record.status); });
+      attendance = Object.fromEntries(markingStudents.map((student) => [student.id, existing[student.id] || "present"]));
+      attendanceReady = true;
+      renderAttendance();
     });
-    attendance = Object.fromEntries(
-      markingStudents.map((student) => [student.id, existing[student.id] || "present"]),
-    );
-    attendanceReady = true;
-    renderAttendance();
   });
 }
 
 function loadTeacherData() {
   if (!window.AttendIQDb) {
     attendanceReady = false;
+    populateScheduleOptions([]);
+    updateSessionUi();
     renderAttendance();
     return Promise.resolve();
   }
   return Promise.all([
     AttendIQSupabase.getTeacherStudents(),
     AttendIQSupabase.getTeacherSubjects(),
+    AttendIQSupabase.getTeacherClassSchedules(),
   ]).then(function (results) {
     const studentsResult = results[0];
     const subjectsResult = results[1];
-    if (!studentsResult.ok || !subjectsResult.ok) {
+    const schedulesResult = results[2];
+    if (!studentsResult.ok || !subjectsResult.ok || !schedulesResult.ok) {
       attendanceReady = false;
-      toast(studentsResult.error || subjectsResult.error || "Attendance data could not be loaded.");
+      toast(studentsResult.error || subjectsResult.error || schedulesResult.error || "Attendance data could not be loaded.");
       return;
     }
     markingStudents = studentsResult.data.map((student) => ({
@@ -190,12 +253,24 @@ function loadTeacherData() {
     studentDirectory = Object.fromEntries(
       studentsResult.data.map((student) => [student.id, { name: student.name, roll: student.roll }]),
     );
-    if (!subjectsResult.data.length) {
+    classSchedules = schedulesResult.data;
+    populateSubjectOptions(subjectsResult.data);
+    populateScheduleOptions(classSchedules);
+    updateSessionUi();
+    if (!classSchedules.length) {
       attendanceReady = false;
-      toast("No subjects are assigned to this teacher account.");
+      resetSessionState();
+      toast("No active class schedules are assigned. Ask an administrator to add one.");
+      renderAttendance();
       return;
     }
-    populateSubjectOptions(subjectsResult.data);
+    if (!subjectsResult.data.length) {
+      attendanceReady = false;
+      resetSessionState();
+      toast("No subjects are assigned to this teacher account.");
+      renderAttendance();
+      return;
+    }
     return loadSelectedAttendance();
   });
 }
@@ -332,7 +407,36 @@ function openTab(tab) {
   $("#sidebar").classList.remove("open");
 }
 
-// Event delegation handles controls generated by the render functions.
+function openAttendanceSession() {
+  if (!window.AttendIQDb) return toast("Supabase is required to open a live attendance session.");
+  const scheduleId = $("#markSchedule").value;
+  const dateAd = $("#markDate").value;
+  const dateBs = $("#markDateBs").value.trim();
+  if (!scheduleId || !dateAd || !dateBs) return toast("Choose a scheduled class, AD date, and BS date.");
+  const result = AttendIQSupabase.createAttendanceSession({ schedule_id: scheduleId, date_ad: dateAd, date_bs: dateBs });
+  $("#openSession").disabled = true;
+  return result.then(function (response) {
+    $("#openSession").disabled = false;
+    if (!response.ok) return toast(response.error);
+    currentSession = response.data;
+    updateSessionUi();
+    toast("Attendance session opened.");
+    return loadSelectedAttendance();
+  });
+}
+
+function closeAttendanceSession() {
+  if (!currentSession || currentSession.status !== "open") return toast("There is no open session to close.");
+  const result = AttendIQSupabase.closeAttendanceSession(currentSession.id);
+  $("#closeSession").disabled = true;
+  return result.then(function (response) {
+    $("#closeSession").disabled = false;
+    if (!response.ok) return toast(response.error);
+    currentSession = response.data;
+    updateSessionUi();
+    toast("Attendance session closed.");
+  });
+}
 $$(".nav-item").forEach((n) =>
   n.addEventListener("click", () => openTab(n.dataset.tab)),
 );
@@ -361,32 +465,33 @@ document.addEventListener("click", (e) => {
     markingStudents.forEach((student) => (attendance[student.id] = "present"));
     renderAttendance();
   });
-  $("#markDate").addEventListener("change", loadSelectedAttendance);
-  $("#markSubject").addEventListener("change", loadSelectedAttendance);
+  $("#markDate").addEventListener("change", function () {
+    currentSession = null;
+    updateSessionUi();
+    loadSelectedAttendance();
+  });
+  $("#markDateBs").addEventListener("change", function () {
+    currentSession = null;
+    updateSessionUi();
+  });
+  $("#markSchedule").addEventListener("change", function () {
+    currentSession = null;
+    updateSessionUi();
+    loadSelectedAttendance();
+  });
+  $("#openSession").addEventListener("click", openAttendanceSession);
+  $("#closeSession").addEventListener("click", closeAttendanceSession);
   $("#saveAttendance").addEventListener("click", async () => {
     if (!window.AttendIQDb) {
       toast("Supabase is not configured; attendance remains in the local demo.");
       return;
     }
-    if (!attendanceReady) return toast("Attendance data is not ready yet.");
-
-    const dateAd = $("#markDate").value;
-    const dateBs = $("#markDateBs").value.trim();
-    const selectedOption = $("#markSubject").selectedOptions[0];
-    const courseOfferingId = $("#markSubject").value;
-    const subjectCode = selectedOption ? selectedOption.dataset.subjectCode : "";
-    if (!dateAd || !dateBs || !courseOfferingId || !subjectCode) return toast("Choose a date, BS date, and subject.");
-
+    if (!currentSession || currentSession.status !== "open") return toast("Open a scheduled attendance session before saving.");
     const records = markingStudents.map((student) => ({
       student_id: student.id,
-      subject_code: subjectCode,
-      course_offering_id: courseOfferingId,
-      date_ad: dateAd,
-      date_bs: dateBs,
-      time: "09:00 AM",
       status: databaseStatus(attendance[student.id]),
     }));
-    const result = await AttendIQSupabase.saveAttendance(records);
+    const result = await AttendIQSupabase.saveAttendanceSession({ session_id: currentSession.id, records: records });
     if (!result.ok) return toast(result.error);
     $("#saved").textContent = "Saved just now";
     $("#saved").classList.add("is-saved");

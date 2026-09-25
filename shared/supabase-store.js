@@ -366,6 +366,7 @@
   }
 
   function applyAttendanceFilters(query, filters) {
+    if (filters.attendance_session_id) query = query.eq("attendance_session_id", filters.attendance_session_id);
     if (filters.student_id) query = query.eq("student_id", filters.student_id);
     if (filters.course_offering_id) query = query.eq("course_offering_id", filters.course_offering_id);
     if (filters.subject_code) query = query.eq("subject_code", filters.subject_code);
@@ -399,6 +400,25 @@
           .eq("status", "active")
           .order("subject_code", { ascending: true });
       }, "Assigned course offerings could not be loaded.");
+    });
+  }
+
+  function getTeacherClassSchedules(filters) {
+    return getTeacherCourseOfferings().then(function (offeringResult) {
+      if (!offeringResult.ok) return offeringResult;
+      var offeringIds = Array.from(new Set(offeringResult.data.map(function (row) { return row.id; }).filter(Boolean)));
+      if (!offeringIds.length) return success([], "supabase");
+      var value = filters || {};
+      return remote(function () {
+        var query = client().from("class_schedules")
+          .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, course_offerings!inner(id, subject_code, section_id, teacher_id, status, subjects!inner(code, name), sections!inner(program, batch, name))")
+          .in("course_offering_id", offeringIds)
+          .eq("status", "active")
+          .order("day_of_week", { ascending: true })
+          .order("start_time", { ascending: true });
+        if (value.course_offering_id) query = query.eq("course_offering_id", value.course_offering_id);
+        return query;
+      }, "Assigned class schedules could not be loaded.");
     });
   }
 
@@ -1129,6 +1149,7 @@
   api.updateFaculty = updateFaculty;
   api.archiveFaculty = archiveFaculty;
   api.getTeacherCourseOfferings = getTeacherCourseOfferings;
+  api.getTeacherClassSchedules = getTeacherClassSchedules;
   api.getTeacherStudents = getTeacherStudents;
   api.getTeacherSubjects = getTeacherSubjects;
   api.getTeacherAttendance = getTeacherAttendance;

@@ -39,6 +39,8 @@ plain HTML, CSS, and JavaScript.
   table (defaults to 80%, the TU requirement, and can be adjusted in Settings)
 - Teacher attendance marking backed by students, subjects, course offerings,
   and attendance, including AD/BS dates and database-enforced uniqueness
+- Teacher session-based attendance workflow: assigned schedule selection, open/closed
+  session status, enrolled-roster marking, and session-scoped saves
 - Student dashboard and attendance log computed from the signed-in student's
   own marks, with subject percentages and threshold warnings
 - Leave workflow: student submission with optional private document upload,
@@ -80,9 +82,7 @@ student reads for course offerings, rosters, attendance, and leave requests;
 administrator queries remain institution-wide by design. Phase 5 adds
 `attendance_sessions`, teacher-assignment checks for opening sessions, atomic
 session attendance RPCs, relationship-aware RLS, and adapter methods for
-teacher/student session reads. The next slice connects the teacher attendance
-form to open a session, save enrolled-roster marks, and close the session; the
-student portal will then read session-linked attendance.
+teacher/student session reads. The teacher portal now connects the schedule → open session → mark roster → save → close flow; the student portal will then read session-linked attendance. The current hosted database has five assigned course offerings but no active class schedules yet, so an administrator must add a schedule before a teacher can open a live session.
 
 The frontend calls the backend through `shared/supabase-store.js`; a configured
 client never silently falls back to localStorage after a request error. The
