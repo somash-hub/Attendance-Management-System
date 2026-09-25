@@ -342,6 +342,7 @@
       return {
         student_id: record.student_id,
         subject_code: record.subject_code,
+        course_offering_id: record.course_offering_id || null,
         date_ad: record.date_ad,
         date_bs: record.date_bs,
         time: record.time,
@@ -353,6 +354,7 @@
 
   function applyAttendanceFilters(query, filters) {
     if (filters.student_id) query = query.eq("student_id", filters.student_id);
+    if (filters.course_offering_id) query = query.eq("course_offering_id", filters.course_offering_id);
     if (filters.subject_code) query = query.eq("subject_code", filters.subject_code);
     if (filters.date_ad) query = query.eq("date_ad", filters.date_ad);
     if (filters.from_date) query = query.gte("date_ad", filters.from_date);
@@ -360,15 +362,140 @@
     return query;
   }
 
-  function getStudents() {
-    if (!client()) return Promise.resolve(unsupportedLocal("Student records"));
-    return remote(function () {
-      return client().from("students")
-        .select("id, profile_id, roll, name, email, program, batch, section, active, archived_at, enrollments!inner(id, section_id, status)")
-        .eq("active", true)
-        .eq("enrollments.status", "active")
-        .order("roll", { ascending: true });
-    }, "Students could not be loaded.");
+  function subjectFromOffering(offering) {
+    var subject = offering.subjects;
+    if (Array.isArray(subject)) subject = subject[0];
+    return {
+      course_offering_id: offering.id,
+      section_id: offering.section_id,
+      code: offering.subject_code || (subject && subject.code) || "",
+      name: (subject && subject.name) || "",
+      semester: (subject && subject.semester) || null,
+      program: (subject && subject.program) || "",
+    };
+  }
+
+  function getTeacherCourseOfferings() {
+    if (!client()) return Promise.resolve(unsupportedLocal("Teacher course offerings"));
+    return currentProfile().then(function (profileResult) {
+      if (!profileResult.ok) return profileResult;
+      return remote(function () {
+        return client().from("course_offerings")
+          .select("id, subject_code, section_id, teacher_id, status, subjects!inner(code, name, semester, program)")
+          .eq("teacher_id", profileResult.data.user.id)
+          .eq("status", "active")
+          .order("subject_code", { ascending: true });
+      }, "Assigned course offerings could not be loaded.");
+    });
+  }
+
+  function getTeacherStudents() {
+    return getTeacherCourseOfferings().then(function (offeringResult) {
+      if (!offeringResult.ok) return offeringResult;
+      var sectionIds = Array.from(new Set(offeringResult.data.map(function (row) {
+        return row.section_id;
+      }).filter(Boolean)));
+      if (!sectionIds.length) return success([], "supabase");
+      return remote(function () {
+        return client().from("students")
+          .select("id, profile_id, roll, name, email, program, batch, section, active, enrollments!inner(id, section_id, status)")
+          .eq("active", true)
+          .in("enrollments.section_id", sectionIds)
+          .eq("enrollments.status", "active")
+          .order("roll", { ascending: true });
+      }, "Assigned students could not be loaded.");
+    });
+  }
+
+  function getTeacherSubjects() {
+    return getTeacherCourseOfferings().then(function (result) {
+      if (!result.ok) return result;
+      var seen = {};
+      var subjects = [];
+      result.data.forEach(function (offering) {
+        var subject = subjectFromOffering(offering);
+        if (subject.course_offering_id && !seen[subject.course_offering_id]) {
+          seen[subject.course_offering_id] = true;
+          subjects.push(subject);
+        }
+      });
+      return success(subjects, "supabase");
+    });
+  }
+
+  function getMyStudentProfile() {
+    if (!client()) return Promise.resolve(unsupportedLocal("Student profile"));
+    return currentProfile().then(function (profileResult) {
+      if (!profileResult.ok) return profileResult;
+      return remote(function () {
+        return client().from("students")
+          .select("id, profile_id, roll, name, email, program, batch, section, active, enrollments!inner(id, section_id, status)")
+          .eq("profile_id", profileResult.data.user.id)
+          .eq("active", true)
+          .eq("enrollments.status", "active")
+          .limit(1)
+          .single();
+      }, "Your student profile could not be loaded.");
+    });
+  }
+
+  function getMySubjects() {
+    return getMyStudentProfile().then(function (profileResult) {
+      if (!profileResult.ok) return profileResult;
+      var sectionIds = Array.from(new Set((profileResult.data.enrollments || []).map(function (row) {
+        return row.section_id;
+      }).filter(Boolean)));
+      if (!sectionIds.length) return success([], "supabase");
+      return remote(function () {
+        return client().from("course_offerings")
+          .select("id, subject_code, section_id, subjects!inner(code, name, semester, program)")
+          .in("section_id", sectionIds)
+          .eq("status", "active")
+          .order("subject_code", { ascending: true });
+      }, "Your subjects could not be loaded.");
+    }).then(function (result) {
+      if (!result.ok) return result;
+      var seen = {};
+      var subjects = [];
+      result.data.forEach(function (offering) {
+        var subject = subjectFromOffering(offering);
+        if (subject.course_offering_id && !seen[subject.course_offering_id]) {
+          seen[subject.course_offering_id] = true;
+          subjects.push(subject);
+        }
+      });
+      return success(subjects, result.source);
+    });
+  }
+
+  function getMyAttendance(filters) {
+    return getMyStudentProfile().then(function (profileResult) {
+      if (!profileResult.ok) return profileResult;
+      var value = filters || {};
+      return remote(function () {
+        var query = client().from("attendance")
+          .select("id, student_id, subject_code, course_offering_id, date_ad, date_bs, time, status, marked_by, created_at")
+          .eq("student_id", profileResult.data.id)
+          .order("date_ad", { ascending: false })
+          .order("time", { ascending: true });
+        return applyAttendanceFilters(query, value);
+      }, "Your attendance could not be loaded.");
+    });
+  }
+
+  function getMyLeaves(filters) {
+    return getMyStudentProfile().then(function (profileResult) {
+      if (!profileResult.ok) return profileResult;
+      var value = filters || {};
+      return remote(function () {
+        var query = client().from("leaves")
+          .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, reviewed_by, created_at")
+          .eq("student_id", profileResult.data.id)
+          .order("created_at", { ascending: false });
+        if (value.status) query = query.eq("status", value.status);
+        return query;
+      }, "Your leave requests could not be loaded.");
+    });
   }
 
   function getSections() {
@@ -411,6 +538,44 @@
     }, "The student could not be archived.");
   }
 
+  function getTeacherAttendance(filters) {
+    return getTeacherCourseOfferings().then(function (offeringResult) {
+      if (!offeringResult.ok) return offeringResult;
+      var offeringIds = Array.from(new Set(offeringResult.data.map(function (row) {
+        return row.id;
+      }).filter(Boolean)));
+      if (!offeringIds.length) return success([], "supabase");
+      var value = filters || {};
+      return remote(function () {
+        var query = client().from("attendance")
+          .select("id, student_id, subject_code, course_offering_id, date_ad, date_bs, time, status, marked_by, created_at")
+          .in("course_offering_id", offeringIds)
+          .order("date_ad", { ascending: false })
+          .order("time", { ascending: true });
+        return applyAttendanceFilters(query, value);
+      }, "Assigned attendance could not be loaded.");
+    });
+  }
+
+  function getTeacherLeaves(filters) {
+    return getTeacherCourseOfferings().then(function (offeringResult) {
+      if (!offeringResult.ok) return offeringResult;
+      var sectionIds = Array.from(new Set(offeringResult.data.map(function (row) {
+        return row.section_id;
+      }).filter(Boolean)));
+      if (!sectionIds.length) return success([], "supabase");
+      var value = filters || {};
+      return remote(function () {
+        var query = client().from("leaves")
+          .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, reviewed_by, created_at")
+          .in("section_id", sectionIds)
+          .order("created_at", { ascending: false });
+        if (value.status) query = query.eq("status", value.status);
+        return query;
+      }, "Assigned leave requests could not be loaded.");
+    });
+  }
+
   function getSubjects(filters) {
     if (!client()) return Promise.resolve(unsupportedLocal("Subject records"));
     var value = filters || {};
@@ -429,7 +594,7 @@
     var value = filters || {};
     return remote(function () {
       var query = client().from("attendance")
-        .select("id, student_id, subject_code, date_ad, date_bs, time, status, marked_by, created_at")
+        .select("id, student_id, subject_code, course_offering_id, date_ad, date_bs, time, status, marked_by, created_at")
         .order("date_ad", { ascending: false })
         .order("time", { ascending: true });
       return applyAttendanceFilters(query, value);
@@ -455,7 +620,7 @@
       return remote(function () {
         return client().from("attendance")
           .upsert(rows, { onConflict: "student_id,subject_code,date_ad,time" })
-          .select("id, student_id, subject_code, date_ad, date_bs, time, status, marked_by, created_at");
+          .select("id, student_id, subject_code, course_offering_id, date_ad, date_bs, time, status, marked_by, created_at");
       }, "Attendance could not be saved.");
     });
   }
@@ -465,7 +630,7 @@
     var value = filters || {};
     return remote(function () {
       var query = client().from("leaves")
-        .select("id, student_id, type, from_date, to_date, reason, status, document_url, reviewed_by, created_at")
+        .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, reviewed_by, created_at")
         .order("created_at", { ascending: false });
       if (value.student_id) query = query.eq("student_id", value.student_id);
       if (value.status) query = query.eq("status", value.status);
@@ -490,11 +655,18 @@
       if (!profileResult.ok) return profileResult;
       var userId = profileResult.data.user.id;
       return remote(function () {
-        return client().from("students").select("id").eq("profile_id", userId).single();
+        return client().from("students")
+          .select("id, enrollments!inner(section_id, status)")
+          .eq("profile_id", userId)
+          .eq("active", true)
+          .eq("enrollments.status", "active")
+          .limit(1)
+          .single();
       }, "Your student record could not be found.").then(function (studentResult) {
         if (!studentResult.ok) return studentResult;
         var row = {
           student_id: studentResult.data.id,
+          section_id: studentResult.data.enrollments[0].section_id,
           type: type,
           from_date: value.from_date,
           to_date: value.to_date,
@@ -557,6 +729,15 @@
   api.assignRole = assignRole;
   api.removeUser = removeUser;
   api.getStudents = getStudents;
+  api.getTeacherCourseOfferings = getTeacherCourseOfferings;
+  api.getTeacherStudents = getTeacherStudents;
+  api.getTeacherSubjects = getTeacherSubjects;
+  api.getTeacherAttendance = getTeacherAttendance;
+  api.getTeacherLeaves = getTeacherLeaves;
+  api.getMyStudentProfile = getMyStudentProfile;
+  api.getMySubjects = getMySubjects;
+  api.getMyAttendance = getMyAttendance;
+  api.getMyLeaves = getMyLeaves;
   api.getSections = getSections;
   api.updateStudent = updateStudent;
   api.archiveStudent = archiveStudent;

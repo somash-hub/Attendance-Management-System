@@ -59,6 +59,8 @@ It creates:
 - Administrator student CRUD RPCs support editing and archiving students while
   preserving attendance and leave history; new student logins receive a current
   enrollment through the `admin-create-user` Edge Function
+- Phase 4 adapter methods scope teacher and student reads to assigned course
+  offerings, sections, enrollments, attendance, and leave requests
 - The private `leave-documents` storage bucket; students can upload and read
   their own documents, while assigned staff can review related documents
 - Demo seeds: 5 subjects (CSC419–CSC425), the 2079 batch roster, Aryan's

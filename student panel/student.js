@@ -197,8 +197,8 @@ function loadStudentDashboard() {
     return Promise.resolve();
   }
   return Promise.all([
-    AttendIQSupabase.getStudents(),
-    AttendIQSupabase.getSubjects(),
+    AttendIQSupabase.getMyStudentProfile(),
+    AttendIQSupabase.getMySubjects(),
   ]).then(function (results) {
     var studentsResult = results[0];
     var subjectsResult = results[1];
@@ -206,14 +206,12 @@ function loadStudentDashboard() {
       toast(studentsResult.error || subjectsResult.error || "Attendance data could not be loaded.");
       return;
     }
-    var student = studentsResult.data.find(function (row) {
-      return row.profile_id === session.id;
-    });
+    var student = studentsResult.data;
     if (!student) {
       toast("Your student record is not linked to this login.");
       return;
     }
-    return AttendIQSupabase.getAttendance({ student_id: student.id }).then(function (attendanceResult) {
+    return AttendIQSupabase.getMyAttendance().then(function (attendanceResult) {
       if (!attendanceResult.ok) {
         toast(attendanceResult.error);
         return;

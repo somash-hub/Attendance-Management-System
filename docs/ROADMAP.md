@@ -110,9 +110,24 @@ Each slice must include database migration, RLS, JavaScript adapter method, HTML
 
 ## Phase 4 — Scoped teacher and student queries
 
-Replace broad `getStudents()`, `getSubjects()`, `getAttendance()`, and `getLeaves()` calls with relationship-scoped operations. Teachers must not receive the whole institution roster.
+**Status: complete**
 
-**Exit gate:** the role/resource access matrix passes for every protected resource.
+The broad portal calls have been replaced with explicit role-scoped adapter
+operations in `shared/supabase-store.js`:
+
+- Teacher: `getTeacherCourseOfferings`, `getTeacherStudents`,
+  `getTeacherSubjects`, `getTeacherAttendance`, and `getTeacherLeaves`
+- Student: `getMyStudentProfile`, `getMySubjects`, `getMyAttendance`, and
+  `getMyLeaves`
+- Teacher attendance writes now include the selected `course_offering_id`.
+- New leave submissions now include the student's active `section_id`.
+- Administrator methods remain institution-wide by design.
+
+**Exit gate passed:** live role checks confirm the teacher sees assigned
+offerings, section students, related attendance and leave requests; the student
+sees only their own academic relationships and records; the admin retains full
+visibility; and anonymous requests return zero protected rows. The frontend
+JavaScript, Edge Functions, and repository diff checks pass.
 
 ## Phase 5 — Schedule and attendance sessions
 

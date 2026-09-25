@@ -52,6 +52,8 @@ plain HTML, CSS, and JavaScript.
   offerings, with existing demo records linked into the current structure
 - Administrator student CRUD: create a linked student login and enrollment,
   edit student/section details, and archive students while preserving history
+- Relationship-scoped teacher and student queries for offerings, rosters,
+  attendance, and leave requests
 - Supabase browser SDK loading and a public publishable-key guard; the
   service-role key is never included in frontend files
 - Password visibility toggle, client-side validation, and responsive styling
@@ -67,11 +69,13 @@ and `shared/supabase.js` contains only the public publishable key. Phase 2
 backfills the current academic year, Semester 7, BSc CSIT Section A, five
 course offerings, and eight active student enrollments while preserving legacy
 attendance and leave rows. Phase 3 adds administrator student create/edit/
-archive operations with enrollment synchronization. The frontend calls the
-backend through `shared/supabase-store.js`; a configured client never silently
-falls back to localStorage after a request error. The local store is available
-only in explicit demo mode (`?demo=1`). See `supabase/SETUP.md` for the setup
-and security notes.
+archive operations with enrollment synchronization. Phase 4 adds explicit
+relationship-scoped teacher and student reads for course offerings, rosters,
+attendance, and leave requests; administrator queries remain institution-wide
+by design. The frontend calls the backend through `shared/supabase-store.js`; a
+configured client never silently falls back to localStorage after a request
+error. The local store is available only in explicit demo mode (`?demo=1`). See
+`supabase/SETUP.md` for the setup and security notes.
 
 ## Planned Frontend Work
 

@@ -133,7 +133,8 @@ function populateSubjectOptions(subjects) {
   select.replaceChildren();
   subjects.forEach((subject) => {
     const option = document.createElement("option");
-    option.value = subject.code;
+    option.value = subject.course_offering_id;
+    option.dataset.subjectCode = subject.code;
     option.textContent = subject.code + " · " + subject.name;
     select.appendChild(option);
   });
@@ -141,10 +142,12 @@ function populateSubjectOptions(subjects) {
 
 function loadSelectedAttendance() {
   const dateAd = $("#markDate").value;
-  const subjectCode = $("#markSubject").value;
-  if (!dateAd || !subjectCode) return Promise.resolve();
+  const selectedOption = $("#markSubject").selectedOptions[0];
+  const courseOfferingId = $("#markSubject").value;
+  const subjectCode = selectedOption ? selectedOption.dataset.subjectCode : "";
+  if (!dateAd || !courseOfferingId || !subjectCode) return Promise.resolve();
 
-  return AttendIQSupabase.getAttendance({ date_ad: dateAd, subject_code: subjectCode }).then(function (result) {
+  return AttendIQSupabase.getTeacherAttendance({ date_ad: dateAd, subject_code: subjectCode, course_offering_id: courseOfferingId }).then(function (result) {
     if (!result.ok) {
       attendanceReady = false;
       if (window.AttendIQDb) toast(result.error);
@@ -169,8 +172,8 @@ function loadTeacherData() {
     return Promise.resolve();
   }
   return Promise.all([
-    AttendIQSupabase.getStudents(),
-    AttendIQSupabase.getSubjects({ teacher_id: session.id }),
+    AttendIQSupabase.getTeacherStudents(),
+    AttendIQSupabase.getTeacherSubjects(),
   ]).then(function (results) {
     const studentsResult = results[0];
     const subjectsResult = results[1];
@@ -212,7 +215,7 @@ function loadTeacherReports() {
     renderReports();
     return Promise.resolve();
   }
-  return AttendIQSupabase.getAttendance().then(function (result) {
+  return AttendIQSupabase.getTeacherAttendance().then(function (result) {
     if (!result.ok) {
       toast(result.error);
       return;
@@ -267,7 +270,7 @@ function loadTeacherLeaves() {
     renderLeaves();
     return Promise.resolve();
   }
-  return AttendIQSupabase.getLeaves().then(function (result) {
+  return AttendIQSupabase.getTeacherLeaves().then(function (result) {
     if (!result.ok) {
       toast(result.error);
       return;
@@ -369,12 +372,15 @@ document.addEventListener("click", (e) => {
 
     const dateAd = $("#markDate").value;
     const dateBs = $("#markDateBs").value.trim();
-    const subjectCode = $("#markSubject").value;
-    if (!dateAd || !dateBs || !subjectCode) return toast("Choose a date, BS date, and subject.");
+    const selectedOption = $("#markSubject").selectedOptions[0];
+    const courseOfferingId = $("#markSubject").value;
+    const subjectCode = selectedOption ? selectedOption.dataset.subjectCode : "";
+    if (!dateAd || !dateBs || !courseOfferingId || !subjectCode) return toast("Choose a date, BS date, and subject.");
 
     const records = markingStudents.map((student) => ({
       student_id: student.id,
       subject_code: subjectCode,
+      course_offering_id: courseOfferingId,
       date_ad: dateAd,
       date_bs: dateBs,
       time: "09:00 AM",
