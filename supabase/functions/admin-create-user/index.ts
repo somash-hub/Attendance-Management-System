@@ -17,10 +17,12 @@ type CreateUserInput = {
   role?: string;
   roll?: string;
   program?: string;
+  department?: string;
   batch?: string;
   section?: string;
   section_id?: string;
   faculty_id?: string;
+  designation?: string;
 };
 
 function json(body: unknown, status = 200) {
@@ -73,10 +75,12 @@ Deno.serve(async (req) => {
   const role = String(input.role ?? "");
   const roll = String(input.roll ?? "").trim();
   const program = String(input.program ?? "BSc CSIT").trim() || "BSc CSIT";
+  const department = String(input.department ?? program).trim() || program;
   const batch = String(input.batch ?? "").trim();
   const section = String(input.section ?? "A").trim() || "A";
   const sectionId = String(input.section_id ?? "").trim();
   const facultyId = String(input.faculty_id ?? "").trim();
+  const designation = String(input.designation ?? "").trim();
 
   // Mirror of the validation rules used by the client side form.
   if (!name) return json({ error: "Enter the user's full name." }, 400);
@@ -182,9 +186,10 @@ Deno.serve(async (req) => {
       faculty_id: facultyId,
       name,
       email,
-      department: program,
+      department: department,
       program,
       status: "active",
+      designation: designation || null,
     });
     if (facultyError) {
       await admin.auth.admin.deleteUser(created.user.id);

@@ -59,6 +59,9 @@ It creates:
 - Administrator student CRUD RPCs support editing and archiving students while
   preserving attendance and leave history; new student logins receive a current
   enrollment through the `admin-create-user` Edge Function
+- Administrator faculty CRUD is available through the admin portal; faculty
+  account metadata is synchronized by `admin-update-faculty`, and archiving
+  preserves the faculty record while removing the linked login
 - Phase 4 adapter methods scope teacher and student reads to assigned course
   offerings, sections, enrollments, attendance, and leave requests
 - The private `leave-documents` storage bucket; students can upload and read
@@ -68,9 +71,9 @@ It creates:
 
 ## 3. Deploy the edge functions
 
-These three functions are the only privileged operations (creating and
- deleting accounts and validating leave-document uploads). The service role
- key stays inside Supabase.
+These four functions are the privileged operations (creating/updating/deleting
+ accounts and validating leave-document uploads). The service role key stays
+inside Supabase.
 
 Dashboard → **Edge Functions** → **Deploy a new function** → paste the content
 of each file:
@@ -78,6 +81,7 @@ of each file:
 | Function            | File                                        |
 | ------------------- | ------------------------------------------- |
 | `admin-create-user` | `supabase/functions/admin-create-user/index.ts` |
+| `admin-update-faculty` | `supabase/functions/admin-update-faculty/index.ts` |
 | `admin-delete-user` | `supabase/functions/admin-delete-user/index.ts` |
 | `upload-leave-document` | `supabase/functions/upload-leave-document/index.ts` |
 
@@ -85,6 +89,7 @@ Or with the CLI:
 
 ```bash
 npx supabase functions deploy admin-create-user --project-ref yvvgvteijtxnuwtncfio
+npx supabase functions deploy admin-update-faculty --project-ref yvvgvteijtxnuwtncfio
 npx supabase functions deploy admin-delete-user --project-ref yvvgvteijtxnuwtncfio
 npx supabase functions deploy upload-leave-document --project-ref yvvgvteijtxnuwtncfio
 ```
@@ -143,12 +148,11 @@ select count(*) from public.enrollments;   -- 8 active enrollments
 | `sections`            | read                            | read                                 | all   |
 | `settings`            | read                            | read                                 | update |
 | `profiles`            | read own                        | read own                             | all   |
+| `faculty`             | no directory access             | read own record                      | all   |
 
 ## Still to do later (not part of this setup)
 
-- Extra teacher accounts for the faculty directory (currently one teacher
-  account exists; the rest of the directory stays demo data until then).
-- Faculty create/edit/archive and course/subject management remain for the next
-  Phase 3 slices.
+- Subject create/edit/archive, course offering management, and academic
+  structure management remain for the next Phase 3 slices.
 - Remaining demo panels: dashboard charts, class schedule, notifications,
-  faculty/course cards, and monthly trend.
+  course cards, and monthly trend.

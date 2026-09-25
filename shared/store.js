@@ -6,6 +6,7 @@
   "use strict";
 
   var USERS_KEY = "attendiq.users";
+  var FACULTY_KEY = "attendiq.faculty";
   var SESSION_KEY = "attendiq.session";
   var SETTINGS_KEY = "attendiq.settings";
 
@@ -40,6 +41,31 @@
       email: "aryan.k@kct.edu.np",
       password: "Student@2025",
       role: "student",
+    },
+  ];
+
+  var DEMO_FACULTY = [
+    {
+      id: "faculty-demo-1",
+      profile_id: "u-teacher",
+      faculty_id: "FAC001",
+      name: "Dr. Priya Mehta",
+      email: "priya.mehta@kct.edu.np",
+      department: "BSc CSIT",
+      program: "BSc CSIT",
+      designation: "Senior Lecturer",
+      status: "active",
+    },
+    {
+      id: "faculty-demo-2",
+      profile_id: null,
+      faculty_id: "FAC002",
+      name: "Prof. Arjun Sharma",
+      email: "arjun.sharma@kct.edu.np",
+      department: "BSc CSIT",
+      program: "BSc CSIT",
+      designation: "Lecturer",
+      status: "active",
     },
   ];
 
@@ -121,6 +147,66 @@
     return users;
   }
 
+  function getFacultyRecords() {
+    var faculty = read(FACULTY_KEY, null);
+    if (!Array.isArray(faculty)) {
+      faculty = DEMO_FACULTY.map(function (member) {
+        return Object.assign({}, member);
+      });
+      write(FACULTY_KEY, faculty);
+    }
+    return faculty;
+  }
+
+  function getFaculty() {
+    return getFacultyRecords().filter(function (member) {
+      return member.status !== "archived";
+    });
+  }
+
+  function updateFaculty(input) {
+    var value = input || {};
+    var faculty = getFacultyRecords();
+    var member = faculty.find(function (item) { return item.id === value.id; });
+    if (!member) return { ok: false, error: "Faculty record not found." };
+    var updated = {
+      id: member.id,
+      profile_id: member.profile_id || null,
+      faculty_id: String(value.faculty_id || member.faculty_id).trim(),
+      name: String(value.name || member.name).trim(),
+      email: String(value.email || member.email || "").trim().toLowerCase(),
+      department: String(value.department || member.department).trim(),
+      program: String(value.program || member.program).trim(),
+      designation: String(value.designation || member.designation || "").trim(),
+      status: value.status === "on_leave" ? "on_leave" : "active",
+      archived_at: null,
+    };
+    if (!updated.faculty_id || !updated.name || !updated.email || !updated.department || !updated.program) {
+      return { ok: false, error: "Complete every faculty field before saving." };
+    }
+    var duplicate = faculty.some(function (item) {
+      return item.id !== updated.id && item.faculty_id.toLowerCase() === updated.faculty_id.toLowerCase();
+    });
+    if (duplicate) return { ok: false, error: "That faculty ID is already in use." };
+    faculty[faculty.indexOf(member)] = updated;
+    if (!write(FACULTY_KEY, faculty)) {
+      return { ok: false, error: "Browser storage is unavailable, so the faculty record was not updated." };
+    }
+    return { ok: true, faculty: updated };
+  }
+
+  function archiveFaculty(id) {
+    var faculty = getFacultyRecords();
+    var member = faculty.find(function (item) { return item.id === id; });
+    if (!member) return { ok: false, error: "Faculty record not found." };
+    member.status = "archived";
+    member.archived_at = new Date().toISOString();
+    if (!write(FACULTY_KEY, faculty)) {
+      return { ok: false, error: "Browser storage is unavailable, so the faculty record was not archived." };
+    }
+    return { ok: true, faculty: member };
+  }
+
   // Emails are compared case-insensitively across the whole store.
   function normalizeEmail(email) {
     return String(email || "").trim().toLowerCase();
@@ -179,14 +265,47 @@
       password: String(input.password),
       role: input.role,
     };
+    var faculty = null;
+    if (input.role === "teacher") {
+      var facultyRecords = getFacultyRecords();
+      var facultyCode = String(input.faculty_id || "").trim();
+      if (!facultyCode) {
+        return { ok: false, error: "Enter the faculty ID." };
+      }
+      if (facultyRecords.some(function (item) {
+        return item.faculty_id.toLowerCase() === facultyCode.toLowerCase();
+      })) {
+        return { ok: false, error: "That faculty ID is already in use." };
+      }
+      faculty = {
+        id: "faculty-" + user.id,
+        profile_id: user.id,
+        faculty_id: facultyCode,
+        name: user.name,
+        email: user.email,
+        department: String(input.department || input.program || "BSc CSIT").trim(),
+        program: String(input.program || "BSc CSIT").trim(),
+        designation: String(input.designation || "").trim(),
+        status: "active",
+        archived_at: null,
+      };
+      facultyRecords.push(faculty);
+      if (!write(FACULTY_KEY, facultyRecords)) {
+        return { ok: false, error: "Browser storage is unavailable, so the faculty record was not saved." };
+      }
+    }
     users.push(user);
-
-    if (!write(USERS_KEY, users))
+    if (!write(USERS_KEY, users)) {
+      if (faculty) {
+        var rollback = getFacultyRecords().filter(function (item) { return item.id !== faculty.id; });
+        write(FACULTY_KEY, rollback);
+      }
       return {
         ok: false,
         error: "Browser storage is unavailable, so the account was not saved.",
       };
-    return { ok: true, user: user };
+    }
+    return { ok: true, user: user, faculty: faculty };
   }
 
   // Assigning a role also keeps an open session in sync when the edited
@@ -308,6 +427,9 @@
     getSettings: getSettings,
     saveSettings: saveSettings,
     getUsers: getUsers,
+    getFaculty: getFaculty,
+    updateFaculty: updateFaculty,
+    archiveFaculty: archiveFaculty,
     findUserByEmail: findUserByEmail,
     validateUser: validateUser,
     addUser: addUser,

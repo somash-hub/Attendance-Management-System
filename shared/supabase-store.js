@@ -278,10 +278,12 @@
       role: String(value.role || ""),
       roll: String(value.roll || "").trim(),
       program: String(value.program || "BSc CSIT").trim(),
+      department: String(value.department || value.program || "BSc CSIT").trim(),
       batch: String(value.batch || "").trim(),
       section: String(value.section || "A").trim(),
       section_id: String(value.section_id || "").trim(),
       faculty_id: String(value.faculty_id || "").trim(),
+      designation: String(value.designation || "").trim(),
     }, "The account could not be created.");
   }
 
@@ -324,6 +326,17 @@
         .select("id, name, email, role, created_at")
         .order("name", { ascending: true });
     }, "Users could not be loaded.");
+  }
+
+  function getStudents() {
+    if (!client()) return Promise.resolve(unsupportedLocal("Student records"));
+    return remote(function () {
+      return client().from("students")
+        .select("id, profile_id, roll, name, email, program, batch, section, active, archived_at, enrollments!inner(id, section_id, status)")
+        .eq("active", true)
+        .eq("enrollments.status", "active")
+        .order("roll", { ascending: true });
+    }, "Students could not be loaded.");
   }
 
   function normalizeAttendance(records) {
@@ -496,6 +509,61 @@
         return query;
       }, "Your leave requests could not be loaded.");
     });
+  }
+
+  function getFaculty() {
+    if (!client()) {
+      return local(function (store) { return store.getFaculty(); }, "Faculty could not be loaded.");
+    }
+    return remote(function () {
+      return client().from("faculty")
+        .select("id, profile_id, faculty_id, name, email, department, program, designation, status, archived_at, created_at")
+        .neq("status", "archived")
+        .order("name", { ascending: true });
+    }, "Faculty could not be loaded.");
+  }
+
+  function updateFaculty(input) {
+    var value = input || {};
+    var required = [value.id, value.faculty_id, value.name, value.email, value.department, value.program, value.status];
+    if (required.some(function (item) { return !String(item || "").trim(); })) {
+      return Promise.resolve(failure("Complete every faculty field before saving.", client() ? "supabase" : "local"));
+    }
+    if (!client()) {
+      return local(function (store) {
+        var result = store.updateFaculty(value);
+        return result.ok ? result.faculty : result;
+      }, "The faculty record could not be updated.");
+    }
+    return invokeFunction("admin-update-faculty", {
+      id: String(value.id).trim(),
+      faculty_id: String(value.faculty_id).trim(),
+      name: String(value.name).trim(),
+      email: cleanEmail(value.email),
+      department: String(value.department).trim(),
+      program: String(value.program).trim(),
+      designation: String(value.designation || "").trim(),
+      status: String(value.status).trim(),
+    }, "The faculty record could not be updated.");
+  }
+
+  function archiveFaculty(facultyId, profileId) {
+    if (!facultyId) return Promise.resolve(failure("Faculty record is required.", client() ? "supabase" : "local"));
+    if (!client()) {
+      return local(function (store) {
+        var result = store.archiveFaculty(facultyId);
+        if (!result.ok) return result;
+        if (profileId) {
+          var removed = store.removeUser(profileId);
+          if (!removed.ok) return removed;
+        }
+        return result.faculty;
+      }, "The faculty record could not be archived.");
+    }
+    if (profileId) return removeUser(profileId);
+    return remote(function () {
+      return client().rpc("admin_archive_faculty", { p_faculty_id: String(facultyId) }).single();
+    }, "The faculty record could not be archived.");
   }
 
   function getSections() {
@@ -729,6 +797,9 @@
   api.assignRole = assignRole;
   api.removeUser = removeUser;
   api.getStudents = getStudents;
+  api.getFaculty = getFaculty;
+  api.updateFaculty = updateFaculty;
+  api.archiveFaculty = archiveFaculty;
   api.getTeacherCourseOfferings = getTeacherCourseOfferings;
   api.getTeacherStudents = getTeacherStudents;
   api.getTeacherSubjects = getTeacherSubjects;

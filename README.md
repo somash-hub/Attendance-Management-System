@@ -62,30 +62,31 @@ plain HTML, CSS, and JavaScript.
 ## Supabase status
 
 The hosted project `yvvgvteijtxnuwtncfio` is connected. The initial migration,
-Phase 1 security migration, Phase 2 academic data-model migration, and Phase 3
-student CRUD migration are applied. The `admin-create-user`,
-`admin-delete-user`, and `upload-leave-document` Edge Functions are deployed,
-and `shared/supabase.js` contains only the public publishable key. Phase 2
-backfills the current academic year, Semester 7, BSc CSIT Section A, five
-course offerings, and eight active student enrollments while preserving legacy
-attendance and leave rows. Phase 3 adds administrator student create/edit/
-archive operations with enrollment synchronization. Phase 4 adds explicit
-relationship-scoped teacher and student reads for course offerings, rosters,
-attendance, and leave requests; administrator queries remain institution-wide
-by design. The frontend calls the backend through `shared/supabase-store.js`; a
-configured client never silently falls back to localStorage after a request
-error. The local store is available only in explicit demo mode (`?demo=1`). See
-`supabase/SETUP.md` for the setup and security notes.
+Phase 1 security migration, Phase 2 academic data-model migration, Phase 3
+student CRUD migration, and Phase 3 faculty CRUD migration are applied. The
+`admin-create-user`, `admin-update-faculty`, `admin-delete-user`, and
+`upload-leave-document` Edge Functions are deployed, and `shared/supabase.js`
+contains only the public publishable key. Phase 2 backfills the current academic
+year, Semester 7, BSc CSIT Section A, five course offerings, and eight active
+student enrollments while preserving legacy attendance and leave rows. Phase 3
+adds administrator student and faculty create/edit/archive operations, including
+linked account creation, faculty metadata updates, and enrollment synchronization.
+Phase 4 adds explicit relationship-scoped teacher and student reads for course
+offerings, rosters, attendance, and leave requests; administrator queries remain
+institution-wide by design. The frontend calls the backend through
+`shared/supabase-store.js`; a configured client never silently falls back to
+localStorage after a request error. The local store is available only in explicit
+demo mode (`?demo=1`). See `supabase/SETUP.md` for the setup and security notes.
 
 ## Planned Frontend Work
 
 The Supabase data layer and the main attendance, leave, account, settings, and
 report flows are connected. Remaining iterations are:
 
-1. Replace the remaining demo panels with database queries: faculty and course
-   cards, class schedule, notifications, monthly trend, and the administrator
-   dashboard charts and metrics.
-2. Add administrator forms for faculty, subjects, course offerings, and
+1. Replace the remaining demo panels with database queries: class schedule,
+   notifications, monthly trend, and the administrator dashboard charts and
+   metrics.
+2. Add administrator forms for subjects, course offerings, and
    academic structure so the remaining directory and catalog data can be
    managed instead of seeded with SQL.
 3. Add leave-document viewing for reviewers and richer empty/loading states.
@@ -127,6 +128,7 @@ report flows are connected. Remaining iterations are:
 │   ├── SETUP.md
 │   ├── functions/
 │   │   ├── admin-create-user/index.ts
+│   │   ├── admin-update-faculty/index.ts
 │   │   ├── admin-delete-user/index.ts
 │   │   └── upload-leave-document/index.ts
 │   └── migrations/
@@ -134,7 +136,8 @@ report flows are connected. Remaining iterations are:
 │       ├── 20260924000200_phase1_security_integrity.sql
 │       ├── 20260924000300_phase2_academic_data_model.sql
 │       ├── 20260924000400_phase3_student_crud.sql
-│       └── 20260924000500_phase3_student_crud_lint_fix.sql
+│       ├── 20260924000500_phase3_student_crud_lint_fix.sql
+│       └── 20260924000600_phase3_faculty_crud.sql
 └── .vscode/
     ├── mcp.json
     └── settings.json
@@ -151,10 +154,12 @@ installation.
 3. Sign in with a hosted Supabase account. To use the local demo explicitly,
    open `login/login.html?demo=1`; demo credentials are hidden otherwise.
 4. The account role decides which portal opens.
-4. Administrators can open **Settings → User Accounts** to create new users
+5. Administrators can open **Settings → User Accounts** to create new users
    and assign roles. New accounts can sign in immediately.
-5. Opening a portal while signed out redirects back to the login page.
-6. The pages use the hosted Supabase client in `shared/supabase.js`. The
+6. Administrators can open **Faculty Management** to create, edit, or archive
+   faculty records and linked teacher accounts.
+7. Opening a portal while signed out redirects back to the login page.
+8. The pages use the hosted Supabase client in `shared/supabase.js`. The
    localStorage store is used only in explicit demo mode (`?demo=1`).
 
 ### Demo Accounts
@@ -171,9 +176,9 @@ explicit `?demo=1` sessions; the hosted accounts and all attendance data are the
 source of truth in normal operation. Do not use these demo passwords for real
 users.
 
-The administrator portal now loads students, attendance percentages, leave
-requests, users, and settings from Supabase. Dashboard metrics, program charts,
-faculty and course cards, and the academic calendar still use demo data.
+The administrator portal now loads students, faculty, attendance percentages,
+leave requests, users, and settings from Supabase. Dashboard metrics, program
+charts, course cards, and the academic calendar still use demo data.
 
 The student portal now loads the signed-in student's attendance dashboard,
 attendance log, subject percentages, threshold warning, leave submission, and

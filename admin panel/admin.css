@@ -953,6 +953,9 @@ td small {
   .student-form {
     grid-template-columns: 1fr;
   }
+  .faculty-form {
+    grid-template-columns: 1fr;
+  }
   .setting-row {
     align-items: flex-start;
   }

@@ -292,6 +292,26 @@
                   ＋ Add faculty
                 </button>
               </div>
+              <div class="faculty-editor" id="facultyEditor" hidden>
+                <div class="card-heading">
+                  <div>
+                    <h2 id="facultyFormTitle">Add faculty</h2>
+                    <p id="facultyFormCopy">Create a linked teacher login and faculty record.</p>
+                  </div>
+                </div>
+                <form id="facultyForm" class="date-grid faculty-form">
+                  <input id="facultyId" type="hidden" />
+                  <label>Full name<input id="facultyName" type="text" required /></label>
+                  <label>Email<input id="facultyEmail" type="email" required /></label>
+                  <label>Faculty ID<input id="facultyCode" type="text" required /></label>
+                  <label>Department<input id="facultyDepartment" type="text" value="BSc CSIT" required /></label>
+                  <label>Program<input id="facultyProgram" type="text" value="BSc CSIT" required /></label>
+                  <label>Designation<input id="facultyDesignation" type="text" placeholder="e.g. Assistant Professor" /></label>
+                  <label>Status<select id="facultyStatus" required><option value="active">Active</option><option value="on_leave">On leave</option></select></label>
+                  <label id="facultyPasswordField">Login password<input id="facultyPassword" type="password" required /><small>At least 8 characters with uppercase, lowercase, number, and symbol.</small></label>
+                  <div class="faculty-form-actions"><button class="button button-primary" id="facultySave" type="submit">Create faculty</button><button class="button button-secondary" id="facultyCancel" type="button">Cancel</button></div>
+                </form>
+              </div>
               <div class="table-wrap">
                 <table>
                   <thead>
@@ -299,9 +319,10 @@
                       <th>Faculty member</th>
                       <th>Faculty ID</th>
                       <th>Department</th>
-                      <th>Subject</th>
-                      <th>Classes</th>
+                      <th>Designation</th>
+                      <th>Program</th>
                       <th>Status</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody id="facultyRows"></tbody>

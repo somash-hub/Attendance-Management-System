@@ -90,15 +90,22 @@ checks confirm the expected visibility boundaries.
 
 ## Phase 3 — Administrator CRUD, one vertical slice at a time
 
-**Status: in progress — student slice complete**
+**Status: in progress — student and faculty slices complete**
 
-The first vertical slice is complete in `supabase/migrations/20260924000400_phase3_student_crud.sql`
-with a lint follow-up in `20260924000500_phase3_student_crud_lint_fix.sql`:
+The completed vertical slices are:
+
+- `20260924000400_phase3_student_crud.sql` with lint follow-up
+  `20260924000500_phase3_student_crud_lint_fix.sql`
+- `20260924000600_phase3_faculty_crud.sql`
 
 1. **Student create/edit/archive — complete.** The admin portal can create a
    linked student login, student record, and current enrollment; edit directory
    details and current section; and archive a student without deleting history.
-2. Faculty create/edit/archive — next.
+2. **Faculty create/edit/archive — complete.** The admin portal creates linked
+   teacher accounts and faculty records, edits directory metadata and Auth email,
+   and archives faculty while preserving the faculty record and history. The
+   privileged `admin-update-faculty` function keeps Auth, profiles, and faculty
+   records synchronized.
 3. Subject create/edit/archive.
 4. Course offering creation and teacher assignment.
 5. Student enrollment management beyond the create/edit flow.

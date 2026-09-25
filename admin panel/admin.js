@@ -69,41 +69,7 @@ let students = [
   },
 ];
 
-const faculty = [
-  [
-    "Dr. Priya Mehta",
-    "FAC001",
-    "BSc CSIT",
-    "Advanced Java Programming",
-    "6",
-    "Active",
-  ],
-  [
-    "Prof. Arjun Sharma",
-    "FAC002",
-    "BSc CSIT",
-    "Data Warehousing and Data Mining",
-    "5",
-    "Active",
-  ],
-  [
-    "Dr. Sunita Rao",
-    "FAC003",
-    "BSc CSIT",
-    "Principles of Management",
-    "4",
-    "Active",
-  ],
-  ["Prof. Rahul Gupta", "FAC004", "BSc CSIT", "Project Work", "6", "Active"],
-  [
-    "Dr. Neha Verma",
-    "FAC005",
-    "BSc CSIT",
-    "Software Project Management",
-    "3",
-    "On leave",
-  ],
-];
+let faculty = [];
 
 const courses = [
   ["CSC419", "Advanced Java Programming", "Dr. Priya Mehta", 42, 90],
@@ -188,9 +154,8 @@ function renderStudents(query = "") {
 
 function renderFaculty() {
   $("#facultyRows").innerHTML = faculty
-    .map(
-      (member) =>
-        `<tr><td><strong>${h(member[0])}</strong><small>${h(member[1].toLowerCase())}@kct.edu.np</small></td><td class="mono">${h(member[1])}</td><td>${h(member[2])}</td><td>${h(member[3])}</td><td>${h(member[4])}</td><td>${statusBadge(member[5])}</td></tr>`,
+    .map((member) =>
+      `<tr><td><strong>${h(member.name)}</strong><small>${h(member.email || "")}</small></td><td class="mono">${h(member.faculty_id)}</td><td>${h(member.department)}</td><td>${h(member.designation || "—")}</td><td>${h(member.program)}</td><td>${statusBadge(member.status === "on_leave" ? "On leave" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-faculty="${h(member.id)}">Edit</button><button type="button" data-archive-faculty="${h(member.id)}">Archive</button></div></td></tr>`,
     )
     .join("");
 }
@@ -317,6 +282,18 @@ function loadAdminStudents() {
   });
 }
 
+// Load the real faculty directory from Supabase.
+function loadAdminFaculty() {
+  return AttendIQSupabase.getFaculty().then(function (result) {
+    if (!result.ok) {
+      showToast(result.error);
+      return;
+    }
+    faculty = result.data;
+    renderFaculty();
+  });
+}
+
 function showToast(message) {
   const toast = $("#toast");
   toast.textContent = message;
@@ -401,6 +378,7 @@ $("#userForm").addEventListener("submit", async (event) => {
   event.target.reset();
   await loadUsers();
   if (created.role === "student") await loadAdminStudents();
+  if (created.role === "teacher") await loadAdminFaculty();
   showToast(`${created.name} added as ${ROLE_LABELS[created.role]}.`);
 });
 
@@ -455,7 +433,59 @@ $("#studentForm").addEventListener("submit", async (event) => {
   showToast(studentId ? "Student details updated." : "Student account and enrollment created.");
 });
 
-$("#studentCancel").addEventListener("click", closeStudentEditor);
+// Faculty create/edit/archive controls use the linked account and faculty record.
+function openFacultyEditor(member) {
+  const editor = $("#facultyEditor");
+  const form = $("#facultyForm");
+  form.reset();
+  $("#facultyId").value = member ? member.id : "";
+  $("#facultyFormTitle").textContent = member ? "Edit faculty" : "Add faculty";
+  $("#facultyFormCopy").textContent = member
+    ? "Update faculty directory information and account status."
+    : "Create a linked teacher login and faculty record.";
+  $("#facultyPasswordField").hidden = Boolean(member);
+  $("#facultyPassword").required = !member;
+  $("#facultySave").textContent = member ? "Save changes" : "Create faculty";
+  if (member) {
+    $("#facultyName").value = member.name;
+    $("#facultyEmail").value = member.email || "";
+    $("#facultyCode").value = member.faculty_id;
+    $("#facultyDepartment").value = member.department;
+    $("#facultyProgram").value = member.program;
+    $("#facultyDesignation").value = member.designation || "";
+    $("#facultyStatus").value = member.status === "on_leave" ? "on_leave" : "active";
+  }
+  editor.hidden = false;
+  $("#facultyName").focus();
+}
+
+function closeFacultyEditor() {
+  $("#facultyEditor").hidden = true;
+  $("#facultyForm").reset();
+}
+
+$("#facultyForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const facultyId = $("#facultyId").value.trim();
+  const formData = {
+    name: $("#facultyName").value,
+    email: $("#facultyEmail").value,
+    faculty_id: $("#facultyCode").value,
+    department: $("#facultyDepartment").value,
+    program: $("#facultyProgram").value,
+    designation: $("#facultyDesignation").value,
+    status: $("#facultyStatus").value,
+  };
+  const result = facultyId
+    ? await AttendIQSupabase.updateFaculty({ id: facultyId, ...formData })
+    : await AttendIQSupabase.createUser({ ...formData, role: "teacher", password: $("#facultyPassword").value, faculty_id: formData.faculty_id, department: formData.department });
+  if (!result.ok) return showToast(result.error);
+  closeFacultyEditor();
+  await Promise.all([loadAdminFaculty(), loadUsers()]);
+  showToast(facultyId ? "Faculty record updated." : "Faculty account created.");
+});
+
+$("#facultyCancel").addEventListener("click", closeFacultyEditor);
 
 document.addEventListener("change", async (event) => {
   const select = event.target.closest("[data-user-id]");
@@ -545,7 +575,10 @@ document.addEventListener("click", async (event) => {
       openTab("students");
       openStudentEditor();
     }
-    if (target === "faculty") openTab("faculty");
+    if (target === "faculty") {
+      openTab("faculty");
+      openFacultyEditor();
+    }
     if (target === "course") openTab("courses");
     if (target === "report") {
       if (!students.length) return showToast("There is no student attendance data to export.");
@@ -570,6 +603,22 @@ document.addEventListener("click", async (event) => {
   if (editButton) {
     const student = students.find((item) => item.id === editButton.dataset.editStudent);
     if (student) openStudentEditor(student);
+    return;
+  }
+  const editFacultyButton = event.target.closest("[data-edit-faculty]");
+  if (editFacultyButton) {
+    const member = faculty.find((item) => item.id === editFacultyButton.dataset.editFaculty);
+    if (member) openFacultyEditor(member);
+    return;
+  }
+  const archiveFacultyButton = event.target.closest("[data-archive-faculty]");
+  if (archiveFacultyButton) {
+    const member = faculty.find((item) => item.id === archiveFacultyButton.dataset.archiveFaculty);
+    if (!member || !window.confirm(`Archive ${member.name}? The linked login will be removed; the faculty record and historical data will be preserved.`)) return;
+    const result = await AttendIQSupabase.archiveFaculty(member.id, member.profile_id);
+    if (!result.ok) return showToast(result.error);
+    await Promise.all([loadAdminFaculty(), loadUsers()]);
+    showToast(`${member.name} archived.`);
     return;
   }
   const archiveButton = event.target.closest("[data-archive-student]");
@@ -636,6 +685,6 @@ $("#signOut").addEventListener("click", async (event) => {
   renderLeaves();
   renderLeaves("#dashboardRequests", true);
   renderThreshold();
-  return Promise.all([loadUsers(), loadAdminLeaves(), loadAdminStudents()]);
+  return Promise.all([loadUsers(), loadAdminFaculty(), loadAdminLeaves(), loadAdminStudents()]);
   });
 }
