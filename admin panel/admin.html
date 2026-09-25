@@ -342,6 +342,9 @@
                 <button class="button button-primary" type="button" data-action="course">
                   ＋ Add course
                 </button>
+                <button class="button button-secondary" type="button" data-action="offering">
+                  Assign teacher
+                </button>
               </div>
               <div class="student-editor" id="subjectEditor" hidden>
                 <div class="card-heading">
@@ -366,6 +369,29 @@
                 <table>
                   <thead><tr><th>Subject</th><th>Program</th><th>Semester</th><th>Credits</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody id="subjectRows"></tbody>
+                </table>
+              </div>
+              <div class="student-editor" id="offeringEditor" hidden>
+                <div class="card-heading">
+                  <div>
+                    <h2 id="offeringFormTitle">Assign course offering</h2>
+                    <p id="offeringFormCopy">Connect a subject to a section and assign its teacher.</p>
+                  </div>
+                </div>
+                <form id="offeringForm" class="date-grid student-form">
+                  <input id="offeringId" type="hidden" />
+                  <label>Subject<select id="offeringSubject" required></select></label>
+                  <label>Semester<select id="offeringSemester" required></select></label>
+                  <label>Section<select id="offeringSection" required></select></label>
+                  <label>Teacher<select id="offeringTeacher" required></select></label>
+                  <label>Status<select id="offeringStatus" required><option value="active">Active</option><option value="archived">Archived</option></select></label>
+                  <div class="student-form-actions"><button class="button button-primary" id="offeringSave" type="submit">Create offering</button><button class="button button-secondary" id="offeringCancel" type="button">Cancel</button></div>
+                </form>
+              </div>
+              <div class="table-wrap offering-table">
+                <table>
+                  <thead><tr><th>Subject</th><th>Section</th><th>Teacher</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="offeringRows"></tbody>
                 </table>
               </div>
             </div>

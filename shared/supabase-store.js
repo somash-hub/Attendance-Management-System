@@ -566,8 +566,18 @@
     }, "The faculty record could not be archived.");
   }
 
+  function getSemesters() {
+    if (!client()) return local(function (store) { return store.getSemesters(); }, "Semesters could not be loaded.");
+    return remote(function () {
+      return client().from("semesters")
+        .select("id, academic_year_id, name, number, start_date, end_date, is_current")
+        .eq("is_current", true)
+        .order("number", { ascending: false });
+    }, "Semesters could not be loaded.");
+  }
+
   function getSections() {
-    if (!client()) return Promise.resolve(unsupportedLocal("Academic sections"));
+    if (!client()) return local(function (store) { return store.getSections(); }, "Academic sections could not be loaded.");
     return remote(function () {
       return client().from("sections")
         .select("id, academic_year_id, semester_id, program, batch, name, is_current")
@@ -576,6 +586,52 @@
         .order("batch", { ascending: true })
         .order("name", { ascending: true });
     }, "Academic sections could not be loaded.");
+  }
+
+  function getCourseOfferings(filters) {
+    if (!client()) return local(function (store) { return store.getOfferings(filters && filters.include_archived); }, "Course offerings could not be loaded.");
+    var value = filters || {};
+    return remote(function () {
+      var query = client().from("course_offerings")
+        .select("id, subject_code, semester_id, section_id, teacher_id, status, created_at, updated_at, subjects!inner(code, name, semester, program, credits, course_type, active), sections!inner(program, batch, name, is_current), semesters!inner(name, number, is_current)")
+        .order("subject_code", { ascending: true });
+      if (!value.include_archived) query = query.eq("status", "active");
+      if (value.semester_id) query = query.eq("semester_id", value.semester_id);
+      if (value.section_id) query = query.eq("section_id", value.section_id);
+      return query;
+    }, "Course offerings could not be loaded.");
+  }
+
+  function createCourseOffering(input) {
+    var value = input || {};
+    if (!client()) return local(function (store) { return store.createOffering(value); }, "The course offering could not be created.");
+    return remote(function () {
+      return client().rpc("admin_create_course_offering", {
+        p_subject_code: String(value.subject_code || "").trim(),
+        p_semester_id: String(value.semester_id || "").trim(),
+        p_section_id: String(value.section_id || "").trim(),
+        p_teacher_id: String(value.teacher_id || "").trim(),
+      }).single();
+    }, "The course offering could not be created.");
+  }
+
+  function updateCourseOffering(input) {
+    var value = input || {};
+    if (!client()) return local(function (store) { return store.updateOffering(value); }, "The course offering could not be updated.");
+    return remote(function () {
+      return client().rpc("admin_update_course_offering", {
+        p_offering_id: String(value.id || "").trim(),
+        p_teacher_id: value.teacher_id ? String(value.teacher_id).trim() : null,
+        p_status: value.status === "archived" ? "archived" : "active",
+      }).single();
+    }, "The course offering could not be updated.");
+  }
+
+  function archiveCourseOffering(id) {
+    if (!client()) return local(function (store) { return store.archiveOffering(id); }, "The course offering could not be archived.");
+    return remote(function () {
+      return client().rpc("admin_archive_course_offering", { p_offering_id: String(id || "").trim() }).single();
+    }, "The course offering could not be archived.");
   }
 
   function updateStudent(input) {
@@ -856,6 +912,11 @@
   api.getMyAttendance = getMyAttendance;
   api.getMyLeaves = getMyLeaves;
   api.getSections = getSections;
+  api.getSemesters = getSemesters;
+  api.getCourseOfferings = getCourseOfferings;
+  api.createCourseOffering = createCourseOffering;
+  api.updateCourseOffering = updateCourseOffering;
+  api.archiveCourseOffering = archiveCourseOffering;
   api.updateStudent = updateStudent;
   api.archiveStudent = archiveStudent;
   api.getSubjects = getSubjects;

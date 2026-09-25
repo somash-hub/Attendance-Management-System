@@ -74,6 +74,8 @@ let faculty = [];
 // Subject rows are loaded from Supabase in normal mode and from the explicit
 // demo store when the portal is opened with ?demo=1.
 let courses = [];
+let offerings = [];
+let currentSemesters = [];
 
 // Local fallback rows; replaced by Supabase leave rows after initialization.
 let leaves = [
@@ -173,14 +175,57 @@ function renderCourses() {
 }
 
 function loadAdminCourses() {
-  return AttendIQSupabase.getSubjects({ include_archived: true }).then(function (result) {
-    if (!result.ok) {
-      showToast(result.error);
+  return Promise.all([
+    AttendIQSupabase.getSubjects({ include_archived: true }),
+    AttendIQSupabase.getCourseOfferings({ include_archived: true }),
+    AttendIQSupabase.getSemesters(),
+    AttendIQSupabase.getSections(),
+  ]).then(function (results) {
+    const subjectsResult = results[0];
+    const offeringsResult = results[1];
+    const semestersResult = results[2];
+    const sectionsResult = results[3];
+    if (!subjectsResult.ok || !offeringsResult.ok || !semestersResult.ok || !sectionsResult.ok) {
+      showToast(subjectsResult.error || offeringsResult.error || semestersResult.error || sectionsResult.error);
       return;
     }
-    courses = result.data;
+    courses = subjectsResult.data;
+    offerings = offeringsResult.data;
+    currentSemesters = semestersResult.data;
+    currentSections = sectionsResult.data;
     renderCourses();
+    renderOfferings();
   });
+}
+
+function offeringSubject(offering) {
+  const subject = offering.subjects;
+  return Array.isArray(subject) ? subject[0] : subject;
+}
+
+function offeringSection(offering) {
+  const section = offering.sections;
+  return Array.isArray(section) ? section[0] : section;
+}
+
+function offeringSemester(offering) {
+  const semester = offering.semesters;
+  return Array.isArray(semester) ? semester[0] : semester;
+}
+
+function offeringTeacherName(offering) {
+  const member = faculty.find((item) => item.profile_id === offering.teacher_id);
+  return member ? member.name : "Unassigned";
+}
+
+function renderOfferings() {
+  $("#offeringRows").innerHTML = offerings
+    .map((offering) => {
+      const subject = offeringSubject(offering) || { code: offering.subject_code, name: "" };
+      const section = offeringSection(offering) || { program: "", batch: "", name: "" };
+      return `<tr><td><strong>${h(subject.code || offering.subject_code)}</strong><small>${h(subject.name || "")}</small></td><td>${h(section.program)} · ${h(section.batch)} · ${h(section.name)}</td><td>${h(offeringTeacherName(offering))}</td><td>${statusBadge(offering.status === "archived" ? "Archived" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-offering="${h(offering.id)}">Edit</button>${offering.status !== "archived" ? `<button type="button" data-archive-offering="${h(offering.id)}">Archive</button>` : `<button type="button" data-restore-offering="${h(offering.id)}">Restore</button>`}</div></td></tr>`;
+    })
+    .join("");
 }
 
 // Build leave-request rows with approve, reject, and undo actions.
@@ -257,15 +302,18 @@ function loadAdminStudents() {
     AttendIQSupabase.getStudents(),
     AttendIQSupabase.getAttendance(),
     AttendIQSupabase.getSections(),
+    AttendIQSupabase.getSemesters(),
   ]).then(function (results) {
     const studentsResult = results[0];
     const attendanceResult = results[1];
     const sectionsResult = results[2];
-    if (!studentsResult.ok || !attendanceResult.ok || !sectionsResult.ok) {
-      showToast(studentsResult.error || attendanceResult.error || sectionsResult.error || "Student records could not be loaded.");
+    const semestersResult = results[3];
+    if (!studentsResult.ok || !attendanceResult.ok || !sectionsResult.ok || !semestersResult.ok) {
+      showToast(studentsResult.error || attendanceResult.error || sectionsResult.error || semestersResult.error || "Student records could not be loaded.");
       return;
     }
     currentSections = sectionsResult.data;
+    currentSemesters = semestersResult.data;
     const sectionSelect = $("#studentSection");
     sectionSelect.innerHTML = currentSections
       .map((section) => `<option value="${h(section.id)}">${h(section.program)} · ${h(section.batch)} · ${h(section.name)}</option>`)
@@ -554,7 +602,76 @@ $("#subjectForm").addEventListener("submit", async (event) => {
   showToast(existingCode ? "Subject updated." : "Subject created.");
 });
 
-$("#subjectCancel").addEventListener("click", closeSubjectEditor);
+function populateOfferingSelectors() {
+  const subjectSelect = $("#offeringSubject");
+  const semesterSelect = $("#offeringSemester");
+  const sectionSelect = $("#offeringSection");
+  const teacherSelect = $("#offeringTeacher");
+  const previous = {
+    subject: subjectSelect.value,
+    semester: semesterSelect.value,
+    section: sectionSelect.value,
+    teacher: teacherSelect.value,
+  };
+  subjectSelect.innerHTML = courses.filter((subject) => subject.active !== false)
+    .map((subject) => `<option value="${h(subject.code)}">${h(subject.code)} · ${h(subject.name)}</option>`).join("");
+  semesterSelect.innerHTML = currentSemesters.map((semester) => `<option value="${h(semester.id)}">${h(semester.name)}</option>`).join("");
+  sectionSelect.innerHTML = currentSections.map((section) => `<option value="${h(section.id)}">${h(section.program)} · ${h(section.batch)} · ${h(section.name)}</option>`).join("");
+  teacherSelect.innerHTML = faculty.filter((member) => member.profile_id).map((member) => `<option value="${h(member.profile_id)}">${h(member.name)}</option>`).join("");
+  if (previous.subject) subjectSelect.value = previous.subject;
+  if (previous.semester) semesterSelect.value = previous.semester;
+  if (previous.section) sectionSelect.value = previous.section;
+  if (previous.teacher) teacherSelect.value = previous.teacher;
+}
+
+function openOfferingEditor(offering) {
+  populateOfferingSelectors();
+  const editor = $("#offeringEditor");
+  const form = $("#offeringForm");
+  form.reset();
+  $("#offeringId").value = offering ? offering.id : "";
+  $("#offeringFormTitle").textContent = offering ? "Edit course offering" : "Assign course offering";
+  $("#offeringSave").textContent = offering ? "Save offering" : "Create offering";
+  if (offering) {
+    $("#offeringSubject").value = offering.subject_code;
+    $("#offeringSemester").value = offering.semester_id;
+    $("#offeringSection").value = offering.section_id;
+    $("#offeringTeacher").value = offering.teacher_id || "";
+    $("#offeringStatus").value = offering.status === "archived" ? "archived" : "active";
+    ["offeringSubject", "offeringSemester", "offeringSection"].forEach((id) => { $("#" + id).disabled = true; });
+  } else {
+    ["offeringSubject", "offeringSemester", "offeringSection"].forEach((id) => { $("#" + id).disabled = false; });
+  }
+  editor.hidden = false;
+  $("#offeringTeacher").focus();
+}
+
+function closeOfferingEditor() {
+  $("#offeringEditor").hidden = true;
+  $("#offeringForm").reset();
+  ["offeringSubject", "offeringSemester", "offeringSection"].forEach((id) => { $("#" + id).disabled = false; });
+}
+
+$("#offeringForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const id = $("#offeringId").value.trim();
+  const formData = {
+    subject_code: $("#offeringSubject").value,
+    semester_id: $("#offeringSemester").value,
+    section_id: $("#offeringSection").value,
+    teacher_id: $("#offeringTeacher").value,
+    status: $("#offeringStatus").value,
+  };
+  const result = id
+    ? await AttendIQSupabase.updateCourseOffering({ id, ...formData })
+    : await AttendIQSupabase.createCourseOffering(formData);
+  if (!result.ok) return showToast(result.error);
+  closeOfferingEditor();
+  await loadAdminCourses();
+  showToast(id ? "Course offering updated." : "Course offering created.");
+});
+
+$("#offeringCancel").addEventListener("click", closeOfferingEditor);
 
 document.addEventListener("change", async (event) => {
   const select = event.target.closest("[data-user-id]");
@@ -648,6 +765,10 @@ document.addEventListener("click", async (event) => {
       openTab("faculty");
       openFacultyEditor();
     }
+    if (target === "offering") {
+      openTab("courses");
+      openOfferingEditor();
+    }
     if (target === "course") {
       openTab("courses");
       openSubjectEditor();
@@ -701,6 +822,32 @@ document.addEventListener("click", async (event) => {
     if (!result.ok) return showToast(result.error);
     await loadAdminStudents();
     showToast(`${student.name} archived.`);
+    return;
+  }
+  const editOfferingButton = event.target.closest("[data-edit-offering]");
+  if (editOfferingButton) {
+    const offering = offerings.find((item) => item.id === editOfferingButton.dataset.editOffering);
+    if (offering) openOfferingEditor(offering);
+    return;
+  }
+  const archiveOfferingButton = event.target.closest("[data-archive-offering]");
+  if (archiveOfferingButton) {
+    const offering = offerings.find((item) => item.id === archiveOfferingButton.dataset.archiveOffering);
+    if (!offering || !window.confirm("Archive this course offering? Existing attendance history will be preserved.")) return;
+    const result = await AttendIQSupabase.archiveCourseOffering(offering.id);
+    if (!result.ok) return showToast(result.error);
+    await loadAdminCourses();
+    showToast("Course offering archived.");
+    return;
+  }
+  const restoreOfferingButton = event.target.closest("[data-restore-offering]");
+  if (restoreOfferingButton) {
+    const offering = offerings.find((item) => item.id === restoreOfferingButton.dataset.restoreOffering);
+    if (!offering) return;
+    const result = await AttendIQSupabase.updateCourseOffering({ id: offering.id, teacher_id: offering.teacher_id, status: "active" });
+    if (!result.ok) return showToast(result.error);
+    await loadAdminCourses();
+    showToast("Course offering restored.");
     return;
   }
   const editSubjectButton = event.target.closest("[data-edit-subject]");
@@ -788,6 +935,7 @@ $("#signOut").addEventListener("click", async (event) => {
   renderStudents();
   renderFaculty();
   renderCourses();
+  renderOfferings();
   renderLeaves();
   renderLeaves("#dashboardRequests", true);
   renderThreshold();

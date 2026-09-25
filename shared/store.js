@@ -10,6 +10,8 @@
   var SESSION_KEY = "attendiq.session";
   var SETTINGS_KEY = "attendiq.settings";
   var SUBJECTS_KEY = "attendiq.subjects";
+  var SECTIONS_KEY = "attendiq.sections";
+  var OFFERINGS_KEY = "attendiq.offerings";
 
   // TU requires 80% attendance per subject; administrators can adjust it.
   var DEFAULT_THRESHOLD = 80;
@@ -76,6 +78,22 @@
     { code: "CSC421", name: "Principles of Management", semester: 7, program: "BSc CSIT", credits: 3, course_type: "theory", active: true, archived_at: null },
     { code: "CSC422", name: "Project Work", semester: 7, program: "BSc CSIT", credits: 6, course_type: "project", active: true, archived_at: null },
     { code: "CSC425", name: "Software Project Management", semester: 7, program: "BSc CSIT", credits: 3, course_type: "theory", active: true, archived_at: null },
+  ];
+
+  var DEMO_SEMESTERS = [
+    { id: "sem-7", name: "Semester 7", number: 7, is_current: true },
+  ];
+
+  var DEMO_SECTIONS = [
+    { id: "section-a", academic_year_id: "year-2082", semester_id: "sem-7", program: "BSc CSIT", batch: "2079", name: "A", is_current: true },
+  ];
+
+  var DEMO_OFFERINGS = [
+    { id: "offering-csc419", subject_code: "CSC419", semester_id: "sem-7", section_id: "section-a", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc420", subject_code: "CSC420", semester_id: "sem-7", section_id: "section-a", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc421", subject_code: "CSC421", semester_id: "sem-7", section_id: "section-a", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc422", subject_code: "CSC422", semester_id: "sem-7", section_id: "section-a", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc425", subject_code: "CSC425", semester_id: "sem-7", section_id: "section-a", teacher_id: "u-teacher", status: "active" },
   ];
 
   var ROLE_PANELS = {
@@ -304,6 +322,91 @@
     return { ok: true, subject: subject };
   }
 
+  function getSemesters() {
+    return DEMO_SEMESTERS.map(function (semester) { return Object.assign({}, semester); });
+  }
+
+  function getSections() {
+    var sections = read(SECTIONS_KEY, null);
+    if (!Array.isArray(sections)) {
+      sections = DEMO_SECTIONS.map(function (section) { return Object.assign({}, section); });
+      write(SECTIONS_KEY, sections);
+    }
+    return sections.filter(function (section) { return section.is_current !== false; });
+  }
+
+  function getOfferings(includeArchived) {
+    var offerings = read(OFFERINGS_KEY, null);
+    if (!Array.isArray(offerings)) {
+      offerings = DEMO_OFFERINGS.map(function (offering) { return Object.assign({}, offering); });
+      write(OFFERINGS_KEY, offerings);
+    }
+    return offerings.filter(function (offering) {
+      return includeArchived === true || offering.status !== "archived";
+    });
+  }
+
+  function validateOffering(value) {
+    var offering = value || {};
+    if (!offering.subject_code || !offering.semester_id || !offering.section_id || !offering.teacher_id) {
+      return "Subject, semester, section, and teacher are required.";
+    }
+    if (!getSubjectRecords().some(function (subject) { return subject.code === offering.subject_code && subject.active !== false; })) {
+      return "Choose an active subject.";
+    }
+    if (!getSections().some(function (section) { return section.id === offering.section_id && section.semester_id === offering.semester_id; })) {
+      return "The selected section does not belong to the semester.";
+    }
+    if (!getFaculty().some(function (member) { return member.profile_id === offering.teacher_id; })) {
+      return "Choose an active faculty account.";
+    }
+    return "";
+  }
+
+  function createOffering(value) {
+    var offering = value || {};
+    var error = validateOffering(offering);
+    if (error) return { ok: false, error: error };
+    var offerings = getOfferings(true);
+    if (offerings.some(function (item) { return item.subject_code === offering.subject_code && item.semester_id === offering.semester_id && item.section_id === offering.section_id; })) {
+      return { ok: false, error: "That subject is already assigned to this section." };
+    }
+    var created = {
+      id: "offering-" + Date.now().toString(36),
+      subject_code: offering.subject_code,
+      semester_id: offering.semester_id,
+      section_id: offering.section_id,
+      teacher_id: offering.teacher_id,
+      status: "active",
+    };
+    offerings.push(created);
+    if (!write(OFFERINGS_KEY, offerings)) return { ok: false, error: "Browser storage is unavailable, so the course offering was not saved." };
+    return { ok: true, offering: created };
+  }
+
+  function updateOffering(value) {
+    var offering = value || {};
+    if (!offering.id) return { ok: false, error: "Course offering is required." };
+    var offerings = getOfferings(true);
+    var current = offerings.find(function (item) { return item.id === offering.id; });
+    if (!current) return { ok: false, error: "Course offering not found." };
+    var error = validateOffering({ subject_code: offering.subject_code || current.subject_code, semester_id: offering.semester_id || current.semester_id, section_id: offering.section_id || current.section_id, teacher_id: offering.teacher_id || current.teacher_id });
+    if (error) return { ok: false, error: error };
+    current.teacher_id = offering.teacher_id || current.teacher_id;
+    current.status = offering.status === "archived" ? "archived" : "active";
+    if (!write(OFFERINGS_KEY, offerings)) return { ok: false, error: "Browser storage is unavailable, so the course offering was not updated." };
+    return { ok: true, offering: current };
+  }
+
+  function archiveOffering(id) {
+    var offerings = getOfferings(true);
+    var offering = offerings.find(function (item) { return item.id === id; });
+    if (!offering) return { ok: false, error: "Course offering not found." };
+    offering.status = "archived";
+    if (!write(OFFERINGS_KEY, offerings)) return { ok: false, error: "Browser storage is unavailable, so the course offering was not archived." };
+    return { ok: true, offering: offering };
+  }
+
   function normalizeEmail(email) {
     return String(email || "").trim().toLowerCase();
   }
@@ -530,6 +633,12 @@
     createSubject: createSubject,
     updateSubject: updateSubject,
     archiveSubject: archiveSubject,
+    getSemesters: getSemesters,
+    getSections: getSections,
+    getOfferings: getOfferings,
+    createOffering: createOffering,
+    updateOffering: updateOffering,
+    archiveOffering: archiveOffering,
     findUserByEmail: findUserByEmail,
     validateUser: validateUser,
     addUser: addUser,
