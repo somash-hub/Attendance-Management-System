@@ -645,16 +645,62 @@
   }
 
   function getSubjects(filters) {
-    if (!client()) return Promise.resolve(unsupportedLocal("Subject records"));
+    if (!client()) return local(function (store) { return store.getSubjects(filters && filters.include_archived); }, "Subjects could not be loaded.");
     var value = filters || {};
     return remote(function () {
       var query = client().from("subjects")
-        .select("code, name, semester, program, teacher_id")
+        .select("code, name, semester, program, teacher_id, credits, course_type, active, archived_at, updated_at")
         .order("code", { ascending: true });
       if (value.teacher_id) query = query.eq("teacher_id", value.teacher_id);
       if (value.semester) query = query.eq("semester", value.semester);
+      if (!value.include_archived) query = query.eq("active", true);
       return query;
     }, "Subjects could not be loaded.");
+  }
+
+  function createSubject(input) {
+    var value = input || {};
+    if (!client()) {
+      return local(function (store) { return store.createSubject(value); }, "The subject could not be created.");
+    }
+    return remote(function () {
+      return client().rpc("admin_create_subject", {
+        p_code: String(value.code || "").trim(),
+        p_name: String(value.name || "").trim(),
+        p_semester: Number(value.semester),
+        p_program: String(value.program || "").trim(),
+        p_credits: Number(value.credits),
+        p_course_type: String(value.course_type || "theory").trim().toLowerCase(),
+      }).single();
+    }, "The subject could not be created.");
+  }
+
+  function updateSubject(input) {
+    var value = input || {};
+    if (!client()) {
+      return local(function (store) { return store.updateSubject(value); }, "The subject could not be updated.");
+    }
+    return remote(function () {
+      return client().rpc("admin_update_subject", {
+        p_code: String(value.code || "").trim(),
+        p_name: String(value.name || "").trim(),
+        p_semester: Number(value.semester),
+        p_program: String(value.program || "").trim(),
+        p_credits: Number(value.credits),
+        p_course_type: String(value.course_type || "theory").trim().toLowerCase(),
+        p_active: value.active !== false,
+      }).single();
+    }, "The subject could not be updated.");
+  }
+
+  function archiveSubject(code) {
+    if (!code) return Promise.resolve(failure("Subject code is required.", client() ? "supabase" : "local"));
+    if (!client()) {
+      return local(function (store) { return store.archiveSubject(code); }, "The subject could not be archived.");
+    }
+    return remote(function () {
+      return client().rpc("admin_archive_subject", { p_code: String(code).trim() }).single();
+    }, "The subject could not be archived.");
   }
 
   function getAttendance(filters) {
@@ -813,6 +859,9 @@
   api.updateStudent = updateStudent;
   api.archiveStudent = archiveStudent;
   api.getSubjects = getSubjects;
+  api.createSubject = createSubject;
+  api.updateSubject = updateSubject;
+  api.archiveSubject = archiveSubject;
   api.getAttendance = getAttendance;
   api.saveAttendance = saveAttendance;
   api.getLeaves = getLeaves;

@@ -71,13 +71,9 @@ let students = [
 
 let faculty = [];
 
-const courses = [
-  ["CSC419", "Advanced Java Programming", "Dr. Priya Mehta", 42, 90],
-  ["CSC420", "Data Warehousing and Data Mining", "Prof. Arjun Sharma", 40, 85],
-  ["CSC421", "Principles of Management", "Dr. Sunita Rao", 38, 73],
-  ["CSC422", "Project Work", "Prof. Rahul Gupta", 44, 93],
-  ["CSC425", "Software Project Management", "Dr. Neha Verma", 36, 83],
-];
+// Subject rows are loaded from Supabase in normal mode and from the explicit
+// demo store when the portal is opened with ?demo=1.
+let courses = [];
 
 // Local fallback rows; replaced by Supabase leave rows after initialization.
 let leaves = [
@@ -161,12 +157,30 @@ function renderFaculty() {
 }
 
 function renderCourses() {
-  $("#courseCards").innerHTML = courses
+  const active = courses.filter((course) => course.active !== false);
+  $("#courseCards").innerHTML = active
     .map(
       (course) =>
-        `<article class="course-card"><div class="course-code">${h(course[0])}</div><h3>${h(course[1])}</h3><p>${h(course[2])}</p><div class="course-meta"><span>${h(course[3])} classes</span><strong class="${course[4] < 75 ? "danger-text" : "positive"}">${h(course[4])}% avg.</strong></div><div class="progress"><i style="width:${Math.min(100, Math.max(0, Number(course[4]) || 0))}%"></i></div></article>`,
+        `<article class="course-card"><div class="course-code">${h(course.code)}</div><h3>${h(course.name)}</h3><p>${h(course.program)} · Semester ${h(course.semester)}</p><div class="course-meta"><span>${h(course.credits || "—")} credits</span><strong>${h(course.course_type || "theory")}</strong></div><div class="course-meta"><span>${h(course.active === false ? "Archived" : "Active")}</span><span>${h(course.code)}</span></div></article>`,
     )
     .join("");
+  $("#subjectRows").innerHTML = courses
+    .map(
+      (course) =>
+        `<tr><td><strong>${h(course.code)}</strong><small>${h(course.name)}</small></td><td>${h(course.program)}</td><td>${h(course.semester)}</td><td>${h(course.credits || "—")}</td><td>${h(course.course_type || "theory")}</td><td>${statusBadge(course.active === false ? "Archived" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-subject="${h(course.code)}">Edit</button>${course.active !== false ? `<button type="button" data-archive-subject="${h(course.code)}">Archive</button>` : `<button type="button" data-restore-subject="${h(course.code)}">Restore</button>`}</div></td></tr>`,
+    )
+    .join("");
+}
+
+function loadAdminCourses() {
+  return AttendIQSupabase.getSubjects({ include_archived: true }).then(function (result) {
+    if (!result.ok) {
+      showToast(result.error);
+      return;
+    }
+    courses = result.data;
+    renderCourses();
+  });
 }
 
 // Build leave-request rows with approve, reject, and undo actions.
@@ -485,7 +499,62 @@ $("#facultyForm").addEventListener("submit", async (event) => {
   showToast(facultyId ? "Faculty record updated." : "Faculty account created.");
 });
 
-$("#facultyCancel").addEventListener("click", closeFacultyEditor);
+  $("#facultyCancel").addEventListener("click", closeFacultyEditor);
+
+function openSubjectEditor(subject) {
+  const editor = $("#subjectEditor");
+  const form = $("#subjectForm");
+  form.reset();
+  $("#subjectCodeExisting").value = subject ? subject.code : "";
+  $("#subjectFormTitle").textContent = subject ? "Edit subject" : "Add subject";
+  $("#subjectFormCopy").textContent = subject
+    ? "Update subject metadata without changing its permanent code."
+    : "Create a subject for later course-offering assignments.";
+  $("#subjectCode").disabled = Boolean(subject);
+  $("#subjectSave").textContent = subject ? "Save subject" : "Create subject";
+  if (subject) {
+    $("#subjectCode").value = subject.code;
+    $("#subjectName").value = subject.name;
+    $("#subjectSemester").value = subject.semester;
+    $("#subjectProgram").value = subject.program;
+    $("#subjectCredits").value = subject.credits || 3;
+    $("#subjectType").value = subject.course_type || "theory";
+  }
+  editor.hidden = false;
+  $("#subjectName").focus();
+}
+
+function closeSubjectEditor() {
+  $("#subjectEditor").hidden = true;
+  $("#subjectForm").reset();
+  $("#subjectCode").disabled = false;
+}
+
+$("#subjectForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const existingCode = $("#subjectCodeExisting").value.trim();
+  const formData = {
+    code: $("#subjectCode").value.trim(),
+    name: $("#subjectName").value,
+    semester: $("#subjectSemester").value,
+    program: $("#subjectProgram").value,
+    credits: $("#subjectCredits").value,
+    course_type: $("#subjectType").value,
+  };
+  const result = existingCode
+    ? await AttendIQSupabase.updateSubject({
+        ...formData,
+        code: existingCode,
+        active: courses.find((subject) => subject.code === existingCode)?.active !== false,
+      })
+    : await AttendIQSupabase.createSubject(formData);
+  if (!result.ok) return showToast(result.error);
+  closeSubjectEditor();
+  await loadAdminCourses();
+  showToast(existingCode ? "Subject updated." : "Subject created.");
+});
+
+$("#subjectCancel").addEventListener("click", closeSubjectEditor);
 
 document.addEventListener("change", async (event) => {
   const select = event.target.closest("[data-user-id]");
@@ -579,7 +648,10 @@ document.addEventListener("click", async (event) => {
       openTab("faculty");
       openFacultyEditor();
     }
-    if (target === "course") openTab("courses");
+    if (target === "course") {
+      openTab("courses");
+      openSubjectEditor();
+    }
     if (target === "report") {
       if (!students.length) return showToast("There is no student attendance data to export.");
       try {
@@ -629,6 +701,40 @@ document.addEventListener("click", async (event) => {
     if (!result.ok) return showToast(result.error);
     await loadAdminStudents();
     showToast(`${student.name} archived.`);
+    return;
+  }
+  const editSubjectButton = event.target.closest("[data-edit-subject]");
+  if (editSubjectButton) {
+    const subject = courses.find((item) => item.code === editSubjectButton.dataset.editSubject);
+    if (subject) openSubjectEditor(subject);
+    return;
+  }
+  const archiveSubjectButton = event.target.closest("[data-archive-subject]");
+  if (archiveSubjectButton) {
+    const subject = courses.find((item) => item.code === archiveSubjectButton.dataset.archiveSubject);
+    if (!subject || !window.confirm(`Archive ${subject.code}? Historical attendance and course-offering records will be preserved.`)) return;
+    const result = await AttendIQSupabase.archiveSubject(subject.code);
+    if (!result.ok) return showToast(result.error);
+    await loadAdminCourses();
+    showToast(`${subject.code} archived.`);
+    return;
+  }
+  const restoreSubjectButton = event.target.closest("[data-restore-subject]");
+  if (restoreSubjectButton) {
+    const subject = courses.find((item) => item.code === restoreSubjectButton.dataset.restoreSubject);
+    if (!subject) return;
+    const result = await AttendIQSupabase.updateSubject({
+      code: subject.code,
+      name: subject.name,
+      semester: subject.semester,
+      program: subject.program,
+      credits: subject.credits,
+      course_type: subject.course_type,
+      active: true,
+    });
+    if (!result.ok) return showToast(result.error);
+    await loadAdminCourses();
+    showToast(`${subject.code} restored.`);
     return;
   }
   const leaveButton = event.target.closest("[data-leave]");
@@ -685,6 +791,12 @@ $("#signOut").addEventListener("click", async (event) => {
   renderLeaves();
   renderLeaves("#dashboardRequests", true);
   renderThreshold();
-  return Promise.all([loadUsers(), loadAdminFaculty(), loadAdminLeaves(), loadAdminStudents()]);
+  return Promise.all([
+    loadUsers(),
+    loadAdminFaculty(),
+    loadAdminLeaves(),
+    loadAdminStudents(),
+    loadAdminCourses(),
+  ]);
   });
 }

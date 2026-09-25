@@ -1055,4 +1055,17 @@ td small {
 .student-row-actions button:last-child {
   color: var(--red);
 }
+.subject-table {
+  margin-top: 18px;
+}
+.subject-table small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 3px;
+}
+.subject-form small {
+  color: var(--muted);
+  font-size: 10px;
+}
 

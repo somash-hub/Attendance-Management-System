@@ -9,6 +9,7 @@
   var FACULTY_KEY = "attendiq.faculty";
   var SESSION_KEY = "attendiq.session";
   var SETTINGS_KEY = "attendiq.settings";
+  var SUBJECTS_KEY = "attendiq.subjects";
 
   // TU requires 80% attendance per subject; administrators can adjust it.
   var DEFAULT_THRESHOLD = 80;
@@ -69,7 +70,14 @@
     },
   ];
 
-  // Portal locations used after login; every page sits one folder deep.
+  var DEMO_SUBJECTS = [
+    { code: "CSC419", name: "Advanced Java Programming", semester: 7, program: "BSc CSIT", credits: 3, course_type: "theory", active: true, archived_at: null },
+    { code: "CSC420", name: "Data Warehousing and Data Mining", semester: 7, program: "BSc CSIT", credits: 3, course_type: "theory", active: true, archived_at: null },
+    { code: "CSC421", name: "Principles of Management", semester: 7, program: "BSc CSIT", credits: 3, course_type: "theory", active: true, archived_at: null },
+    { code: "CSC422", name: "Project Work", semester: 7, program: "BSc CSIT", credits: 6, course_type: "project", active: true, archived_at: null },
+    { code: "CSC425", name: "Software Project Management", semester: 7, program: "BSc CSIT", credits: 3, course_type: "theory", active: true, archived_at: null },
+  ];
+
   var ROLE_PANELS = {
     student: "student panel/student.html",
     teacher: "teacher panel/teacher.html",
@@ -207,7 +215,95 @@
     return { ok: true, faculty: member };
   }
 
-  // Emails are compared case-insensitively across the whole store.
+  function getSubjectRecords() {
+    var subjects = read(SUBJECTS_KEY, null);
+    if (!Array.isArray(subjects)) {
+      subjects = DEMO_SUBJECTS.map(function (subject) {
+        return Object.assign({}, subject);
+      });
+      write(SUBJECTS_KEY, subjects);
+    }
+    return subjects;
+  }
+
+  function getSubjects(includeArchived) {
+    return getSubjectRecords().filter(function (subject) {
+      return includeArchived === true || subject.active !== false;
+    });
+  }
+
+  function validateSubject(value) {
+    var subject = value || {};
+    var code = String(subject.code || "").trim().toUpperCase();
+    var name = String(subject.name || "").trim();
+    var semester = Number(subject.semester);
+    var program = String(subject.program || "").trim();
+    var credits = Number(subject.credits);
+    var type = String(subject.course_type || "theory").trim().toLowerCase();
+    if (!/^[A-Z]{2,4}[0-9]{3,4}$/.test(code)) return "Subject code must contain 2–4 letters followed by 3–4 numbers.";
+    if (!name || !program) return "Subject name and program are required.";
+    if (!Number.isInteger(semester) || semester < 1 || semester > 8) return "Semester must be between 1 and 8.";
+    if (!Number.isFinite(credits) || credits <= 0 || credits > 30) return "Credits must be greater than 0 and no more than 30.";
+    if (["theory", "lab", "project"].indexOf(type) === -1) return "Choose theory, lab, or project as the course type.";
+    return "";
+  }
+
+  function createSubject(value) {
+    var subject = value || {};
+    var error = validateSubject(subject);
+    if (error) return { ok: false, error: error };
+    var subjects = getSubjectRecords();
+    var code = String(subject.code).trim().toUpperCase();
+    if (subjects.some(function (item) { return item.code === code; })) {
+      return { ok: false, error: "That subject code already exists." };
+    }
+    var created = {
+      code: code,
+      name: String(subject.name).trim(),
+      semester: Number(subject.semester),
+      program: String(subject.program).trim(),
+      credits: Number(subject.credits),
+      course_type: String(subject.course_type || "theory").trim().toLowerCase(),
+      active: true,
+      archived_at: null,
+    };
+    subjects.push(created);
+    if (!write(SUBJECTS_KEY, subjects)) return { ok: false, error: "Browser storage is unavailable, so the subject was not saved." };
+    return { ok: true, subject: created };
+  }
+
+  function updateSubject(value) {
+    var subject = value || {};
+    var error = validateSubject(subject);
+    if (error) return { ok: false, error: error };
+    var subjects = getSubjectRecords();
+    var code = String(subject.code).trim().toUpperCase();
+    var index = subjects.findIndex(function (item) { return item.code === code; });
+    if (index === -1) return { ok: false, error: "Subject not found." };
+    var updated = Object.assign({}, subjects[index], {
+      name: String(subject.name).trim(),
+      semester: Number(subject.semester),
+      program: String(subject.program).trim(),
+      credits: Number(subject.credits),
+      course_type: String(subject.course_type || "theory").trim().toLowerCase(),
+      active: subject.active !== false,
+      archived_at: subject.active === false ? subjects[index].archived_at || new Date().toISOString() : null,
+    });
+    subjects[index] = updated;
+    if (!write(SUBJECTS_KEY, subjects)) return { ok: false, error: "Browser storage is unavailable, so the subject was not updated." };
+    return { ok: true, subject: updated };
+  }
+
+  function archiveSubject(code) {
+    var subjects = getSubjectRecords();
+    var subject = subjects.find(function (item) { return item.code === String(code || "").trim().toUpperCase(); });
+    if (!subject) return { ok: false, error: "Subject not found." };
+    subject.active = false;
+    subject.archived_at = subject.archived_at || new Date().toISOString();
+    if (!write(SUBJECTS_KEY, subjects)) return { ok: false, error: "Browser storage is unavailable, so the subject was not archived." };
+    return { ok: true, subject: subject };
+  }
+
   function normalizeEmail(email) {
     return String(email || "").trim().toLowerCase();
   }
@@ -430,6 +526,10 @@
     getFaculty: getFaculty,
     updateFaculty: updateFaculty,
     archiveFaculty: archiveFaculty,
+    getSubjects: getSubjects,
+    createSubject: createSubject,
+    updateSubject: updateSubject,
+    archiveSubject: archiveSubject,
     findUserByEmail: findUserByEmail,
     validateUser: validateUser,
     addUser: addUser,

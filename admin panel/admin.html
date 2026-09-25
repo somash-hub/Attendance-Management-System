@@ -331,23 +331,43 @@
             </div>
           </section>
 
-          <!-- Active course cards for the current semester. -->
+          <!-- Subject catalog management. Teacher-to-section assignment is managed separately. -->
           <section class="tab-panel" data-panel="courses">
             <div class="card">
               <div class="toolbar">
                 <div>
                   <h2>Course Management</h2>
-                  <p>Active subjects for the current academic semester</p>
+                  <p>Manage the subject catalog used by course offerings</p>
                 </div>
-                <button
-                  class="button button-primary"
-                  type="button"
-                  data-action="course"
-                >
+                <button class="button button-primary" type="button" data-action="course">
                   ＋ Add course
                 </button>
               </div>
+              <div class="student-editor" id="subjectEditor" hidden>
+                <div class="card-heading">
+                  <div>
+                    <h2 id="subjectFormTitle">Add subject</h2>
+                    <p id="subjectFormCopy">Create a subject for later course-offering assignments.</p>
+                  </div>
+                </div>
+                <form id="subjectForm" class="date-grid student-form">
+                  <input id="subjectCodeExisting" type="hidden" />
+                  <label>Subject code<input id="subjectCode" type="text" placeholder="e.g. CSC426" pattern="[A-Za-z]{2,4}[0-9]{3,4}" required /><small>Codes are permanent identifiers and cannot be edited later.</small></label>
+                  <label>Subject name<input id="subjectName" type="text" required /></label>
+                  <label>Semester<input id="subjectSemester" type="number" min="1" max="8" value="7" required /></label>
+                  <label>Program<input id="subjectProgram" type="text" value="BSc CSIT" required /></label>
+                  <label>Credits<input id="subjectCredits" type="number" min="0.5" max="30" step="0.5" value="3" required /></label>
+                  <label>Course type<select id="subjectType" required><option value="theory">Theory</option><option value="lab">Lab</option><option value="project">Project</option></select></label>
+                  <div class="student-form-actions"><button class="button button-primary" id="subjectSave" type="submit">Create subject</button><button class="button button-secondary" id="subjectCancel" type="button">Cancel</button></div>
+                </form>
+              </div>
               <div class="course-grid" id="courseCards"></div>
+              <div class="table-wrap subject-table">
+                <table>
+                  <thead><tr><th>Subject</th><th>Program</th><th>Semester</th><th>Credits</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="subjectRows"></tbody>
+                </table>
+              </div>
             </div>
           </section>
 

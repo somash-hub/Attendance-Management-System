@@ -90,13 +90,14 @@ checks confirm the expected visibility boundaries.
 
 ## Phase 3 — Administrator CRUD, one vertical slice at a time
 
-**Status: in progress — student and faculty slices complete**
+**Status: in progress — student, faculty, and subject catalog slices complete locally**
 
 The completed vertical slices are:
 
 - `20260924000400_phase3_student_crud.sql` with lint follow-up
   `20260924000500_phase3_student_crud_lint_fix.sql`
 - `20260924000600_phase3_faculty_crud.sql`
+- `20260924000700_phase3_subject_crud.sql` (implemented locally; hosted push still requires an authenticated database password)
 
 1. **Student create/edit/archive — complete.** The admin portal can create a
    linked student login, student record, and current enrollment; edit directory
@@ -106,7 +107,7 @@ The completed vertical slices are:
    and archives faculty while preserving the faculty record and history. The
    privileged `admin-update-faculty` function keeps Auth, profiles, and faculty
    records synchronized.
-3. Subject create/edit/archive.
+3. **Subject create/edit/archive — implemented locally, pending hosted migration push.** The admin portal manages the subject catalog with permanent subject codes, editable metadata, credits and course type, plus archive/restore actions. Existing attendance and course-offering history is preserved. The migration is `20260924000700_phase3_subject_crud.sql`; it must be applied to the hosted project before the live UI can use these RPCs.
 4. Course offering creation and teacher assignment.
 5. Student enrollment management beyond the create/edit flow.
 6. Academic calendar and schedule management.

@@ -30,6 +30,8 @@ Apply the migrations in order from `supabase/migrations/`:
 3. `20260924000300_phase2_academic_data_model.sql`
 4. `20260924000400_phase3_student_crud.sql`
 5. `20260924000500_phase3_student_crud_lint_fix.sql`
+6. `20260924000600_phase3_faculty_crud.sql`
+7. `20260924000700_phase3_subject_crud.sql`
 
 Use separate SQL Editor queries, or paste them in order and run each query.
 
@@ -62,6 +64,9 @@ It creates:
 - Administrator faculty CRUD is available through the admin portal; faculty
   account metadata is synchronized by `admin-update-faculty`, and archiving
   preserves the faculty record while removing the linked login
+- Administrator subject catalog CRUD is implemented in the admin portal; subject
+  codes are permanent, and archive/restore preserves historical attendance and
+  course-offering references
 - Phase 4 adapter methods scope teacher and student reads to assigned course
   offerings, sections, enrollments, attendance, and leave requests
 - The private `leave-documents` storage bucket; students can upload and read

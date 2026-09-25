@@ -63,7 +63,10 @@ plain HTML, CSS, and JavaScript.
 
 The hosted project `yvvgvteijtxnuwtncfio` is connected. The initial migration,
 Phase 1 security migration, Phase 2 academic data-model migration, Phase 3
-student CRUD migration, and Phase 3 faculty CRUD migration are applied. The
+student CRUD migration, Phase 3 faculty CRUD migration, and the subject catalog
+slice are present in the repository. The subject catalog migration is still
+pending hosted application because the terminal database password is not
+authenticated. The
 `admin-create-user`, `admin-update-faculty`, `admin-delete-user`, and
 `upload-leave-document` Edge Functions are deployed, and `shared/supabase.js`
 contains only the public publishable key. Phase 2 backfills the current academic
@@ -137,7 +140,8 @@ report flows are connected. Remaining iterations are:
 │       ├── 20260924000300_phase2_academic_data_model.sql
 │       ├── 20260924000400_phase3_student_crud.sql
 │       ├── 20260924000500_phase3_student_crud_lint_fix.sql
-│       └── 20260924000600_phase3_faculty_crud.sql
+│       ├── 20260924000600_phase3_faculty_crud.sql
+│       └── 20260924000700_phase3_subject_crud.sql
 └── .vscode/
     ├── mcp.json
     └── settings.json
