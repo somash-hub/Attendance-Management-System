@@ -9,10 +9,15 @@ const allowedOrigins = (Deno.env.get("ALLOWED_ORIGINS") || "http://localhost:300
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+// file:// pages send Origin: null. This switch exists only for local demos and
+// should remain false in production.
+const allowFileOrigin = Deno.env.get("ALLOW_FILE_ORIGIN") === "true";
 
 function corsHeaders(req: Request) {
   const origin = req.headers.get("Origin");
-  const allowedOrigin = origin && allowedOrigins.includes(origin) ? origin : null;
+  const allowedOrigin = origin && (allowedOrigins.includes(origin) || (origin === "null" && allowFileOrigin))
+    ? origin
+    : null;
   return {
     ...(allowedOrigin ? { "Access-Control-Allow-Origin": allowedOrigin } : {}),
     "Access-Control-Allow-Headers": "authorization, content-type",

@@ -164,11 +164,13 @@ hardening and scale-oriented improvements:
 │       ├── 20260924001000_phase3_academic_calendar_schedule.sql
 │       ├── 20260924001100_phase3_schedule_integrity.sql
 │       ├── 20260924001200_phase5_attendance_sessions.sql
-│       └── 20260924001201_phase5_attendance_sessions_lint_fix.sql
+│       ├── 20260924001201_phase5_attendance_sessions_lint_fix.sql
 │       ├── 20260924001300_phase6_8_notifications_and_leave_safeguards.sql
 │       ├── 20260924001301_phase6_8_rls_correction.sql
 │       └── 20260924001302_phase6_8_function_sync.sql
-│       └── 20260924001302_phase6_8_function_sync.sql
+├── scripts/
+│   ├── serve.mjs
+│   └── validate.mjs
 
 └── .vscode/
     ├── mcp.json
@@ -177,12 +179,13 @@ hardening and scale-oriented improvements:
 
 ## Running the Project
 
-This is a static frontend and does not require a build step or package
-installation.
+This is a static frontend and does not require a build step.
 
-1. Open `landing page/landing.html` in a web browser to view the public
+1. Run `npm start` from the project root and open
+   `http://localhost:3000/login/login.html`, or use VS Code Live Server at
+   `http://127.0.0.1:5500/login/login.html`.
+2. Open `landing page/landing.html` in the browser to view the public
    landing page.
-2. Use any portal button to open `login/login.html`.
 3. Sign in with a hosted Supabase account. To use the local demo explicitly,
    open `login/login.html?demo=1`; demo credentials are hidden otherwise.
 4. The account role decides which portal opens.
@@ -193,6 +196,9 @@ installation.
 7. Opening a portal while signed out redirects back to the login page.
 8. The pages use the hosted Supabase client in `shared/supabase.js`. The
    localStorage store is used only in explicit demo mode (`?demo=1`).
+
+Do not open the portal pages directly from `file://`. Supabase authentication
+and the Edge Functions require an `http://` or `https://` origin.
 
 ### Demo Accounts
 

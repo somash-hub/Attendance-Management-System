@@ -105,6 +105,15 @@ npx supabase secrets set ALLOWED_ORIGINS=https://attendance.example.com
 Replace the example with the actual deployed frontend origin. For local testing,
 use `http://localhost:3000`. Multiple origins may be comma-separated.
 
+For a local demo opened directly from `file://`, set the demo-only flag:
+
+```bash
+npx supabase secrets set ALLOW_FILE_ORIGIN=true --project-ref yvvgvteijtxnuwtncfio
+```
+
+`file://` pages send `Origin: null`. Keep `ALLOW_FILE_ORIGIN` unset or set it to
+`false` for production. Redeploy the functions after changing either secret.
+
 These four functions are the privileged operations (creating/updating/deleting
  accounts and validating leave-document uploads). The service role key stays
 inside Supabase.
