@@ -18,7 +18,7 @@ function corsHeaders(req: Request) {
     : null;
   return {
     ...(allowedOrigin ? { "Access-Control-Allow-Origin": allowedOrigin } : {}),
-    "Access-Control-Allow-Headers": "authorization, content-type",
+    "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-supabase-api-version",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     Vary: "Origin",
   };
