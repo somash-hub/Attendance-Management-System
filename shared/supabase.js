@@ -18,6 +18,12 @@ window.AttendIQDb =
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
 
+if (window.location.protocol === "file:") {
+  console.warn(
+    "AttendIQ is running from a file:// page. Supabase authentication and Edge Functions require http:// or https://. Open the project with Live Server or `npx serve .`.",
+  );
+}
+
 if (!window.supabase) {
   console.warn(
     "Supabase SDK is unavailable; only explicit demo mode can use the local store.",

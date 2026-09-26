@@ -37,6 +37,21 @@
     };
   }
 
+  // Edge Function transport failures are usually caused by the page origin
+  // (for example file://) or a missing ALLOWED_ORIGINS entry. Translate the
+  // raw browser message into an actionable instruction.
+  function functionFailure(error, fallback) {
+    var message = errorText(error, fallback);
+    if (/failed to send a request|failed to fetch|networkerror|load failed|fetch/i.test(message)) {
+      return failure(
+        (fallback || "The request could not be completed.") +
+          " The browser could not reach the Edge Function. Serve the page over http:// or https:// and make sure this origin is listed in the ALLOWED_ORIGINS secret.",
+        "supabase",
+      );
+    }
+    return failure(error, "supabase", fallback);
+  }
+
   function success(data, source) {
     return { ok: true, data: data, source: source || "supabase" };
   }
@@ -148,14 +163,14 @@
         return client().functions.invoke(name, { body: body });
       })
       .then(function (response) {
-        if (response && response.error) return failure(response.error, "supabase", fallback);
+        if (response && response.error) return functionFailure(response.error, fallback);
         if (response && response.data && response.data.error) {
           return failure(response.data.error, "supabase", fallback);
         }
         return success(response ? response.data : undefined, "supabase");
       })
       .catch(function (error) {
-        return failure(error, "supabase", fallback);
+        return functionFailure(error, fallback);
       });
   }
 
