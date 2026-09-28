@@ -19,6 +19,15 @@
   margin: 0;
   padding: 0;
 }
+.visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
 body {
   background: var(--page);
   color: var(--ink);
@@ -1097,4 +1106,3 @@ td small {
   min-height: 90px;
   resize: vertical;
 }
-

@@ -142,7 +142,7 @@
                     <h2>Department Attendance</h2>
                     <p>Average attendance percentage by program</p>
                   </div>
-                  <button class="more-button" type="button">•••</button>
+                  <button class="more-button" type="button" aria-label="More department attendance options">•••</button>
                 </div>
                 <div class="bar-chart" id="programChart" aria-label="Program attendance chart">
                   <div class="chart-row">
@@ -441,7 +441,7 @@
                   </div>
                   <output id="thresholdValue">80%</output>
                 </div>
-                <input
+                <label class="visually-hidden" for="threshold">Minimum attendance threshold</label><input
                   class="range-input"
                   id="threshold"
                   type="range"
@@ -473,7 +473,7 @@
                     <strong>Leave approval workflow</strong
                     ><small>Choose who reviews leave applications first.</small>
                   </div>
-                  <select>
+                  <label class="visually-hidden" for="leaveWorkflow">Leave approval workflow</label><select id="leaveWorkflow">
                     <option>Teacher → Admin</option>
                     <option>Admin only</option>
                     <option>Auto-approve</option>

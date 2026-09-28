@@ -40,7 +40,8 @@ form.addEventListener("submit", async function (e) {
     message.textContent = `Welcome back, ${profile.name}! Opening your ${profile.role} portal...`;
     message.classList.remove("error");
     message.classList.add("success");
-    location.href = "../" + AttendIQ.ROLE_PANELS[profile.role];
+    const panel = "../" + AttendIQ.ROLE_PANELS[profile.role];
+    location.href = panel + (window.AttendIQDemoMode ? "?demo=1" : "");
   } catch (error) {
     showError(error.message || "Sign-in failed. Please try again.");
   } finally {

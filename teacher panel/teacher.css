@@ -22,6 +22,7 @@ body {
   font:
     14px/1.5 "Inter",
     sans-serif;
+  overflow-x: hidden;
 }
 button,
 input,
@@ -762,6 +763,15 @@ td strong {
   }
 }
 @media (max-width: 560px) {
+  .topbar {
+    min-width: 0;
+  }
+  .top-actions {
+    min-width: 0;
+  }
+  .top-actions > span {
+    min-width: 0;
+  }
   .page-heading {
     gap: 12px;
   }
