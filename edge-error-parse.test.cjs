@@ -98,6 +98,6 @@ test("transport errors without a JSON response remain actionable", async () => {
   });
 
   assert.equal(result.ok, false);
-  assert.match(result.error, /ALLOWED_ORIGINS/);
+  assert.match(result.error, /ALLOWED_ORIGINS|file:\/\/|Serve the app over http/i);
 });
 

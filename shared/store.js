@@ -25,6 +25,7 @@
   var ROLES = ["student", "teacher", "admin"];
 
   // Seeded accounts keep the system usable before an administrator signs in.
+  // These demo credentials are intentionally visible only in explicit demo mode.
   var SEED_USERS = [
     {
       id: "u-admin",

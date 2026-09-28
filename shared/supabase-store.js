@@ -43,9 +43,13 @@
   function functionFailure(error, fallback) {
     var message = errorText(error, fallback);
     if (/failed to send a request|failed to fetch|networkerror|load failed|fetch/i.test(message)) {
+      var details = " The browser could not reach the Edge Function. Serve the page over http:// or https:// and make sure this origin is listed in the ALLOWED_ORIGINS secret.";
+      return failure((fallback || "The request could not be completed.") + details, "supabase");
+    }
+    if (root.AttendIQRuntime && root.AttendIQRuntime.isFileOrigin && !root.AttendIQDemoMode) {
       return failure(
         (fallback || "The request could not be completed.") +
-          " The browser could not reach the Edge Function. Serve the page over http:// or https:// and make sure this origin is listed in the ALLOWED_ORIGINS secret.",
+          " The page is running from a file:// origin, which is blocked. Serve the app over http:// or https:// and configure the front-end origin in ALLOWED_ORIGINS.",
         "supabase",
       );
     }
@@ -117,7 +121,13 @@
   }
 
   function requireSupabase() {
-    return client() ? null : new Error("Supabase is not configured for this browser.");
+    if (client()) return null;
+    if (root.AttendIQRuntime && root.AttendIQRuntime.isFileOrigin && !root.AttendIQDemoMode) {
+      return new Error(
+        "Supabase is unavailable because this page is running from a file:// origin. Serve the app over http:// or https:// and ensure the origin is listed in ALLOWED_ORIGINS.",
+      );
+    }
+    return new Error("Supabase is not configured for this browser.");
   }
 
   function unsupportedLocal(name) {
@@ -228,6 +238,9 @@
 
   function signIn(email, password) {
     if (!client()) {
+      if (root.AttendIQDemoMode !== true) {
+        return Promise.resolve(failure(new Error("Supabase is not configured for this browser. Use a served page or explicit demo mode."), "supabase"));
+      }
       return local(function (store) {
         var user = store.authenticate(cleanEmail(email), password);
         if (!user) throw new Error("Invalid email or password.");
