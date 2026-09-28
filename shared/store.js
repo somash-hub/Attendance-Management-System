@@ -143,6 +143,21 @@
       ["Ms. Asha Bhandari", "Management", "Assistant Professor"],
       ["Dr. Manoj KC", "Computer Science", "Associate Professor"],
     ];
+    var studentFirstNames = [
+      "Aashish", "Aastha", "Anil", "Anisha", "Bikash", "Binita",
+      "Bishal", "Deepak", "Gita", "Hari", "Kabita", "Kiran",
+      "Krishna", "Manisha", "Milan", "Nabin", "Nisha", "Prakash",
+      "Rabin", "Rachana", "Rajesh", "Ramesh", "Roshan", "Sabina",
+      "Sagar", "Samir", "Sandhya", "Sanjay", "Sarita", "Saugat",
+      "Sharmila", "Shreya", "Sita", "Sunil", "Suraj", "Sushil",
+      "Ujjwal", "Usha", "Bibek", "Pooja",
+    ];
+    var studentLastNames = [
+      "Adhikari", "Bhandari", "Dahal", "Gautam", "Ghimire",
+      "Gurung", "Karki", "KC", "Khadka", "Lama", "Magar",
+      "Poudel", "Rai", "Regmi", "Sharma", "Shrestha", "Thapa",
+      "Tamang", "Tiwari", "Yadav",
+    ];
 
     for (var semesterNumber = 1; semesterNumber <= 8; semesterNumber += 1) {
       var semesterId = "tu-sem-" + semesterNumber;
@@ -208,7 +223,8 @@
         studentNumber += 1;
         users.push({
           id: studentId,
-          name: "TU Student " + String(i + 1).padStart(3, "0"),
+          name: studentFirstNames[i % studentFirstNames.length] + " " +
+            studentLastNames[Math.floor(i / studentFirstNames.length) % studentLastNames.length],
           email: "student" + String(i + 1).padStart(3, "0") + "@kct.edu.np",
           password: "Student@" + String(i + 1).padStart(3, "0") + "Demo",
           role: "student",
