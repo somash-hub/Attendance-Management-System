@@ -14,6 +14,7 @@
   var OFFERINGS_KEY = "attendiq.offerings";
   var EVENTS_KEY = "attendiq.academic-events";
   var SCHEDULES_KEY = "attendiq.class-schedules";
+  var DEMO_DATASET_VERSION = "tu-bachelors-150-v1";
 
   // TU requires 80% attendance per subject; administrators can adjust it.
   var DEFAULT_THRESHOLD = 80;
@@ -113,6 +114,122 @@
     { id: "schedule-2", course_offering_id: "offering-csc420", day_of_week: 2, start_time: "10:15", end_time: "11:15", room: "A-202", status: "active" },
   ];
 
+  function ensureDemoAcademicDataset() {
+    if (root.AttendIQDemoMode !== true) return;
+    var marker = read("attendiq.demo-dataset-version", "");
+    if (marker === DEMO_DATASET_VERSION) return;
+
+    var users = getUsers();
+    var faculty = read(FACULTY_KEY, null) || DEMO_FACULTY.map(function (member) { return Object.assign({}, member); });
+    var subjects = read(SUBJECTS_KEY, null) || DEMO_SUBJECTS.map(function (subject) { return Object.assign({}, subject); });
+    var semesters = read("attendiq.semesters", null) || DEMO_SEMESTERS.map(function (semester) { return Object.assign({}, semester); });
+    var sections = read(SECTIONS_KEY, null) || DEMO_SECTIONS.map(function (section) { return Object.assign({}, section); });
+    var offerings = read(OFFERINGS_KEY, null) || DEMO_OFFERINGS.map(function (offering) { return Object.assign({}, offering); });
+    var schedules = read(SCHEDULES_KEY, null) || DEMO_SCHEDULES.map(function (schedule) { return Object.assign({}, schedule); });
+    var programs = [
+      { code: "CSIT", name: "BSc CSIT", semesters: 8, subjects: ["Programming Fundamentals", "Data Structures", "Computer Architecture", "Database Management"] },
+      { code: "BCA", name: "BCA", semesters: 8, subjects: ["Computer Fundamentals", "Web Technology", "Software Engineering", "Object Oriented Programming"] },
+      { code: "BBS", name: "BBS", semesters: 4, subjects: ["Business English", "Financial Accounting", "Business Mathematics", "Principles of Management"] },
+    ];
+    var teachers = [
+      ["Dr. Suman Adhikari", "Computer Science", "Associate Professor"],
+      ["Ms. Nisha Karki", "Computer Science", "Assistant Professor"],
+      ["Mr. Ramesh Shrestha", "Management", "Lecturer"],
+      ["Dr. Anil Poudel", "Computer Science", "Associate Professor"],
+      ["Ms. Kabita Thapa", "Management", "Assistant Professor"],
+      ["Mr. Deepak Gurung", "Computer Science", "Lecturer"],
+      ["Dr. Sunita Joshi", "Management", "Associate Professor"],
+      ["Mr. Bikash Rai", "Computer Science", "Lecturer"],
+      ["Ms. Asha Bhandari", "Management", "Assistant Professor"],
+      ["Dr. Manoj KC", "Computer Science", "Associate Professor"],
+    ];
+
+    for (var semesterNumber = 1; semesterNumber <= 8; semesterNumber += 1) {
+      var semesterId = "tu-sem-" + semesterNumber;
+      if (!semesters.some(function (semester) { return semester.id === semesterId; })) {
+        semesters.push({ id: semesterId, name: "Semester " + semesterNumber, number: semesterNumber, is_current: semesterNumber === 7 });
+      }
+    }
+    teachers.forEach(function (teacher, index) {
+      var teacherId = "u-demo-teacher-" + (index + 1);
+      if (!users.some(function (user) { return user.id === teacherId; })) {
+        users.push({
+          id: teacherId,
+          name: teacher[0],
+          email: "teacher" + (index + 1) + "@kct.edu.np",
+          password: "Teacher@" + (index + 1) + "Demo",
+          role: "teacher",
+          program: teacher[1],
+        });
+        faculty.push({
+          id: "faculty-demo-" + (index + 3),
+          profile_id: teacherId,
+          faculty_id: "TU-FAC-" + String(index + 1).padStart(3, "0"),
+          name: teacher[0],
+          email: "teacher" + (index + 1) + "@kct.edu.np",
+          department: teacher[1],
+          program: teacher[1],
+          designation: teacher[2],
+          status: "active",
+        });
+      }
+    });
+
+    var subjectIndex = 0;
+    programs.forEach(function (program) {
+      for (var sem = 1; sem <= program.semesters; sem += 1) {
+        var semesterId = "tu-sem-" + sem;
+        var sectionId = "tu-section-" + program.code.toLowerCase() + "-" + sem;
+        if (!sections.some(function (section) { return section.id === sectionId; })) {
+          sections.push({ id: sectionId, academic_year_id: "year-2082", semester_id: semesterId, program: program.name, batch: "208" + (2 - Math.floor((sem - 1) / 2)), name: "A", is_current: true });
+        }
+        program.subjects.forEach(function (subjectName, subjectOffset) {
+          var code = program.code + String(sem).padStart(2, "0") + String(subjectOffset + 1).padStart(2, "0");
+          if (!subjects.some(function (subject) { return subject.code === code; })) {
+            subjects.push({ code: code, name: subjectName + " " + sem, semester: sem, program: program.name, credits: subjectOffset === 0 ? 4 : 3, course_type: "theory", active: true, archived_at: null });
+          }
+          var offeringId = "tu-offering-" + code.toLowerCase();
+          if (!offerings.some(function (offering) { return offering.id === offeringId; })) {
+            offerings.push({ id: offeringId, subject_code: code, semester_id: semesterId, section_id: sectionId, teacher_id: "u-demo-teacher-" + ((subjectIndex % teachers.length) + 1), status: "active" });
+            schedules.push({ id: "tu-schedule-" + code.toLowerCase(), course_offering_id: offeringId, day_of_week: ((subjectIndex % 6) + 1), start_time: (8 + (subjectIndex % 5)) + ":00", end_time: (9 + (subjectIndex % 5)) + ":00", room: program.code + "-" + (101 + (subjectIndex % 10)), status: "active" });
+          }
+          subjectIndex += 1;
+        });
+      }
+    });
+
+    var studentNumber = 0;
+    for (var i = 0; i < 150; i += 1) {
+      var program = programs[i % programs.length];
+      var semester = (i % program.semesters) + 1;
+      var studentId = "u-tu-student-" + String(i + 1).padStart(3, "0");
+      if (!users.some(function (user) { return user.id === studentId; })) {
+        var sectionId = "tu-section-" + program.code.toLowerCase() + "-" + semester;
+        studentNumber += 1;
+        users.push({
+          id: studentId,
+          name: "TU Student " + String(i + 1).padStart(3, "0"),
+          email: "student" + String(i + 1).padStart(3, "0") + "@kct.edu.np",
+          password: "Student@" + String(i + 1).padStart(3, "0") + "Demo",
+          role: "student",
+          roll: "TU-" + program.code + "-" + String(i + 1).padStart(3, "0"),
+          program: program.name,
+          batch: "208" + (2 - Math.floor((semester - 1) / 2)),
+          section: "A",
+          section_id: sectionId,
+        });
+      }
+    }
+    write(USERS_KEY, users);
+    write(FACULTY_KEY, faculty);
+    write(SUBJECTS_KEY, subjects);
+    write("attendiq.semesters", semesters);
+    write(SECTIONS_KEY, sections);
+    write(OFFERINGS_KEY, offerings);
+    write(SCHEDULES_KEY, schedules);
+    write("attendiq.demo-dataset-version", DEMO_DATASET_VERSION);
+  }
+
   var ROLE_PANELS = {
     student: "student panel/student.html",
     teacher: "teacher panel/teacher.html",
@@ -193,6 +310,7 @@
   }
 
   function getStudents() {
+    ensureDemoAcademicDataset();
     return getUsers().filter(function (user) {
       return user.role === "student" && user.active !== false;
     }).map(function (user) {
@@ -232,6 +350,7 @@
   }
 
   function getFacultyRecords() {
+    ensureDemoAcademicDataset();
     var faculty = read(FACULTY_KEY, null);
     if (!Array.isArray(faculty)) {
       faculty = DEMO_FACULTY.map(function (member) {
@@ -303,6 +422,7 @@
   }
 
   function getSubjects(includeArchived) {
+    ensureDemoAcademicDataset();
     return getSubjectRecords().filter(function (subject) {
       return includeArchived === true || subject.active !== false;
     });
@@ -390,6 +510,7 @@
   }
 
   function getClassSchedules(includeArchived) {
+    ensureDemoAcademicDataset();
     var schedules = read(SCHEDULES_KEY, null);
     if (!Array.isArray(schedules)) {
       schedules = DEMO_SCHEDULES.map(function (schedule) { return Object.assign({}, schedule); });
@@ -460,11 +581,14 @@
   }
 
   function getSemesters() {
-    return DEMO_SEMESTERS.map(function (semester) { return Object.assign({}, semester); });
+    ensureDemoAcademicDataset();
+    var semesters = read("attendiq.semesters", null) || DEMO_SEMESTERS;
+    return semesters.map(function (semester) { return Object.assign({}, semester); });
   }
 
 
   function getSections() {
+    ensureDemoAcademicDataset();
     var sections = read(SECTIONS_KEY, null);
     if (!Array.isArray(sections)) {
       sections = DEMO_SECTIONS.map(function (section) { return Object.assign({}, section); });
@@ -474,6 +598,7 @@
   }
 
   function getOfferings(includeArchived) {
+    ensureDemoAcademicDataset();
     var offerings = read(OFFERINGS_KEY, null);
     if (!Array.isArray(offerings)) {
       offerings = DEMO_OFFERINGS.map(function (offering) { return Object.assign({}, offering); });
