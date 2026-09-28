@@ -52,6 +52,32 @@
     return failure(error, "supabase", fallback);
   }
 
+  function errorTextFromJson(text) {
+    if (!text) return "";
+    try {
+      var parsed = JSON.parse(text);
+      if (typeof parsed === "string") return parsed;
+      if (!parsed || typeof parsed !== "object") return String(text);
+      if (typeof parsed.error === "string") return parsed.error;
+      if (parsed.error && typeof parsed.error.message === "string") return parsed.error.message;
+      if (typeof parsed.message === "string") return parsed.message;
+      return String(text);
+    } catch (error) {
+      return String(text);
+    }
+  }
+
+  // The Supabase SDK represents non-2xx responses with error.context. Read the
+  // cloned response body so validation and database errors reach the UI rather
+  // than being replaced by the SDK's generic transport message.
+  function functionErrorMessage(error) {
+    var response = error && error.context;
+    if (!response || typeof response.clone !== "function") return Promise.resolve("");
+    return Promise.resolve(response.clone().text()).then(errorTextFromJson).catch(function () {
+      return "";
+    });
+  }
+
   function success(data, source) {
     return { ok: true, data: data, source: source || "supabase" };
   }
@@ -112,6 +138,17 @@
       : "";
   }
 
+  function validPassword(value) {
+    var password = String(value || "");
+    return password.length < 8 ||
+      !/[A-Z]/.test(password) ||
+      !/[a-z]/.test(password) ||
+      !/\d/.test(password) ||
+      !/[^A-Za-z0-9]/.test(password)
+      ? "Password must include uppercase, lowercase, number, and symbol."
+      : "";
+  }
+
   function cleanEmail(value) {
     return String(value || "").trim().toLowerCase();
   }
@@ -163,7 +200,13 @@
         return client().functions.invoke(name, { body: body });
       })
       .then(function (response) {
-        if (response && response.error) return functionFailure(response.error, fallback);
+        if (response && response.error) {
+          return functionErrorMessage(response.error).then(function (serverMessage) {
+            return serverMessage
+              ? failure(serverMessage, "supabase", fallback)
+              : functionFailure(response.error, fallback);
+          });
+        }
         if (response && response.data && response.data.error) {
           return failure(response.data.error, "supabase", fallback);
         }
@@ -226,7 +269,10 @@
 
   function updatePassword(password) {
     var value = String(password || "");
-    if (value.length < 8) return Promise.resolve(failure("Use at least 8 characters for the new password.", "supabase"));
+    var passwordError = validPassword(value);
+    if (passwordError) {
+      return Promise.resolve(failure(passwordError, client() ? "supabase" : "local"));
+    }
     if (!client()) return Promise.resolve(unsupportedLocal("Password recovery"));
     return remote(function () {
       return client().auth.updateUser({ password: value });
@@ -299,6 +345,8 @@
     var value = input || {};
     var roleError = validRole(value.role);
     if (roleError) return Promise.resolve(failure(roleError, client() ? "supabase" : "local"));
+    var passwordError = validPassword(value.password);
+    if (passwordError) return Promise.resolve(failure(passwordError, client() ? "supabase" : "local"));
     if (!client()) {
       return local(function (store) {
         var result = store.addUser(value);

@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node scripts/serve.mjs",
     "check": "node scripts/validate.mjs",
-    "check:syntax": "node scripts/validate.mjs"
+    "check:syntax": "node scripts/validate.mjs",
+    "test": "node --test"
   }
 }
