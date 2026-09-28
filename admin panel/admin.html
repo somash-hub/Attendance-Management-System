@@ -255,6 +255,10 @@
                 <button class="button button-primary" type="button" data-action="student">＋ Add student</button>
                 <button class="button button-secondary" type="button" data-action="enrollment">Manage enrollment</button>
               </div>
+              <div class="file-tabs" role="tablist" aria-label="Student management views">
+                <button class="file-tab active" type="button" role="tab" aria-selected="true" aria-controls="studentDirectoryView" data-student-view="directory">Directory</button>
+                <button class="file-tab" type="button" role="tab" aria-selected="false" aria-controls="studentEnrollmentView" data-student-view="enrollments">Enrollments</button>
+              </div>
               <div class="student-editor" id="studentEditor" hidden>
                 <div class="card-heading">
                   <div>
@@ -279,6 +283,7 @@
                   </div>
                 </form>
               </div>
+              <div id="studentDirectoryView" class="student-view" role="tabpanel">
               <div class="filter-row">
                 <label class="search-box"
                   >⌕<input
@@ -315,6 +320,8 @@
                   <tbody id="studentRows"></tbody>
                 </table>
               </div>
+              </div>
+              <div id="studentEnrollmentView" class="student-view" role="tabpanel" hidden>
               <div class="student-editor" id="enrollmentEditor" hidden>
                 <div class="card-heading"><div><h2 id="enrollmentFormTitle">Manage enrollment</h2><p>Move a student between current sections or archive their current enrollment.</p></div></div>
                 <form id="enrollmentForm" class="date-grid student-form">
@@ -325,6 +332,7 @@
                 </form>
               </div>
               <div class="table-wrap enrollment-table"><table><thead><tr><th>Student</th><th>Roll number</th><th>Current section</th><th>Enrollment status</th><th>Action</th></tr></thead><tbody id="enrollmentRows"></tbody></table></div>
+              </div>
             </div>
           </section>
 
@@ -579,6 +587,15 @@
                       Create accounts for students, teachers, and administrators.
                     </p>
                   </div>
+                </div>
+                <div class="filter-row user-list-filter">
+                  <label class="visually-hidden" for="userRoleFilter">Filter users by role</label>
+                  <select id="userRoleFilter">
+                    <option value="">All roles</option>
+                    <option value="student">Students</option>
+                    <option value="teacher">Teachers</option>
+                    <option value="admin">Administrators</option>
+                  </select>
                 </div>
                 <form id="userForm" class="date-grid user-form">
                   <label

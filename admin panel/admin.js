@@ -613,13 +613,33 @@ let users = [];
 
 // Draw the account list with a role selector and remove control per user.
 function renderUsers() {
+  const roleFilter = $("#userRoleFilter")?.value || "";
   $("#userRows").innerHTML = users
+    .filter((user) => !roleFilter || user.role === roleFilter)
     .map(
       (user) =>
         `<tr><td><strong>${h(user.name)}</strong><small>${h(user.email)}</small></td><td><select class="role-select" data-user-id="${h(user.id)}" aria-label="Role for ${h(user.name)}">${AttendIQSupabase.ROLES.map((role) => `<option value="${h(role)}"${role === user.role ? " selected" : ""}>${h(ROLE_LABELS[role])}</option>`).join("")}</select></td><td><button class="user-remove" type="button" data-remove-user="${h(user.id)}">Remove</button></td></tr>`,
     )
     .join("");
 }
+
+$("#userRoleFilter").addEventListener("change", renderUsers);
+
+function setStudentView(view) {
+  const directory = view === "directory";
+  $("#studentDirectoryView").hidden = !directory;
+  $("#studentEnrollmentView").hidden = directory;
+  $$("[data-student-view]").forEach((tab) => {
+    const active = tab.dataset.studentView === view;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", String(active));
+  });
+  if (!directory) loadEnrollmentStudents();
+}
+
+$$("[data-student-view]").forEach((tab) =>
+  tab.addEventListener("click", () => setStudentView(tab.dataset.studentView)),
+);
 
 // Load the account list through the shared adapter.
 function loadUsers() {
@@ -1119,6 +1139,7 @@ document.addEventListener("click", async (event) => {
     const target = action.dataset.action;
     if (target === "enrollment") {
       openTab("students");
+      setStudentView("enrollments");
       openEnrollmentEditor();
     }
     if (target === "student") {

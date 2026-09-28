@@ -314,6 +314,39 @@ h1 {
   margin: 23px 0 16px;
   padding-bottom: 9px;
 }
+.file-tabs {
+  align-items: flex-end;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 4px;
+  margin: 20px 0 18px;
+}
+.file-tab {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 9px 15px;
+}
+.file-tab:hover,
+.file-tab.active {
+  color: var(--indigo);
+}
+.file-tab.active {
+  border-bottom-color: var(--indigo);
+}
+.student-view[hidden] {
+  display: none;
+}
+.user-list-filter {
+  justify-content: flex-end;
+  margin: 12px 0;
+}
+.user-list-filter select {
+  min-width: 160px;
+}
 .subsection-heading h3 {
   font-size: 15px;
   font-weight: 700;
