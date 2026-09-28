@@ -304,6 +304,13 @@ function requestMarkup(request, actions = true) {
 }
 
 function renderLeaves(target = "#leaveRequests", limit = false) {
+  const pendingCount = leaves.filter((leave) => leave.status === "pending").length;
+  document.querySelectorAll(".nav-count").forEach((node) => {
+    node.textContent = String(pendingCount);
+    node.hidden = pendingCount === 0;
+  });
+  const pendingButton = $("#pendingLeaveCount");
+  if (pendingButton) pendingButton.textContent = String(pendingCount);
   const filtered = leaves.filter(
     (leave) => currentFilter === "all" || leave.status === currentFilter,
   );
@@ -444,7 +451,6 @@ $("#enrollmentArchive").addEventListener("click", async () => {
 $("#enrollmentCancel").addEventListener("click", closeEnrollmentEditor);
 
 function loadAdminStudents() {
-  if (!window.AttendIQDb) return Promise.resolve();
   return Promise.all([
     AttendIQSupabase.getStudents(),
     AttendIQSupabase.getAttendance(),
@@ -512,6 +518,32 @@ function showToast(message) {
   toast.classList.add("visible");
   setTimeout(() => toast.classList.remove("visible"), 2600);
 }
+
+function openNotificationComposer() {
+  const composer = $("#notificationComposer");
+  if (!composer) return showToast("Notification composer is unavailable.");
+  composer.hidden = false;
+  $("#notificationTitle").focus();
+}
+
+function closeNotificationComposer() {
+  const composer = $("#notificationComposer");
+  if (composer) composer.hidden = true;
+  $("#notificationForm").reset();
+}
+
+$("#notificationCancel").addEventListener("click", closeNotificationComposer);
+$("#notificationForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const result = await AttendIQSupabase.sendMassNotification({
+    audience: $("#notificationAudience").value,
+    title: $("#notificationTitle").value,
+    message: $("#notificationMessage").value,
+  });
+  if (!result.ok) return showToast(result.error);
+  closeNotificationComposer();
+  showToast("Notification sent.");
+});
 
 // Update dashboard counts from the same current records used by the
 // attendance table; no display metric is independent demo data.
@@ -1095,7 +1127,7 @@ document.addEventListener("click", async (event) => {
         showToast(error.message);
       }
     }
-    if (target === "notify") showToast("Notification composer opened.");
+    if (target === "notify") openNotificationComposer();
     if (target === "reset") showToast("Reset requires backend confirmation.");
     if (target === "archive")
       showToast("Archive requires backend confirmation.");

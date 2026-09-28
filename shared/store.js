@@ -186,9 +186,49 @@
       write(USERS_KEY, users);
       return users;
     }
+
     // Keep stored copies of the demo accounts aligned with the seed data.
     if (syncSeedUsers(users)) write(USERS_KEY, users);
     return users;
+  }
+
+  function getStudents() {
+    return getUsers().filter(function (user) {
+      return user.role === "student" && user.active !== false;
+    }).map(function (user) {
+      return {
+        id: user.id,
+        profile_id: user.id,
+        roll: user.roll || "—",
+        name: user.name,
+        email: user.email,
+        program: user.program || "BSc CSIT",
+        batch: user.batch || "2079",
+        section: user.section || "A",
+        active: true,
+        archived_at: null,
+        enrollments: [{ id: "enrollment-" + user.id, section_id: user.section_id || "section-a", status: "active" }],
+      };
+    });
+  }
+
+  function updateStudent(input) {
+    var value = input || {};
+    var users = getUsers();
+    var user = users.find(function (item) { return item.id === value.id && item.role === "student"; });
+    if (!user) return { ok: false, error: "Student record not found." };
+    user.name = String(value.name || "").trim();
+    user.email = normalizeEmail(value.email);
+    user.roll = String(value.roll || "").trim();
+    user.program = String(value.program || "BSc CSIT").trim();
+    user.batch = String(value.batch || "").trim();
+    user.section_id = String(value.section_id || "").trim();
+    user.section = String(value.section || "A").trim();
+    if (!user.name || !user.email || !user.roll || !user.batch || !user.section_id) {
+      return { ok: false, error: "Complete every student field before saving." };
+    }
+    if (!write(USERS_KEY, users)) return { ok: false, error: "Browser storage is unavailable, so the student was not updated." };
+    return { ok: true, student: user };
   }
 
   function getFacultyRecords() {
@@ -561,6 +601,11 @@
       email: normalizeEmail(input.email),
       password: String(input.password),
       role: input.role,
+      roll: String(input.roll || "").trim(),
+      program: String(input.program || "BSc CSIT").trim(),
+      batch: String(input.batch || "").trim(),
+      section: String(input.section || "A").trim(),
+      section_id: String(input.section_id || "").trim(),
     };
     var faculty = null;
     if (input.role === "teacher") {
@@ -724,6 +769,8 @@
     getSettings: getSettings,
     saveSettings: saveSettings,
     getUsers: getUsers,
+    getStudents: getStudents,
+    updateStudent: updateStudent,
     getFaculty: getFaculty,
     updateFaculty: updateFaculty,
     archiveFaculty: archiveFaculty,

@@ -237,7 +237,7 @@
   }
 
   function signIn(email, password) {
-    if (!client()) {
+    if (root.AttendIQDemoMode === true || !client()) {
       if (root.AttendIQDemoMode !== true) {
         return Promise.resolve(failure(new Error("Supabase is not configured for this browser. Use a served page or explicit demo mode."), "supabase"));
       }
@@ -360,7 +360,7 @@
     if (roleError) return Promise.resolve(failure(roleError, client() ? "supabase" : "local"));
     var passwordError = validPassword(value.password);
     if (passwordError) return Promise.resolve(failure(passwordError, client() ? "supabase" : "local"));
-    if (!client()) {
+    if (root.AttendIQDemoMode === true || !client()) {
       return local(function (store) {
         var result = store.addUser(value);
         return result.ok ? publicUser(result.user) : result;
@@ -424,7 +424,7 @@
   }
 
   function getStudents() {
-    if (!client()) return Promise.resolve(unsupportedLocal("Student records"));
+    if (root.AttendIQDemoMode === true || !client()) return local(function (store) { return store.getStudents(); }, "Student records could not be loaded.");
     return remote(function () {
       return client().from("students")
         .select("id, profile_id, roll, name, email, program, batch, section, active, archived_at, enrollments!inner(id, section_id, status)")
@@ -994,7 +994,7 @@
   }
 
   function updateStudent(input) {
-    if (!client()) return Promise.resolve(unsupportedLocal("Student records"));
+    if (root.AttendIQDemoMode === true || !client()) return local(function (store) { return store.updateStudent(input); }, "The student could not be updated.");
     var value = input || {};
     var required = [value.id, value.name, value.email, value.roll, value.program, value.batch, value.section_id];
     if (required.some(function (item) { return !String(item || "").trim(); })) {
@@ -1119,7 +1119,7 @@
   }
 
   function getAttendance(filters) {
-    if (!client()) return Promise.resolve(unsupportedLocal("Attendance records"));
+    if (root.AttendIQDemoMode === true || !client()) return Promise.resolve(success([], "local"));
     var value = filters || {};
     return remote(function () {
       var query = client().from("attendance")
@@ -1246,6 +1246,15 @@
     }, "Notifications could not be loaded.");
   }
 
+  function sendMassNotification(input) {
+    var value = input || {};
+    if (!String(value.title || "").trim() || !String(value.message || "").trim()) {
+      return Promise.resolve(failure("Title and message are required.", client() ? "supabase" : "local"));
+    }
+    if (!client()) return Promise.resolve(success({ audience: value.audience || "all" }, "local"));
+    return Promise.resolve(failure("Mass notifications require the notification delivery Edge Function to be deployed.", "supabase"));
+  }
+
   function markNotificationsRead(ids) {
     if (!client()) return Promise.resolve(unsupportedLocal("Notifications"));
     if (!Array.isArray(ids) || !ids.length) return Promise.resolve(failure("No notifications were selected.", "supabase"));
@@ -1339,9 +1348,9 @@
   api.reviewLeave = reviewLeave;
   api.cancelLeave = cancelLeave;
   api.getNotifications = getNotifications;
+  api.sendMassNotification = sendMassNotification;
   api.markNotificationsRead = markNotificationsRead;
   api.getLeaveDocumentUrl = getLeaveDocumentUrl;
   api.uploadLeaveDocument = uploadLeaveDocument;
   root.AttendIQSupabase = api;
 })(typeof window !== "undefined" ? window : globalThis);
-

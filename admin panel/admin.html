@@ -199,6 +199,27 @@
               </div>
               <div class="request-list" id="dashboardRequests"></div>
             </article>
+            <article class="card notification-composer" id="notificationComposer" hidden>
+              <div class="card-heading">
+                <div>
+                  <h2>Send mass notification</h2>
+                  <p>Send an announcement to selected users.</p>
+                </div>
+              </div>
+              <form id="notificationForm" class="date-grid">
+                <label>Audience<select id="notificationAudience">
+                  <option value="all">All users</option>
+                  <option value="student">Students</option>
+                  <option value="teacher">Teachers</option>
+                </select></label>
+                <label>Title<input id="notificationTitle" type="text" required maxlength="120" /></label>
+                <label>Message<textarea id="notificationMessage" rows="4" required maxlength="1000"></textarea></label>
+                <div class="student-form-actions">
+                  <button class="button button-primary" type="submit">Send notification</button>
+                  <button class="button button-secondary" id="notificationCancel" type="button">Cancel</button>
+                </div>
+              </form>
+            </article>
           </section>
 
           <!-- Student directory and attendance status management. -->
@@ -412,7 +433,7 @@
                 </div>
                 <div class="filter-tabs">
                   <button class="selected" data-filter="all">All</button
-                  ><button data-filter="pending">Pending <b>2</b></button
+                  ><button data-filter="pending">Pending <b id="pendingLeaveCount">0</b></button
                   ><button data-filter="approved">Approved</button
                   ><button data-filter="rejected">Rejected</button>
                 </div>
