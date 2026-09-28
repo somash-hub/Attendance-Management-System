@@ -58,24 +58,39 @@
         <aside class="sidebar" id="sidebar">
           <div class="sidebar-heading">ADMIN CONSOLE</div>
           <nav class="side-nav" aria-label="Admin navigation">
-            <button class="nav-item active" data-tab="dashboard">
-              <span>⌂</span> Dashboard
-            </button>
-            <button class="nav-item" data-tab="students">
-              <span>♙</span> Students
-            </button>
-            <button class="nav-item" data-tab="faculty">
-              <span>♧</span> Faculty
-            </button>
-            <button class="nav-item" data-tab="courses">
-              <span>▣</span> Courses
-            </button>
-            <button class="nav-item" data-tab="leaves">
-              <span>▤</span> Leave Requests <b class="nav-count">2</b>
-            </button>
-            <button class="nav-item" data-tab="settings">
-              <span>⚙</span> Settings
-            </button>
+            <div class="nav-group">
+              <div class="nav-group-label">Overview</div>
+              <button class="nav-item active" data-tab="dashboard">
+                <span>⌂</span> Dashboard
+              </button>
+            </div>
+            <div class="nav-group">
+              <div class="nav-group-label">People</div>
+              <button class="nav-item" data-tab="students">
+                <span>♙</span> Students
+              </button>
+              <button class="nav-item" data-tab="faculty">
+                <span>♧</span> Faculty
+              </button>
+            </div>
+            <div class="nav-group">
+              <div class="nav-group-label">Academics</div>
+              <button class="nav-item" data-tab="courses">
+                <span>▣</span> Courses
+              </button>
+            </div>
+            <div class="nav-group">
+              <div class="nav-group-label">Requests</div>
+              <button class="nav-item" data-tab="leaves">
+                <span>▤</span> Leave Requests <b class="nav-count">2</b>
+              </button>
+            </div>
+            <div class="nav-group">
+              <div class="nav-group-label">System</div>
+              <button class="nav-item" data-tab="settings">
+                <span>⚙</span> Settings
+              </button>
+            </div>
           </nav>
           <div class="sidebar-footer">
             <div class="status-indicator">
@@ -93,10 +108,7 @@
                 ADMIN CONSOLE / <span id="breadcrumbPage">OVERVIEW</span>
               </p>
               <h1 id="pageTitle">Admin Overview</h1>
-              <p>
-                Kathmandu College of Technology · Tribhuvan University ·
-                Academic Year 2082/83 BS
-              </p>
+              <p>Kathmandu College of Technology · Tribhuvan University</p>
             </div>
             <button
               class="button button-primary"
@@ -105,6 +117,16 @@
             >
               ＋ Add student
             </button>
+          </div>
+          <div class="academic-context" aria-label="Academic context">
+            <div>
+              <span class="context-label">Academic year</span>
+              <strong>2082/83 BS</strong>
+            </div>
+            <div>
+              <span class="context-label">Scope</span>
+              <strong>All programs · All sections</strong>
+            </div>
           </div>
 
           <!-- Institution-wide attendance overview. -->
@@ -284,7 +306,7 @@
                     <tr>
                       <th>Student</th>
                       <th>Roll number</th>
-                      <th>Department</th>
+                      <th>Program</th>
                       <th>Attendance</th>
                       <th>Status</th>
                       <th>Action</th>
@@ -376,6 +398,10 @@
                   Assign teacher
                 </button>
               </div>
+              <div class="subsection-heading">
+                <h3>Subject catalog</h3>
+                <p>Maintain subjects and their academic details.</p>
+              </div>
               <div class="student-editor" id="subjectEditor" hidden>
                 <div class="card-heading">
                   <div>
@@ -435,6 +461,10 @@
                   <thead><tr><th>Subject</th><th>Program</th><th>Semester</th><th>Credits</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody id="subjectRows"></tbody>
                 </table>
+              </div>
+              <div class="subsection-heading offering-heading">
+                <h3>Course offerings</h3>
+                <p>Assign subjects to sections and teaching staff.</p>
               </div>
               <div class="student-editor" id="offeringEditor" hidden>
                 <div class="card-heading">

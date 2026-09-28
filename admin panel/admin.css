@@ -175,6 +175,21 @@ a {
   display: grid;
   gap: 4px;
 }
+.nav-group {
+  display: grid;
+  gap: 2px;
+}
+.nav-group + .nav-group {
+  margin-top: 12px;
+}
+.nav-group-label {
+  color: #a0a2ac;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 0 12px 4px;
+  text-transform: uppercase;
+}
 .nav-item {
   align-items: center;
   background: transparent;
@@ -268,6 +283,48 @@ h1 {
   color: var(--muted);
   font-size: 12px;
   margin-top: 5px;
+}
+.academic-context {
+  align-items: center;
+  background: #efefff;
+  border: 1px solid #dedcff;
+  border-radius: 10px;
+  display: flex;
+  gap: 28px;
+  margin: -10px 0 27px;
+  padding: 11px 15px;
+}
+.academic-context > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.context-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.academic-context strong {
+  font-size: 12px;
+}
+.subsection-heading {
+  border-bottom: 1px solid var(--line);
+  margin: 23px 0 16px;
+  padding-bottom: 9px;
+}
+.subsection-heading h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+.subsection-heading p {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+.offering-heading {
+  margin-top: 28px;
 }
 .button {
   border: 0;
@@ -912,6 +969,11 @@ td small {
   .page-header {
     gap: 15px;
   }
+  .academic-context {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 14px 24px;
+  }
   .page-header .button {
     white-space: nowrap;
   }
@@ -942,6 +1004,10 @@ td small {
   .filter-row {
     align-items: stretch;
     flex-direction: column;
+  }
+  .academic-context {
+    flex-direction: column;
+    gap: 8px;
   }
   .search-box {
     max-width: none;
