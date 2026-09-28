@@ -263,15 +263,19 @@
                     id="studentSearch"
                     type="search"
                     placeholder="Search by name or roll number" /></label
-                ><select>
-                  <option>All programs</option>
-                  <option>BSc CSIT</option>
-                  <option>BCA</option>
-                  <option>BBS</option></select
-                ><select>
-                  <option>All statuses</option>
-                  <option>Active</option>
-                  <option>Warned</option>
+                ><label class="visually-hidden" for="studentProgramFilter"
+                  >Filter students by program</label
+                ><select id="studentProgramFilter">
+                  <option value="">All programs</option>
+                  <option value="BSc CSIT">BSc CSIT</option>
+                  <option value="BCA">BCA</option>
+                  <option value="BBS">BBS</option></select
+                ><label class="visually-hidden" for="studentStatusFilter"
+                  >Filter students by status</label
+                ><select id="studentStatusFilter">
+                  <option value="">All statuses</option>
+                  <option value="Active">Active</option>
+                  <option value="Warned">Warned</option>
                 </select>
               </div>
               <div class="table-wrap">

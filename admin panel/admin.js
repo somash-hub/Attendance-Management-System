@@ -142,10 +142,18 @@ function statusBadge(status) {
 // Render the student, faculty, and course management views.
 function renderStudents(query = "") {
   const normalized = query.toLowerCase();
+  const programFilter = $("#studentProgramFilter")?.value || "";
+  const statusFilter = $("#studentStatusFilter")?.value || "";
   $("#studentRows").innerHTML = students
-    .filter((student) =>
-      `${student.name} ${student.roll}`.toLowerCase().includes(normalized),
-    )
+    .filter((student) => {
+      const warned = student.attendance < settings.threshold;
+      const status = warned ? "Warned" : "Active";
+      return (
+        `${student.name} ${student.roll}`.toLowerCase().includes(normalized) &&
+        (!programFilter || student.dept === programFilter) &&
+        (!statusFilter || status === statusFilter)
+      );
+    })
     .map((student) => {
       // The warned status is derived from the administrator's threshold.
       const warned = student.attendance < settings.threshold;
@@ -1067,6 +1075,11 @@ $("#menuButton").addEventListener("click", () => {
 $("#studentSearch").addEventListener("input", (event) =>
   renderStudents(event.target.value),
 );
+["#studentProgramFilter", "#studentStatusFilter"].forEach((selector) => {
+  $(selector).addEventListener("change", () =>
+    renderStudents($("#studentSearch").value),
+  );
+});
 $$("[data-jump]").forEach((button) =>
   button.addEventListener("click", () => openTab(button.dataset.jump)),
 );
