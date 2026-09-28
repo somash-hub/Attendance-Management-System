@@ -171,14 +171,29 @@ function renderFaculty() {
 }
 
 function renderCourses() {
-  const active = courses.filter((course) => course.active !== false);
-  $("#courseCards").innerHTML = active
+  const query = ($("#courseSearch")?.value || "").toLowerCase();
+  const programFilter = $("#courseProgramFilter")?.value || "";
+  const semesterFilter = $("#courseSemesterFilter")?.value || "";
+  const statusFilter = $("#courseStatusFilter")?.value || "";
+  const filteredCourses = courses.filter((course) => {
+    const status = course.active === false ? "archived" : "active";
+    return (
+      `${course.code} ${course.name}`.toLowerCase().includes(query) &&
+      (!programFilter || course.program === programFilter) &&
+      (!semesterFilter || String(course.semester) === semesterFilter) &&
+      (!statusFilter || status === statusFilter)
+    );
+  });
+  const visibleCards = filteredCourses.filter(
+    (course) => statusFilter === "archived" || course.active !== false,
+  );
+  $("#courseCards").innerHTML = visibleCards
     .map(
       (course) =>
         `<article class="course-card"><div class="course-code">${h(course.code)}</div><h3>${h(course.name)}</h3><p>${h(course.program)} · Semester ${h(course.semester)}</p><div class="course-meta"><span>${h(course.credits || "—")} credits</span><strong>${h(course.course_type || "theory")}</strong></div><div class="course-meta"><span>${h(course.active === false ? "Archived" : "Active")}</span><span>${h(course.code)}</span></div></article>`,
     )
     .join("");
-  $("#subjectRows").innerHTML = courses
+  $("#subjectRows").innerHTML = filteredCourses
     .map(
       (course) =>
         `<tr><td><strong>${h(course.code)}</strong><small>${h(course.name)}</small></td><td>${h(course.program)}</td><td>${h(course.semester)}</td><td>${h(course.credits || "—")}</td><td>${h(course.course_type || "theory")}</td><td>${statusBadge(course.active === false ? "Archived" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-subject="${h(course.code)}">Edit</button>${course.active !== false ? `<button type="button" data-archive-subject="${h(course.code)}">Archive</button>` : `<button type="button" data-restore-subject="${h(course.code)}">Restore</button>`}</div></td></tr>`,
@@ -1080,6 +1095,12 @@ $("#studentSearch").addEventListener("input", (event) =>
     renderStudents($("#studentSearch").value),
   );
 });
+["#courseSearch", "#courseProgramFilter", "#courseSemesterFilter", "#courseStatusFilter"].forEach(
+  (selector) => {
+    $(selector).addEventListener("input", renderCourses);
+    $(selector).addEventListener("change", renderCourses);
+  },
+);
 $$("[data-jump]").forEach((button) =>
   button.addEventListener("click", () => openTab(button.dataset.jump)),
 );

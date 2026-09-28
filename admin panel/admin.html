@@ -395,6 +395,41 @@
                 </form>
               </div>
               <div class="course-grid" id="courseCards"></div>
+              <div class="filter-row course-filters">
+                <label class="search-box"
+                  >⌕<input
+                    id="courseSearch"
+                    type="search"
+                    placeholder="Search by code or subject name" /></label
+                ><label class="visually-hidden" for="courseProgramFilter"
+                  >Filter courses by program</label
+                ><select id="courseProgramFilter">
+                  <option value="">All programs</option>
+                  <option value="BSc CSIT">BSc CSIT</option>
+                  <option value="BCA">BCA</option>
+                  <option value="BBS">BBS</option>
+                </select
+                ><label class="visually-hidden" for="courseSemesterFilter"
+                  >Filter courses by semester</label
+                ><select id="courseSemesterFilter">
+                  <option value="">All semesters</option>
+                  <option value="1">Semester 1</option>
+                  <option value="2">Semester 2</option>
+                  <option value="3">Semester 3</option>
+                  <option value="4">Semester 4</option>
+                  <option value="5">Semester 5</option>
+                  <option value="6">Semester 6</option>
+                  <option value="7">Semester 7</option>
+                  <option value="8">Semester 8</option>
+                </select
+                ><label class="visually-hidden" for="courseStatusFilter"
+                  >Filter courses by status</label
+                ><select id="courseStatusFilter">
+                  <option value="">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
               <div class="table-wrap subject-table">
                 <table>
                   <thead><tr><th>Subject</th><th>Program</th><th>Semester</th><th>Credits</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
