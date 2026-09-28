@@ -506,7 +506,7 @@
       var value = filters || {};
       return remote(function () {
         var query = client().from("class_schedules")
-          .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, course_offerings!inner(id, subject_code, section_id, teacher_id, status, subjects!inner(code, name), sections!inner(program, batch, name))")
+          .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, course_offerings!inner(id, subject_code, section_id, teacher_id, status, subjects!inner(code, name), sections!course_offerings_section_id_fkey!inner(program, batch, name))")
           .in("course_offering_id", offeringIds)
           .eq("status", "active")
           .order("day_of_week", { ascending: true })
@@ -605,7 +605,7 @@
       if (!offeringIds.length) return success([], "supabase");
       return remote(function () {
         return client().from("class_schedules")
-          .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, course_offerings!inner(id, subject_code, section_id, subjects!inner(code, name), sections!inner(program, batch, name))")
+          .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, course_offerings!inner(id, subject_code, section_id, subjects!inner(code, name), sections!course_offerings_section_id_fkey!inner(program, batch, name))")
           .in("course_offering_id", offeringIds)
           .eq("status", "active")
           .order("day_of_week", { ascending: true })
@@ -871,7 +871,7 @@
     var value = filters || {};
     return remote(function () {
       var query = client().from("course_offerings")
-        .select("id, subject_code, semester_id, section_id, teacher_id, status, created_at, updated_at, subjects!inner(code, name, semester, program, credits, course_type, active), sections!inner(program, batch, name, is_current), semesters!inner(name, number, is_current)")
+        .select("id, subject_code, semester_id, section_id, teacher_id, status, created_at, updated_at, subjects!inner(code, name, semester, program, credits, course_type, active), sections!course_offerings_section_id_fkey!inner(program, batch, name, is_current), semesters!inner(name, number, is_current)")
         .order("subject_code", { ascending: true });
       if (!value.include_archived) query = query.eq("status", "active");
       if (value.semester_id) query = query.eq("semester_id", value.semester_id);
@@ -917,7 +917,7 @@
     var value = filters || {};
     return remote(function () {
       var query = client().from("class_schedules")
-        .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, created_at, updated_at, course_offerings(id, subject_code, section_id, subjects(code, name), sections(program, batch, name))")
+        .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, created_at, updated_at, course_offerings(id, subject_code, section_id, subjects(code, name), sections!course_offerings_section_id_fkey(program, batch, name))")
         .order("day_of_week", { ascending: true })
         .order("start_time", { ascending: true });
       if (!value.include_archived) query = query.eq("status", "active");
@@ -1344,5 +1344,4 @@
   api.uploadLeaveDocument = uploadLeaveDocument;
   root.AttendIQSupabase = api;
 })(typeof window !== "undefined" ? window : globalThis);
-
 
