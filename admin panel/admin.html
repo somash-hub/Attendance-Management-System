@@ -294,9 +294,22 @@
                   >Filter students by program</label
                 ><select id="studentProgramFilter">
                   <option value="">All programs</option>
-                  <option value="BSc CSIT">BSc CSIT</option>
-                  <option value="BCA">BCA</option>
-                  <option value="BBS">BBS</option></select
+                </select
+                ><label class="visually-hidden" for="studentBatchFilter"
+                  >Filter students by batch</label
+                ><select id="studentBatchFilter">
+                  <option value="">All batches</option>
+                </select
+                ><label class="visually-hidden" for="studentSemesterFilter"
+                  >Filter students by semester</label
+                ><select id="studentSemesterFilter">
+                  <option value="">All semesters</option>
+                </select
+                ><label class="visually-hidden" for="studentSectionFilter"
+                  >Filter students by section</label
+                ><select id="studentSectionFilter">
+                  <option value="">All sections</option>
+                </select
                 ><label class="visually-hidden" for="studentStatusFilter"
                   >Filter students by status</label
                 ><select id="studentStatusFilter">
@@ -312,6 +325,9 @@
                       <th>Student</th>
                       <th>Roll number</th>
                       <th>Program</th>
+                      <th>Batch</th>
+                      <th>Semester</th>
+                      <th>Section</th>
                       <th>Attendance</th>
                       <th>Status</th>
                       <th>Action</th>
@@ -352,6 +368,10 @@
                   ＋ Add faculty
                 </button>
               </div>
+              <div class="file-tabs" role="tablist" aria-label="Faculty management views">
+                <button class="file-tab active" type="button" role="tab" aria-selected="true" aria-controls="facultyDirectoryView" data-faculty-view="directory">Directory</button>
+                <button class="file-tab" type="button" role="tab" aria-selected="false" aria-controls="facultyAssignmentsView" data-faculty-view="assignments">Teaching Assignments</button>
+              </div>
               <div class="faculty-editor" id="facultyEditor" hidden>
                 <div class="card-heading">
                   <div>
@@ -372,6 +392,14 @@
                   <div class="faculty-form-actions"><button class="button button-primary" id="facultySave" type="submit">Create faculty</button><button class="button button-secondary" id="facultyCancel" type="button">Cancel</button></div>
                 </form>
               </div>
+              <div id="facultyDirectoryView" class="faculty-view" role="tabpanel">
+              <div class="filter-row faculty-filters">
+                <label class="search-box">⌕<input id="facultySearch" type="search" placeholder="Search by name, email, or faculty ID" /></label>
+                <select id="facultyDepartmentFilter" aria-label="Filter faculty by department"><option value="">All departments</option></select>
+                <select id="facultyProgramFilter" aria-label="Filter faculty by program"><option value="">All programs</option></select>
+                <select id="facultyDesignationFilter" aria-label="Filter faculty by designation"><option value="">All designations</option></select>
+                <select id="facultyStatusFilter" aria-label="Filter faculty by status"><option value="">All statuses</option><option value="active">Active</option><option value="on_leave">On leave</option></select>
+              </div>
               <div class="table-wrap">
                 <table>
                   <thead>
@@ -387,6 +415,16 @@
                   </thead>
                   <tbody id="facultyRows"></tbody>
                 </table>
+              </div>
+              </div>
+              <div id="facultyAssignmentsView" class="faculty-view" role="tabpanel" hidden>
+                <div class="assignment-intro"><p>Every active or archived course offering is shown as a separate assignment, so one teacher can appear on multiple rows.</p></div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Teacher</th><th>Program</th><th>Batch</th><th>Semester</th><th>Section</th><th>Subject</th><th>Status</th></tr></thead>
+                    <tbody id="facultyAssignmentRows"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </section>

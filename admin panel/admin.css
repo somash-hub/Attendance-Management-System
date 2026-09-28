@@ -340,6 +340,19 @@ h1 {
 .student-view[hidden] {
   display: none;
 }
+.faculty-view[hidden] {
+  display: none;
+}
+.assignment-intro {
+  color: var(--muted);
+  font-size: 11px;
+  margin: -8px 0 14px;
+}
+.empty-state {
+  color: var(--muted);
+  padding: 28px 10px;
+  text-align: center;
+}
 .user-list-filter {
   justify-content: flex-end;
   margin: 12px 0;
@@ -697,6 +710,12 @@ h1 {
   color: var(--ink);
   font-size: 11px;
   padding: 8px 10px;
+}
+.faculty-filters {
+  flex-wrap: wrap;
+}
+.faculty-filters select {
+  min-width: 145px;
 }
 .table-wrap {
   overflow-x: auto;

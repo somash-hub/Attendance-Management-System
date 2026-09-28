@@ -143,31 +143,80 @@ function statusBadge(status) {
 function renderStudents(query = "") {
   const normalized = query.toLowerCase();
   const programFilter = $("#studentProgramFilter")?.value || "";
+  const batchFilter = $("#studentBatchFilter")?.value || "";
+  const semesterFilter = $("#studentSemesterFilter")?.value || "";
+  const sectionFilter = $("#studentSectionFilter")?.value || "";
   const statusFilter = $("#studentStatusFilter")?.value || "";
-  $("#studentRows").innerHTML = students
+  const rows = students
     .filter((student) => {
       const warned = student.attendance < settings.threshold;
       const status = warned ? "Warned" : "Active";
+      const section = currentSections.find((item) => item.id === student.section_id);
+      const batch = student.batch || section?.batch || "";
+      const semester = currentSemesters.find((item) => item.id === section?.semester_id);
+      const semesterValue = String(semester?.number || semester?.name || student.semester || "");
+      const sectionName = student.section || section?.name || "";
       return (
-        `${student.name} ${student.roll}`.toLowerCase().includes(normalized) &&
+        `${student.name} ${student.roll} ${student.email || ""}`.toLowerCase().includes(normalized) &&
         (!programFilter || student.dept === programFilter) &&
+        (!batchFilter || batch === batchFilter) &&
+        (!semesterFilter || semesterValue === semesterFilter) &&
+        (!sectionFilter || sectionName === sectionFilter) &&
         (!statusFilter || status === statusFilter)
       );
     })
     .map((student) => {
       // The warned status is derived from the administrator's threshold.
       const warned = student.attendance < settings.threshold;
-      return `<tr><td><strong>${h(student.name)}</strong><small>${h(student.email)}</small></td><td class="mono">${h(student.roll)}</td><td>${h(student.dept)}</td><td><strong class="${warned ? "danger-text" : ""}">${h(student.attendance)}%</strong></td><td>${statusBadge(warned ? "Warned" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-student="${h(student.id)}">Edit</button><button type="button" data-archive-student="${h(student.id)}">Archive</button></div></td></tr>`;
+      const section = currentSections.find((item) => item.id === student.section_id);
+      const semester = currentSemesters.find((item) => item.id === section?.semester_id);
+      return `<tr><td><strong>${h(student.name)}</strong><small>${h(student.email)}</small></td><td class="mono">${h(student.roll)}</td><td>${h(student.dept)}</td><td>${h(student.batch || section?.batch || "—")}</td><td>${h(semester?.name || student.semester || "—")}</td><td>${h(student.section || section?.name || "—")}</td><td><strong class="${warned ? "danger-text" : ""}">${h(student.attendance)}%</strong></td><td>${statusBadge(warned ? "Warned" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-student="${h(student.id)}">Edit</button><button type="button" data-archive-student="${h(student.id)}">Archive</button></div></td></tr>`;
     })
     .join("");
+  $("#studentRows").innerHTML = rows || `<tr><td colspan="10" class="empty-state">No students match the selected filters.</td></tr>`;
+}
+
+function setFilterOptions(selector, values, label) {
+  const select = $(selector);
+  if (!select) return;
+  const previous = select.value;
+  select.innerHTML = `<option value="">${h(label)}</option>` +
+    [...new Set(values.filter(Boolean).map(String))].sort((a, b) => a.localeCompare(b)).map((value) => `<option value="${h(value)}">${h(value)}</option>`).join("");
+  select.value = values.map(String).includes(previous) ? previous : "";
 }
 
 function renderFaculty() {
-  $("#facultyRows").innerHTML = faculty
+  setFilterOptions("#facultyDepartmentFilter", faculty.map((member) => member.department), "All departments");
+  setFilterOptions("#facultyProgramFilter", faculty.map((member) => member.program), "All programs");
+  setFilterOptions("#facultyDesignationFilter", faculty.map((member) => member.designation), "All designations");
+  const query = ($("#facultySearch")?.value || "").toLowerCase();
+  const department = $("#facultyDepartmentFilter")?.value || "";
+  const program = $("#facultyProgramFilter")?.value || "";
+  const designation = $("#facultyDesignationFilter")?.value || "";
+  const status = $("#facultyStatusFilter")?.value || "";
+  const visibleFaculty = faculty.filter((member) =>
+    `${member.name} ${member.email || ""} ${member.faculty_id || ""}`.toLowerCase().includes(query) &&
+    (!department || member.department === department) &&
+    (!program || member.program === program) &&
+    (!designation || member.designation === designation) &&
+    (!status || member.status === status)
+  );
+  $("#facultyRows").innerHTML = visibleFaculty
     .map((member) =>
       `<tr><td><strong>${h(member.name)}</strong><small>${h(member.email || "")}</small></td><td class="mono">${h(member.faculty_id)}</td><td>${h(member.department)}</td><td>${h(member.designation || "—")}</td><td>${h(member.program)}</td><td>${statusBadge(member.status === "on_leave" ? "On leave" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-faculty="${h(member.id)}">Edit</button><button type="button" data-archive-faculty="${h(member.id)}">Archive</button></div></td></tr>`,
     )
-    .join("");
+    .join("") || `<tr><td colspan="7" class="empty-state">No faculty members match the selected filters.</td></tr>`;
+  renderFacultyAssignments();
+}
+
+function renderFacultyAssignments() {
+  const rows = offerings.map((offering) => {
+    const subject = offeringSubject(offering) || {};
+    const section = offeringSection(offering) || {};
+    const semester = offeringSemester(offering) || currentSemesters.find((item) => item.id === offering.semester_id);
+    return `<tr><td>${h(offeringTeacherName(offering))}</td><td>${h(section.program || subject.program || "—")}</td><td>${h(section.batch || "—")}</td><td>${h(semester?.name || semester?.number || "—")}</td><td>${h(section.name || "—")}</td><td><strong>${h(subject.code || offering.subject_code || "—")}</strong><small>${h(subject.name || "")}</small></td><td>${statusBadge(offering.status === "archived" ? "Archived" : "Active")}</td></tr>`;
+  });
+  $("#facultyAssignmentRows").innerHTML = rows.join("") || `<tr><td colspan="7" class="empty-state">No teaching assignments are available.</td></tr>`;
 }
 
 function renderCourses() {
@@ -222,6 +271,7 @@ function loadAdminCourses() {
     currentSections = sectionsResult.data;
     renderCourses();
     renderOfferings();
+    renderFacultyAssignments();
     renderAdminMetrics();
     return Promise.all([
       AttendIQSupabase.getAcademicYears(),
@@ -504,6 +554,8 @@ function loadAdminStudents() {
     });
     students = studentsResult.data.map(function (student) {
       const entry = totals[student.id] || { total: 0, present: 0 };
+      const enrollment = (student.enrollments || []).find((row) => row.status === "active") || student.enrollments?.[0];
+      const section = currentSections.find((item) => item.id === enrollment?.section_id);
       return {
         id: student.id,
         name: student.name,
@@ -511,11 +563,19 @@ function loadAdminStudents() {
         roll: student.roll,
         dept: student.program,
         batch: student.batch,
-        section: student.section,
-        section_id: student.enrollments && student.enrollments[0] ? student.enrollments[0].section_id : "",
+        section: student.section || section?.name || "",
+        section_id: enrollment ? enrollment.section_id : "",
+        semester: currentSemesters.find((item) => item.id === section?.semester_id)?.number || "",
         attendance: entry.total ? Math.round((entry.present / entry.total) * 100) : 0,
       };
     });
+    setFilterOptions("#studentProgramFilter", students.map((student) => student.dept), "All programs");
+    setFilterOptions("#studentBatchFilter", students.map((student) => student.batch || currentSections.find((section) => section.id === student.section_id)?.batch), "All batches");
+    setFilterOptions("#studentSemesterFilter", students.map((student) => {
+      const semester = currentSemesters.find((item) => item.number === Number(student.semester));
+      return semester ? String(semester.number) : student.semester;
+    }), "All semesters");
+    setFilterOptions("#studentSectionFilter", students.map((student) => student.section), "All sections");
     renderStudents();
     renderThreshold();
     renderAdminMetrics();
@@ -529,9 +589,21 @@ function loadAdminFaculty() {
       showToast(result.error);
       return;
     }
+
     faculty = result.data;
     renderFaculty();
     renderAdminMetrics();
+  });
+}
+
+function setFacultyView(view) {
+  const directory = view === "directory";
+  $("#facultyDirectoryView").hidden = !directory;
+  $("#facultyAssignmentsView").hidden = directory;
+  $$("[data-faculty-view]").forEach((tab) => {
+    const active = tab.dataset.facultyView === view;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", String(active));
   });
 }
 
@@ -639,6 +711,9 @@ function setStudentView(view) {
 
 $$("[data-student-view]").forEach((tab) =>
   tab.addEventListener("click", () => setStudentView(tab.dataset.studentView)),
+);
+$$("[data-faculty-view]").forEach((tab) =>
+  tab.addEventListener("click", () => setFacultyView(tab.dataset.facultyView)),
 );
 
 // Load the account list through the shared adapter.
@@ -1110,10 +1185,14 @@ $("#menuButton").addEventListener("click", () => {
 $("#studentSearch").addEventListener("input", (event) =>
   renderStudents(event.target.value),
 );
-["#studentProgramFilter", "#studentStatusFilter"].forEach((selector) => {
+["#studentProgramFilter", "#studentBatchFilter", "#studentSemesterFilter", "#studentSectionFilter", "#studentStatusFilter"].forEach((selector) => {
   $(selector).addEventListener("change", () =>
     renderStudents($("#studentSearch").value),
   );
+});
+["#facultySearch", "#facultyDepartmentFilter", "#facultyProgramFilter", "#facultyDesignationFilter", "#facultyStatusFilter"].forEach((selector) => {
+  $(selector).addEventListener("input", renderFaculty);
+  $(selector).addEventListener("change", renderFaculty);
 });
 ["#courseSearch", "#courseProgramFilter", "#courseSemesterFilter", "#courseStatusFilter"].forEach(
   (selector) => {
