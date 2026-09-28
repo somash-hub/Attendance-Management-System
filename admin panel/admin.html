@@ -444,6 +444,11 @@
                   Assign teacher
                 </button>
               </div>
+              <div class="file-tabs" role="tablist" aria-label="Course management views">
+                <button class="file-tab active" type="button" role="tab" aria-selected="true" aria-controls="courseSubjectsView" data-course-view="subjects">Subject Catalog</button>
+                <button class="file-tab" type="button" role="tab" aria-selected="false" aria-controls="courseOfferingsView" data-course-view="offerings">Course Offerings</button>
+              </div>
+              <div id="courseSubjectsView" class="course-view" role="tabpanel">
               <div class="subsection-heading">
                 <h3>Subject catalog</h3>
                 <p>Maintain subjects and their academic details.</p>
@@ -508,6 +513,8 @@
                   <tbody id="subjectRows"></tbody>
                 </table>
               </div>
+              </div>
+              <div id="courseOfferingsView" class="course-view" role="tabpanel" hidden>
               <div class="subsection-heading offering-heading">
                 <h3>Course offerings</h3>
                 <p>Assign subjects to sections and teaching staff.</p>
@@ -534,6 +541,7 @@
                   <thead><tr><th>Subject</th><th>Section</th><th>Teacher</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody id="offeringRows"></tbody>
                 </table>
+              </div>
               </div>
             </div>
           </section>

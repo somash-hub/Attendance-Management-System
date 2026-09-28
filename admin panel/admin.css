@@ -343,6 +343,9 @@ h1 {
 .faculty-view[hidden] {
   display: none;
 }
+.course-view[hidden] {
+  display: none;
+}
 .assignment-intro {
   color: var(--muted);
   font-size: 11px;

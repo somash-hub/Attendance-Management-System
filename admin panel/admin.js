@@ -5,6 +5,17 @@ AttendIQSupabase.getCurrentProfile().then(function (result) {
     location.replace("../login/login.html");
     return;
   }
+
+  function setCourseView(view) {
+    const subjects = view === "subjects";
+    $("#courseSubjectsView").hidden = !subjects;
+    $("#courseOfferingsView").hidden = subjects;
+    $$("[data-course-view]").forEach((tab) => {
+      const active = tab.dataset.courseView === view;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", String(active));
+    });
+  }
   const session = result.data;
   if (session.role !== PORTAL_ROLE) {
     const destination = AttendIQ.ROLE_PANELS[session.role];
@@ -715,6 +726,9 @@ $$("[data-student-view]").forEach((tab) =>
 $$("[data-faculty-view]").forEach((tab) =>
   tab.addEventListener("click", () => setFacultyView(tab.dataset.facultyView)),
 );
+$$("[data-course-view]").forEach((tab) =>
+  tab.addEventListener("click", () => setCourseView(tab.dataset.courseView)),
+);
 
 // Load the account list through the shared adapter.
 function loadUsers() {
@@ -1231,6 +1245,7 @@ document.addEventListener("click", async (event) => {
     }
     if (target === "offering") {
       openTab("courses");
+      setCourseView("offerings");
       openOfferingEditor();
     }
     if (target === "course") {
