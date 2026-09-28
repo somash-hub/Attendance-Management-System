@@ -6,16 +6,6 @@ AttendIQSupabase.getCurrentProfile().then(function (result) {
     return;
   }
 
-  function setCourseView(view) {
-    const subjects = view === "subjects";
-    $("#courseSubjectsView").hidden = !subjects;
-    $("#courseOfferingsView").hidden = subjects;
-    $$("[data-course-view]").forEach((tab) => {
-      const active = tab.dataset.courseView === view;
-      tab.classList.toggle("active", active);
-      tab.setAttribute("aria-selected", String(active));
-    });
-  }
   const session = result.data;
   if (session.role !== PORTAL_ROLE) {
     const destination = AttendIQ.ROLE_PANELS[session.role];
@@ -720,6 +710,19 @@ function setStudentView(view) {
   if (!directory) loadEnrollmentStudents();
 }
 
+function setCourseView(view) {
+  const subjects = view === "subjects";
+  const offeringsView = view === "offerings";
+  $("#courseSubjectsView").hidden = !subjects;
+  $("#courseOfferingsView").hidden = !offeringsView;
+  $("#courseSchedulesView").hidden = view !== "schedules";
+  $$("[data-course-view]").forEach((tab) => {
+    const active = tab.dataset.courseView === view;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", String(active));
+  });
+}
+
 $$("[data-student-view]").forEach((tab) =>
   tab.addEventListener("click", () => setStudentView(tab.dataset.studentView)),
 );
@@ -1258,7 +1261,8 @@ document.addEventListener("click", async (event) => {
       return;
     }
     if (target === "schedule") {
-      openTab("settings");
+      openTab("courses");
+      setCourseView("schedules");
       openScheduleEditor();
       return;
     }

@@ -447,6 +447,7 @@
               <div class="file-tabs" role="tablist" aria-label="Course management views">
                 <button class="file-tab active" type="button" role="tab" aria-selected="true" aria-controls="courseSubjectsView" data-course-view="subjects">Subject Catalog</button>
                 <button class="file-tab" type="button" role="tab" aria-selected="false" aria-controls="courseOfferingsView" data-course-view="offerings">Course Offerings</button>
+                <button class="file-tab" type="button" role="tab" aria-selected="false" aria-controls="courseSchedulesView" data-course-view="schedules">Class Schedules</button>
               </div>
               <div id="courseSubjectsView" class="course-view" role="tabpanel">
               <div class="subsection-heading">
@@ -524,6 +525,36 @@
                   <div>
                     <h2 id="offeringFormTitle">Assign course offering</h2>
                     <p id="offeringFormCopy">Connect a subject to a section and assign its teacher.</p>
+                  </div>
+                  <div id="courseSchedulesView" class="course-view" role="tabpanel" hidden>
+                    <div class="subsection-heading">
+                      <h3>Class schedules</h3>
+                      <p>Assign weekly times, rooms, and status to active course offerings.</p>
+                    </div>
+                    <div class="student-editor" id="scheduleEditor" hidden>
+                      <div class="card-heading">
+                        <div>
+                          <h2 id="scheduleFormTitle">Add class schedule</h2>
+                          <p id="scheduleFormCopy">Create a recurring weekly class slot.</p>
+                        </div>
+                      </div>
+                      <form id="scheduleForm" class="date-grid student-form">
+                        <input id="scheduleId" type="hidden" />
+                        <label>Course offering<select id="scheduleOffering" required></select></label>
+                        <label>Weekday<select id="scheduleDay" required><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select></label>
+                        <label>Start time<input id="scheduleStart" type="time" required /></label>
+                        <label>End time<input id="scheduleEnd" type="time" required /></label>
+                        <label>Room<input id="scheduleRoom" type="text" placeholder="e.g. A-201" /></label>
+                        <label>Status<select id="scheduleStatus" required><option value="active">Active</option><option value="archived">Archived</option></select></label>
+                        <div class="student-form-actions"><button class="button button-primary" id="scheduleSave" type="submit">Create schedule</button><button class="button button-secondary" id="scheduleCancel" type="button">Cancel</button></div>
+                      </form>
+                    </div>
+                    <div class="table-wrap class-schedule-table">
+                      <table>
+                        <thead><tr><th>Subject</th><th>Section</th><th>Day and time</th><th>Room</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="scheduleRows"></tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
                 <form id="offeringForm" class="date-grid student-form">
@@ -727,39 +758,6 @@
                   <table>
                     <thead><tr><th>Event</th><th>Type</th><th>Dates</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody id="eventRows"></tbody>
-                  </table>
-                </div>
-              </article>
-              <article class="card settings-card">
-                <div class="card-heading">
-                  <div>
-                    <h2>Class Schedule</h2>
-                    <p>Assign weekly class times to active course offerings.</p>
-                  </div>
-                  <button class="button button-secondary" type="button" data-action="schedule">＋ Add schedule</button>
-                </div>
-                <div class="student-editor" id="scheduleEditor" hidden>
-                  <div class="card-heading">
-                    <div>
-                      <h2 id="scheduleFormTitle">Add class schedule</h2>
-                      <p id="scheduleFormCopy">Create a recurring weekly class slot.</p>
-                    </div>
-                  </div>
-                  <form id="scheduleForm" class="date-grid student-form">
-                    <input id="scheduleId" type="hidden" />
-                    <label>Course offering<select id="scheduleOffering" required></select></label>
-                    <label>Weekday<select id="scheduleDay" required><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select></label>
-                    <label>Start time<input id="scheduleStart" type="time" required /></label>
-                    <label>End time<input id="scheduleEnd" type="time" required /></label>
-                    <label>Room<input id="scheduleRoom" type="text" placeholder="e.g. A-201" /></label>
-                    <label>Status<select id="scheduleStatus" required><option value="active">Active</option><option value="archived">Archived</option></select></label>
-                    <div class="student-form-actions"><button class="button button-primary" id="scheduleSave" type="submit">Create schedule</button><button class="button button-secondary" id="scheduleCancel" type="button">Cancel</button></div>
-                  </form>
-                </div>
-                <div class="table-wrap class-schedule-table">
-                  <table>
-                    <thead><tr><th>Subject</th><th>Section</th><th>Day and time</th><th>Room</th><th>Status</th><th>Actions</th></tr></thead>
-                    <tbody id="scheduleRows"></tbody>
                   </table>
                 </div>
               </article>
