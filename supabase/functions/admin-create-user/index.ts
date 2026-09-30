@@ -128,8 +128,9 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Resolve a selected section before creating Auth so invalid enrollment data
-  // cannot leave behind an unusable account.
+  // A section is only an enrollment hint. Older clients may submit a default
+  // section that does not match the student's program or batch; create the
+  // student without enrollment rather than rejecting account creation.
   let currentSectionId = sectionId;
   if (role === "student" && (sectionId || section)) {
     let sectionQuery = admin
@@ -144,10 +145,12 @@ Deno.serve(async (req) => {
     const { data: sections, error: sectionError } = await sectionQuery;
     if (sectionError) return json(req, { error: sectionError.message }, 400);
     if (!sections || !sections.length) {
-      return json(req, { error: "No current section matches this program and batch." }, 400);
+      currentSectionId = "";
+      section = "";
+    } else {
+      currentSectionId = sections[0].id;
+      section = sections[0].name;
     }
-    currentSectionId = sections[0].id;
-    section = sections[0].name;
   }
 
   // Create the login account (auto-confirmed because the admin vouches for it).
