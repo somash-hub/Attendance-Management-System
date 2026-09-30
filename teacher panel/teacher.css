@@ -485,10 +485,6 @@ h2 {
   justify-content: space-between;
   padding: 13px 20px;
 }
-.leave-row.leave-approved,
-.leave-row.leave-cancelled {
-  background: #ecfdf5;
-}
 .student-avatar {
   flex-shrink: 0;
   height: 30px;

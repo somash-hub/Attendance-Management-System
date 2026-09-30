@@ -790,20 +790,65 @@
       </div>
     </div>
     <div class="toast" id="toast" role="status"></div>
-    <dialog id="resetDialog" class="modal-dialog">
-      <form id="resetForm" method="dialog">
-        <div class="card-heading">
+    <dialog
+      id="resetDialog"
+      class="reset-dialog"
+      aria-labelledby="resetTitle"
+      aria-describedby="resetDescription"
+    >
+      <form id="resetForm" class="reset-form" method="dialog">
+        <div class="reset-heading">
+          <span class="reset-icon" aria-hidden="true">!</span>
           <div>
-            <h2>Confirm application reset</h2>
-            <p>Re-authenticate the currently signed-in administrator. Your password is sent only to Supabase Auth, never to the reset function.</p>
+            <p class="reset-eyebrow">Danger zone</p>
+            <h2 id="resetTitle">Reset application data?</h2>
+            <p id="resetDescription">
+              This permanently deletes live application records and preserves
+              the three documented demo accounts.
+            </p>
           </div>
         </div>
-        <label>Signed-in administrator email<input id="resetEmail" type="email" autocomplete="username" readonly required /><small>Must match the account currently signed in to this Admin Portal.</small></label>
-        <label>Administrator password<input id="resetPassword" type="password" autocomplete="current-password" required /></label>
-        <label>Type RESET to confirm<input id="resetConfirmation" type="text" required /></label>
-        <div class="student-form-actions">
-          <button class="button button-primary" type="submit">Wipe application data</button>
-          <button class="button button-secondary" id="resetCancel" type="button">Cancel</button>
+        <div class="reset-warning">
+          <strong>This action cannot be undone.</strong>
+          <span>Confirm your administrator account and type RESET to continue.</span>
+        </div>
+        <label
+          >Administrator email
+          <input
+            id="resetEmail"
+            type="email"
+            autocomplete="username"
+            readonly
+            required
+          />
+          <small>Must match the account currently signed in to this Admin Portal.</small>
+        </label>
+        <label
+          >Administrator password
+          <input
+            id="resetPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </label>
+        <label
+          >Type RESET to confirm
+          <input
+            id="resetConfirmation"
+            type="text"
+            autocomplete="off"
+            placeholder="RESET"
+            required
+          />
+        </label>
+        <div class="reset-actions">
+          <button class="button button-secondary" id="resetCancel" type="button">
+            Cancel
+          </button>
+          <button class="button button-danger" type="submit">
+            Reset application
+          </button>
         </div>
       </form>
     </dialog>
