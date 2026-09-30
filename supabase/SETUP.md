@@ -4,10 +4,11 @@ Project reference: `yvvgvteijtxnuwtncfio`
 Everything in this folder is **re-runnable** — the schema drops and recreates
 its named policies before enabling them, so policy changes can be applied
 again safely. The hosted project has migrations through
-`20260930000400_assign_semester_per_student.sql` applied, and the
+`20261001000100_require_teacher_for_class_schedule.sql` applied, and the
 `admin-create-user` Edge Function has been redeployed to require and store each
-student's semester. Remote schema lint last passed before migration 004; the
-latest migration was verified against the hosted schema and data.
+student's semester. The latest schedule migration is installed on the hosted
+database and its admin-only RPC signature, permission, and teacher-assignment
+guard were verified.
 
 ## 1. Create the three demo accounts
 
@@ -47,6 +48,7 @@ Apply the migrations in order from `supabase/migrations/`:
 17. `20260930000200_use_program_and_current_semester.sql`
 18. `20260930000300_fix_current_semester_rpc_lint.sql`
 19. `20260930000400_assign_semester_per_student.sql`
+20. `20261001000100_require_teacher_for_class_schedule.sql`
 
 Use separate SQL Editor queries, or paste them in order and run each query.
 
@@ -78,6 +80,8 @@ It creates:
   semester from 1-8. All eight semester offerings in the active year can be
   assigned, and new years are created when selected in Settings. Initial
   year/semester date bounds span the whole Gregorian year.
+- Migration `20261001000100` requires an active, teacher-assigned course
+  offering when creating a class schedule.
 - Administrator student CRUD RPCs support editing and archiving students while
   preserving attendance and leave history; the local semester-model migration
   archives existing enrollments without deleting them
@@ -89,9 +93,12 @@ It creates:
   course-offering references
 - Course offerings are shared by students matching the program and individual
   semester; section enrollment operations are no longer used for current access
-- Administrator academic-calendar events and recurring class schedules are
-  managed in **Settings**; archive/restore preserves their history and does not
-  delete attendance records
+- Class schedules are created from **Course Management → Class Schedules**
+  using a teacher-assigned course, weekday, start/end time, and optional room.
+  The database admin RPC validates the offering and time range.
+- Administrator academic-calendar events are managed in **Settings**;
+  schedules can be edited, archived, or restored without deleting attendance
+  records.
 - The adapter scopes teacher and student reads to active-year semester
   offerings, program rosters, attendance, and leave requests
 - Phase 5 adds scheduled attendance sessions with teacher-assignment checks,

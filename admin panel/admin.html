@@ -493,62 +493,64 @@
               </div>
               </div>
               <div id="courseOfferingsView" class="course-view" role="tabpanel" hidden>
-              <div class="subsection-heading offering-heading">
-                <h3>Course offerings</h3>
-                <p>Assign subjects and teachers by program and semester.</p>
-              </div>
-              <div class="student-editor" id="offeringEditor" hidden>
-                <div class="card-heading">
-                  <div>
-                    <h2 id="offeringFormTitle">Assign course offering</h2>
-                    <p id="offeringFormCopy">Connect a subject and teacher for a semester.</p>
+                  <div class="subsection-heading offering-heading">
+                    <h3>Course offerings</h3>
+                    <p>Assign subjects and teachers by program and semester.</p>
                   </div>
-                  <div id="courseSchedulesView" class="course-view" role="tabpanel" hidden>
-                    <div class="subsection-heading">
-                      <h3>Class schedules</h3>
-                      <p>Assign weekly times, rooms, and status to active course offerings.</p>
-                    </div>
-                    <div class="student-editor" id="scheduleEditor" hidden>
-                      <div class="card-heading">
-                        <div>
-                          <h2 id="scheduleFormTitle">Add class schedule</h2>
-                          <p id="scheduleFormCopy">Create a recurring weekly class slot.</p>
-                        </div>
+                  <div class="student-editor" id="offeringEditor" hidden>
+                    <div class="card-heading">
+                      <div>
+                        <h2 id="offeringFormTitle">Assign course offering</h2>
+                        <p id="offeringFormCopy">Connect a subject and teacher for a semester.</p>
                       </div>
-                      <form id="scheduleForm" class="date-grid student-form">
-                        <input id="scheduleId" type="hidden" />
-                        <label>Course offering<select id="scheduleOffering" required></select></label>
-                        <label>Weekday<select id="scheduleDay" required><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select></label>
-                        <label>Start time<input id="scheduleStart" type="time" required /></label>
-                        <label>End time<input id="scheduleEnd" type="time" required /></label>
-                        <label>Room<input id="scheduleRoom" type="text" placeholder="e.g. A-201" /></label>
-                        <label>Status<select id="scheduleStatus" required><option value="active">Active</option><option value="archived">Archived</option></select></label>
-                        <div class="student-form-actions"><button class="button button-primary" id="scheduleSave" type="submit">Create schedule</button><button class="button button-secondary" id="scheduleCancel" type="button">Cancel</button></div>
-                      </form>
                     </div>
-                    <div class="table-wrap class-schedule-table">
-                      <table>
-                        <thead><tr><th>Subject</th><th>Semester</th><th>Day and time</th><th>Room</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody id="scheduleRows"></tbody>
-                      </table>
-                    </div>
+                    <form id="offeringForm" class="date-grid student-form">
+                      <input id="offeringId" type="hidden" />
+                      <label>Subject<select id="offeringSubject" required></select></label>
+                      <label>Semester<input id="offeringSemester" type="number" min="1" max="8" step="1" placeholder="1-8" required /><small>Enter a semester number from 1 to 8.</small></label>
+                      <label>Teacher<select id="offeringTeacher" required></select><small id="offeringTeacherWorkload" class="field-hint">Select a teacher to view their current assignments.</small></label>
+                      <label>Status<select id="offeringStatus" required><option value="active">Active</option><option value="archived">Archived</option></select></label>
+                      <div class="student-form-actions"><button class="button button-primary" id="offeringSave" type="submit">Create offering</button><button class="button button-secondary" id="offeringCancel" type="button">Cancel</button></div>
+                    </form>
                   </div>
-                </div>
-                <form id="offeringForm" class="date-grid student-form">
-                  <input id="offeringId" type="hidden" />
-                  <label>Subject<select id="offeringSubject" required></select></label>
-                  <label>Semester<input id="offeringSemester" type="number" min="1" max="8" step="1" placeholder="1-8" required /><small>Enter a semester number from 1 to 8.</small></label>
-                  <label>Teacher<select id="offeringTeacher" required></select><small id="offeringTeacherWorkload" class="field-hint">Select a teacher to view their current assignments.</small></label>
-                  <label>Status<select id="offeringStatus" required><option value="active">Active</option><option value="archived">Archived</option></select></label>
-                  <div class="student-form-actions"><button class="button button-primary" id="offeringSave" type="submit">Create offering</button><button class="button button-secondary" id="offeringCancel" type="button">Cancel</button></div>
-                </form>
+                  <div class="table-wrap offering-table">
+                    <table>
+                      <thead><tr><th>Subject</th><th>Semester</th><th>Teacher</th><th>Status</th><th>Actions</th></tr></thead>
+                      <tbody id="offeringRows"></tbody>
+                    </table>
+                  </div>
               </div>
-              <div class="table-wrap offering-table">
-                <table>
-                  <thead><tr><th>Subject</th><th>Semester</th><th>Teacher</th><th>Status</th><th>Actions</th></tr></thead>
-                  <tbody id="offeringRows"></tbody>
-                </table>
-              </div>
+              <div id="courseSchedulesView" class="course-view" role="tabpanel" hidden>
+                  <div class="toolbar schedule-toolbar">
+                    <div>
+                      <h3>Class schedules</h3>
+                      <p>Choose an assigned course, weekday, and class time.</p>
+                    </div>
+                    <button class="button button-primary" type="button" data-action="schedule">＋ Add schedule</button>
+                  </div>
+                  <div class="student-editor" id="scheduleEditor" hidden>
+                    <div class="card-heading">
+                      <div>
+                        <h2 id="scheduleFormTitle">Add class schedule</h2>
+                        <p id="scheduleFormCopy">Select a course with an assigned teacher and set its weekly time.</p>
+                      </div>
+                    </div>
+                    <form id="scheduleForm" class="date-grid student-form">
+                      <input id="scheduleId" type="hidden" />
+                      <label>Course and teacher<select id="scheduleOffering" required></select></label>
+                      <label>Weekday<select id="scheduleDay" required><option value="">Choose weekday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select></label>
+                      <label>Start time<input id="scheduleStart" type="time" required /></label>
+                      <label>End time<input id="scheduleEnd" type="time" required /></label>
+                      <label>Room <span class="field-hint">(optional)</span><input id="scheduleRoom" type="text" placeholder="e.g. A-201" /></label>
+                      <div class="student-form-actions"><button class="button button-primary" id="scheduleSave" type="submit">Create schedule</button><button class="button button-secondary" id="scheduleCancel" type="button">Cancel</button></div>
+                    </form>
+                  </div>
+                  <div class="table-wrap class-schedule-table">
+                    <table>
+                      <thead><tr><th>Course</th><th>Teacher</th><th>Semester</th><th>Day and time</th><th>Room</th><th>Status</th><th>Actions</th></tr></thead>
+                      <tbody id="scheduleRows"></tbody>
+                    </table>
+                  </div>
               </div>
             </div>
           </section>

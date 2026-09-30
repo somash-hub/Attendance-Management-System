@@ -60,6 +60,9 @@ plain HTML, CSS, and JavaScript.
   attendance, and leave requests
 - Scheduled attendance sessions with relationship-scoped RLS, atomic session
   attendance saving, and a separate lint-correction migration
+- Administrator class schedules are managed from a dedicated schedule view with
+  only course/teacher, weekday, start/end time, and optional room; the database
+  rejects schedules without an active teacher-assigned course
 - Student schedules, leave history, cancellation, reviewer notes, signed document
   links, and database-backed notifications
 - Live student monthly attendance trend and administrator/teacher metrics derived
@@ -71,21 +74,22 @@ plain HTML, CSS, and JavaScript.
 - A password-reset link returns to this login page. Use **Forgot password?** to request
   the email; the recovery screen then updates the password through Supabase Auth.
 - The hosted project has migrations through
-  `20260930000400_assign_semester_per_student.sql` applied. Student records now
-  carry their own Semester 1-8 assignment.
+  `20261001000100_require_teacher_for_class_schedule.sql` applied. Schedule
+  creation is validated by the database and requires a teacher-assigned course.
 
 ## Supabase status
 
 The hosted project `yvvgvteijtxnuwtncfio` has migrations
 `20260930000200_use_program_and_current_semester.sql` and
 `20260930000300_fix_current_semester_rpc_lint.sql` and
-`20260930000400_assign_semester_per_student.sql` applied. They seed Gregorian
-years 2020-2026 and semesters 1-8, with 2026 active and all eight semesters
-available. Administrators select Semester 1-8 separately for each student and
-can create later years in Settings. Initial term date bounds span the whole
-Gregorian year. The live catalog currently contains five BCA Semester 4
-subjects but no course offerings; administrators must create offerings for the
-program and semesters students use. The
+`20260930000400_assign_semester_per_student.sql` and
+`20261001000100_require_teacher_for_class_schedule.sql` applied. They seed
+Gregorian years 2020-2026 and semesters 1-8, with 2026 active and all eight
+semesters available. Administrators select Semester 1-8 separately for each
+student and can create later years in Settings. Initial term date bounds span
+the whole Gregorian year. The live database has six active teacher-assigned
+course offerings and no class schedules yet, so administrators can add the
+weekly meeting times in Course Management → Class Schedules. The
 project includes Phase 1 security, Phase 2 academic relationships, and the
 complete Phase 3 administrator student, faculty, subject, course-offering,
 enrollment, academic-calendar, and class-schedule administration slices. The
@@ -101,9 +105,8 @@ leave history, signed document links, and real monthly attendance trend. Phase 6
 adds server-validated leave overlap protection, reviewer notes/timestamps,
 student cancellation, and notifications. Phase 8 metrics and charts use the
 same current attendance records as the directory/report views. The current
-hosted database currently has no course offerings or active class schedules,
-so administrators must configure offerings and schedules before a teacher can
-open a live session.
+hosted database currently has no active class schedules, so an administrator
+must create one before a teacher can open a live session.
 
 The frontend calls the backend through `shared/supabase-store.js`; a configured
 client never silently falls back to localStorage after a request error. The

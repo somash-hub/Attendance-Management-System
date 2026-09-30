@@ -377,7 +377,7 @@ function scheduleDayName(day) {
 }
 
 function renderClassSchedules() {
-  $("#scheduleRows").innerHTML = classSchedules.map(function (schedule) {
+  const rows = classSchedules.map(function (schedule) {
     const offering = scheduleOffering(schedule) || {};
     const subject = Array.isArray(offering.subjects) ? offering.subjects[0] : offering.subjects || {};
     const semester = Array.isArray(offering.semesters) ? offering.semesters[0] : offering.semesters || {};
@@ -386,8 +386,9 @@ function renderClassSchedules() {
     const actions = manageable
       ? `<button type="button" data-edit-schedule="${h(schedule.id)}">Edit</button>${schedule.status !== "archived" ? `<button type="button" data-archive-schedule="${h(schedule.id)}">Archive</button>` : `<button type="button" data-restore-schedule="${h(schedule.id)}">Restore</button>`}`
       : "";
-    return `<tr><td><strong>${h(subject.code || offering.subject_code || "—")}</strong><small>${h(subject.name || "")}</small></td><td>${h(subject.program || "—")} · ${h(semester.name || "Semester")}</td><td>${h(scheduleDayName(schedule.day_of_week))}<small>${h(schedule.start_time)} – ${h(schedule.end_time)}</small></td><td>${h(schedule.room || "—")}</td><td>${statusBadge(status)}</td><td><div class="student-row-actions">${actions}</div></td></tr>`;
+    return `<tr><td><strong>${h(subject.code || offering.subject_code || "—")}</strong><small>${h(subject.name || "")}</small></td><td>${h(offeringTeacherName(offering))}</td><td>${h(subject.program || "—")} · ${h(semester.name || "Semester")}</td><td>${h(scheduleDayName(schedule.day_of_week))}<small>${h(schedule.start_time)} – ${h(schedule.end_time)}</small></td><td>${h(schedule.room || "—")}</td><td>${statusBadge(status)}</td><td><div class="student-row-actions">${actions}</div></td></tr>`;
   }).join("");
+  $("#scheduleRows").innerHTML = rows || `<tr><td colspan="7" class="empty-state">No class schedules have been added yet.</td></tr>`;
 }
 
 function requestMarkup(request, actions = true) {
@@ -1036,12 +1037,16 @@ $("#eventCancel").addEventListener("click", closeEventEditor);
 function populateScheduleSelectors() {
   const offeringSelect = $("#scheduleOffering");
   const previous = offeringSelect.value;
-  offeringSelect.innerHTML = offerings.filter((offering) =>
-    offering.status !== "archived" && offeringIsInCurrentSemester(offering)
-  ).map((offering) => {
+  const assignedOfferings = offerings.filter((offering) =>
+    offering.status !== "archived" &&
+    offering.teacher_id &&
+    offeringIsInCurrentSemester(offering)
+  );
+  offeringSelect.innerHTML = `<option value="">${assignedOfferings.length ? "Choose course and teacher" : "No active teacher-assigned courses available"}</option>` +
+    assignedOfferings.map((offering) => {
     const subject = offeringSubject(offering) || { code: offering.subject_code, name: "" };
     const semester = offeringSemester(offering) || currentSemesters.find((item) => item.id === offering.semester_id);
-    return `<option value="${h(offering.id)}">${h(subject.code || offering.subject_code)} · ${h(subject.program || "")} · ${h(semester?.name || "Semester")}</option>`;
+    return `<option value="${h(offering.id)}">${h(subject.code || offering.subject_code)} · ${h(offeringTeacherName(offering))} · ${h(semester?.name || "Semester")}</option>`;
   }).join("");
   if (previous) offeringSelect.value = previous;
 }
@@ -1053,24 +1058,30 @@ function openScheduleEditor(schedule) {
   form.reset();
   $("#scheduleId").value = schedule ? schedule.id : "";
   $("#scheduleFormTitle").textContent = schedule ? "Edit class schedule" : "Add class schedule";
-  $("#scheduleFormCopy").textContent = schedule ? "Update the weekly class slot." : "Create a recurring weekly class slot.";
+  $("#scheduleFormCopy").textContent = schedule ? "Update the weekly class time and room." : "Select a course with an assigned teacher and set its weekly time.";
   $("#scheduleSave").textContent = schedule ? "Save schedule" : "Create schedule";
+  $("#scheduleSave").disabled = !$("#scheduleOffering").value && !schedule;
   if (schedule) {
     $("#scheduleOffering").value = schedule.course_offering_id;
+    $("#scheduleOffering").disabled = true;
     $("#scheduleDay").value = schedule.day_of_week;
     $("#scheduleStart").value = schedule.start_time;
     $("#scheduleEnd").value = schedule.end_time;
     $("#scheduleRoom").value = schedule.room || "";
-    $("#scheduleStatus").value = schedule.status === "archived" ? "archived" : "active";
   }
   editor.hidden = false;
-  $("#scheduleDay").focus();
+  $("#scheduleOffering").focus();
 }
 
 function closeScheduleEditor() {
   $("#scheduleEditor").hidden = true;
   $("#scheduleForm").reset();
+  $("#scheduleOffering").disabled = false;
 }
+
+$("#scheduleOffering").addEventListener("change", () => {
+  $("#scheduleSave").disabled = !$("#scheduleOffering").value;
+});
 
 $("#scheduleForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -1081,7 +1092,7 @@ $("#scheduleForm").addEventListener("submit", async (event) => {
     start_time: $("#scheduleStart").value,
     end_time: $("#scheduleEnd").value,
     room: $("#scheduleRoom").value.trim(),
-    status: $("#scheduleStatus").value,
+    status: id ? classSchedules.find((schedule) => schedule.id === id)?.status : "active",
   };
   const result = id ? await AttendIQSupabase.updateClassSchedule({ id, ...formData }) : await AttendIQSupabase.createClassSchedule(formData);
   if (!result.ok) return showToast(result.error);

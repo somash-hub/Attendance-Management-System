@@ -8,9 +8,10 @@
 - All ten frontend JavaScript files pass `node --check`.
 - The hosted Supabase project is connected. The current repository revision is the source of truth for this roadmap.
 - The source uses program plus each student's semester for course access.
-  Migrations `20260930000200` through `20260930000400` are live. Administrators
+  Migrations `20260930000200` through `20261001000100` are live. Administrators
   can set an active year from 2020 onward; all eight semesters are available
-  and individually assigned to students within that year.
+  and individually assigned to students within that year. Class schedules are
+  managed under Course Management and require a teacher-assigned offering.
 
 ## Phase 0 — Foundation and decisions
 
@@ -128,7 +129,7 @@ The completed vertical slices are:
 5. **Student enrollment management — replaced by semester grouping.** New
    students do not receive section enrollments; existing enrollment records are
    archived, not deleted.
-6. **Academic calendar and schedule management — complete.** Administrators can create, edit, archive, and restore date-based academic events and recurring course-offering schedules.
+6. **Academic calendar and schedule management — complete.** Administrators can create, edit, archive, and restore date-based academic events and recurring course-offering schedules. Schedule creation requires an active course offering with an assigned teacher.
 
 Each slice must include database migration, RLS, JavaScript adapter method, HTML form, validation, success/error states, tests, and documentation. No SQL should be required for normal administration.
 

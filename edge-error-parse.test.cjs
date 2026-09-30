@@ -208,6 +208,81 @@ test("course offerings can be created without a section", async () => {
   assert.equal(request.args.p_section_id, null);
 });
 
+test("class schedules are created through the database with only the required details", async () => {
+  let request;
+  useClient({
+    rpc: (name, args) => {
+      request = { name, args };
+      return { single: async () => ({ data: { id: "schedule-1" }, error: null }) };
+    },
+  });
+
+  const result = await globalThis.AttendIQSupabase.createClassSchedule({
+    course_offering_id: "offering-1",
+    day_of_week: "2",
+    start_time: "09:00",
+    end_time: "10:30",
+    room: "",
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(request.name, "admin_create_class_schedule");
+  assert.deepEqual(request.args, {
+    p_offering_id: "offering-1",
+    p_day_of_week: 2,
+    p_start_time: "09:00",
+    p_end_time: "10:30",
+    p_room: "",
+  });
+});
+
+test("invalid class schedules are rejected before reaching the database", async () => {
+  let calls = 0;
+  useClient({
+    rpc: () => {
+      calls += 1;
+      return { single: async () => ({ data: {}, error: null }) };
+    },
+  });
+
+  const result = await globalThis.AttendIQSupabase.createClassSchedule({
+    course_offering_id: "offering-1",
+    day_of_week: "2",
+    start_time: "10:30",
+    end_time: "09:00",
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.error, /valid start and end time/i);
+  assert.equal(calls, 0);
+});
+
+test("class schedule reads include the course teacher for the admin timetable", async () => {
+  let selection;
+  const query = {
+    select: (columns) => {
+      selection = columns;
+      return query;
+    },
+    order: () => query,
+    then: (resolve, reject) => Promise.resolve({
+      data: [{
+        id: "schedule-1",
+        course_offering_id: "offering-1",
+        course_offerings: { id: "offering-1", teacher_id: "teacher-1" },
+      }],
+      error: null,
+    }).then(resolve, reject),
+  };
+  useClient({ from: () => query });
+
+  const result = await globalThis.AttendIQSupabase.getClassSchedules({ include_archived: true });
+
+  assert.equal(result.ok, true);
+  assert.match(selection, /course_offerings\([^)]*teacher_id/);
+  assert.equal(result.data[0].course_offerings.teacher_id, "teacher-1");
+});
+
 test("current semester changes call the admin RPC with validated Gregorian term values", async () => {
   let request;
   useClient({

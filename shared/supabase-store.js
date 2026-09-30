@@ -966,7 +966,7 @@
     var value = filters || {};
     return remote(function () {
       var query = client().from("class_schedules")
-        .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, created_at, updated_at, course_offerings(id, subject_code, semester_id, status, subjects(code, name, semester, program), semesters(name, number, is_current))")
+        .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, created_at, updated_at, course_offerings(id, subject_code, semester_id, teacher_id, status, subjects(code, name, semester, program), semesters(name, number, is_current))")
         .order("day_of_week", { ascending: true })
         .order("start_time", { ascending: true });
       if (!value.include_archived) query = query.eq("status", "active");
@@ -976,11 +976,19 @@
 
   function createClassSchedule(input) {
     var value = input || {};
+    var day = Number(value.day_of_week);
+    if (!String(value.course_offering_id || "").trim() ||
+        value.day_of_week === "" || !Number.isInteger(day) || day < 0 || day > 6 ||
+        !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(value.start_time || "")) ||
+        !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(value.end_time || "")) ||
+        value.end_time <= value.start_time) {
+      return Promise.resolve(failure("Choose a course and weekday, then enter a valid start and end time.", client() ? "supabase" : "local"));
+    }
     if (!client()) return local(function (store) { return store.createClassSchedule(value); }, "The class schedule could not be created.");
     return remote(function () {
       return client().rpc("admin_create_class_schedule", {
         p_offering_id: String(value.course_offering_id || "").trim(),
-        p_day_of_week: Number(value.day_of_week),
+        p_day_of_week: day,
         p_start_time: value.start_time,
         p_end_time: value.end_time,
         p_room: String(value.room || "").trim(),
@@ -990,11 +998,19 @@
 
   function updateClassSchedule(input) {
     var value = input || {};
+    var day = Number(value.day_of_week);
+    if (!String(value.id || "").trim() ||
+        value.day_of_week === "" || !Number.isInteger(day) || day < 0 || day > 6 ||
+        !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(value.start_time || "")) ||
+        !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(value.end_time || "")) ||
+        value.end_time <= value.start_time) {
+      return Promise.resolve(failure("Choose a weekday, then enter a valid start and end time.", client() ? "supabase" : "local"));
+    }
     if (!client()) return local(function (store) { return store.updateClassSchedule(value); }, "The class schedule could not be updated.");
     return remote(function () {
       return client().rpc("admin_update_class_schedule", {
         p_schedule_id: String(value.id || "").trim(),
-        p_day_of_week: Number(value.day_of_week),
+        p_day_of_week: day,
         p_start_time: value.start_time,
         p_end_time: value.end_time,
         p_room: String(value.room || "").trim(),
