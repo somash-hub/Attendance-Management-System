@@ -618,6 +618,13 @@
     });
   }
 
+  function getMyLeaveSubjects() {
+    if (!client()) return Promise.resolve(unsupportedLocal("Leave subjects"));
+    return remote(function () {
+      return client().rpc("get_my_leave_subjects");
+    }, "Your leave subjects could not be loaded.");
+  }
+
   function getMyClassSchedules() {
     return getMySubjects().then(function (subjectResult) {
       if (!subjectResult.ok) return subjectResult;
@@ -741,7 +748,7 @@
       var value = filters || {};
       return remote(function () {
         var query = client().from("leaves")
-          .select("id, student_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
+          .select("id, student_id, course_offering_id, course_offerings(subject_code, subjects(code, name)), type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
           .eq("student_id", profileResult.data.id)
           .order("created_at", { ascending: false });
         if (value.status) query = query.eq("status", value.status);
@@ -1088,7 +1095,7 @@
       var value = filters || {};
       return remote(function () {
         var query = client().from("leaves")
-          .select("id, student_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
+          .select("id, student_id, course_offering_id, course_offerings(subject_code, subjects(code, name)), type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
           .in("student_id", studentIds)
           .order("created_at", { ascending: false });
         if (value.status) query = query.eq("status", value.status);
@@ -1197,7 +1204,7 @@
     var value = filters || {};
     return remote(function () {
       var query = client().from("leaves")
-        .select("id, student_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
+        .select("id, student_id, course_offering_id, course_offerings(subject_code, subjects(code, name)), type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
         .order("created_at", { ascending: false });
       if (value.student_id) query = query.eq("student_id", value.student_id);
       if (value.status) query = query.eq("status", value.status);
@@ -1230,8 +1237,10 @@
           .single();
       }, "Your student record could not be found.").then(function (studentResult) {
         if (!studentResult.ok) return studentResult;
+        var courseOfferingId = String(value.course_offering_id || "").trim();
         var row = {
           student_id: studentResult.data.id,
+          course_offering_id: courseOfferingId && courseOfferingId !== "all" ? courseOfferingId : null,
           type: type,
           from_date: value.from_date,
           to_date: value.to_date,
@@ -1242,7 +1251,7 @@
         };
         return remote(function () {
           return client().from("leaves").insert(row)
-            .select("id, student_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
+            .select("id, student_id, course_offering_id, course_offerings(subject_code, subjects(code, name)), type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
             .single();
         }, "The leave request could not be saved.");
       });
@@ -1346,6 +1355,7 @@
   api.getTeacherLeaves = getTeacherLeaves;
   api.getMyStudentProfile = getMyStudentProfile;
   api.getMySubjects = getMySubjects;
+  api.getMyLeaveSubjects = getMyLeaveSubjects;
   api.getMyClassSchedules = getMyClassSchedules;
   api.getMyAttendance = getMyAttendance;
   api.getMyAttendanceSessions = getMyAttendanceSessions;

@@ -4,11 +4,13 @@ Project reference: `yvvgvteijtxnuwtncfio`
 Everything in this folder is **re-runnable** — the schema drops and recreates
 its named policies before enabling them, so policy changes can be applied
 again safely. The hosted project has migrations through
-`20261001000100_require_teacher_for_class_schedule.sql` applied, and the
+`20261001000200_route_leave_requests_by_subject.sql` applied, and the
 `admin-create-user` Edge Function has been redeployed to require and store each
 student's semester. The latest schedule migration is installed on the hosted
 database and its admin-only RPC signature, permission, and teacher-assignment
-guard were verified.
+guard were verified. The leave-routing migration was applied and its
+subject-offering column, current-subject RPC, and teacher authorization
+functions were verified on the hosted database.
 
 ## 1. Create the three demo accounts
 
@@ -49,6 +51,7 @@ Apply the migrations in order from `supabase/migrations/`:
 18. `20260930000300_fix_current_semester_rpc_lint.sql`
 19. `20260930000400_assign_semester_per_student.sql`
 20. `20261001000100_require_teacher_for_class_schedule.sql`
+21. `20261001000200_route_leave_requests_by_subject.sql`
 
 Use separate SQL Editor queries, or paste them in order and run each query.
 
@@ -82,6 +85,12 @@ It creates:
   year/semester date bounds span the whole Gregorian year.
 - Migration `20261001000100` requires an active, teacher-assigned course
   offering when creating a class schedule.
+- Migration `20261001000200` lets students route a leave request to one current
+  subject or all current subjects. Database policies and review RPCs restrict
+  teachers to the assigned subject (or any current subject for an all-subject
+  request); notifications go to the relevant teachers and administrators.
+  The first teacher/admin decision resolves the shared request; only an admin
+  can reopen a reviewed request.
 - Administrator student CRUD RPCs support editing and archiving students while
   preserving attendance and leave history; the local semester-model migration
   archives existing enrollments without deleting them

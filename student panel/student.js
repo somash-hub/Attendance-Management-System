@@ -131,6 +131,23 @@ function renderRecords() {
 let liveSchedule = null;
 let liveNotifications = [];
 let liveLeaves = [];
+let leaveSubjectsReady = false;
+
+function populateLeaveSubjects(subjects) {
+  const select = $("#leaveSubject");
+  select.replaceChildren();
+  const allOption = document.createElement("option");
+  allOption.value = "all";
+  allOption.textContent = "All my subjects · notify all instructors";
+  select.appendChild(allOption);
+  subjects.forEach(function (subject) {
+    const option = document.createElement("option");
+    option.value = subject.course_offering_id;
+    option.textContent = `${subject.subject_code} · ${subject.subject_name} · ${subject.teacher_name || "Instructor not assigned"}`;
+    select.appendChild(option);
+  });
+  leaveSubjectsReady = true;
+}
 
 // Render live leave history with secure document and cancellation actions.
 function renderLeaves() {
@@ -142,6 +159,15 @@ function renderLeaves() {
     const cancelButton = leave.status === "pending" ? `<button type="button" data-cancel-leave="${h(leave.id)}">Cancel</button>` : "";
     return `<div class="request-row"><div><strong>${h(leave.type)}</strong>${badge(leave.status)}<p>${h(dates)} · ${h(leave.reason)}</p>${leave.review_comment ? `<small>Reviewer: ${h(leave.review_comment)}</small>` : ""}</div><div class="request-actions">${documentButton}${cancelButton}</div></div>`;
   }).join("") : "<p><small>No leave requests submitted.</small></p>";
+  liveLeaves.forEach(function (leave, index) {
+    const offering = Array.isArray(leave.course_offerings) ? leave.course_offerings[0] : leave.course_offerings;
+    const subject = offering && (Array.isArray(offering.subjects) ? offering.subjects[0] : offering.subjects);
+    const label = subject
+      ? `${subject.code} · ${subject.name}`
+      : leave.course_offering_id ? "Subject-specific request" : "All my subjects";
+    const summary = list.querySelectorAll(".request-row p")[index];
+    if (summary) summary.prepend(document.createTextNode(label + " · "));
+  });
 }
 
 function loadLeaves() {
@@ -266,13 +292,16 @@ function loadStudentDashboard() {
   return Promise.all([
     AttendIQSupabase.getMyStudentProfile(),
     AttendIQSupabase.getMySubjects(),
+    AttendIQSupabase.getMyLeaveSubjects(),
   ]).then(function (results) {
     var studentsResult = results[0];
     var subjectsResult = results[1];
-    if (!studentsResult.ok || !subjectsResult.ok) {
-      toast(studentsResult.error || subjectsResult.error || "Attendance data could not be loaded.");
+    var leaveSubjectsResult = results[2];
+    if (!studentsResult.ok || !subjectsResult.ok || !leaveSubjectsResult.ok) {
+      toast(studentsResult.error || subjectsResult.error || leaveSubjectsResult.error || "Attendance data could not be loaded.");
       return;
     }
+    populateLeaveSubjects(leaveSubjectsResult.data);
     var student = studentsResult.data;
     if (!student) {
       toast("Your student record is not linked to this login.");
@@ -403,6 +432,7 @@ $("#leaveForm").addEventListener("submit", async (e) => {
     toast("Supabase is not configured; leave requests cannot be submitted yet.");
     return;
   }
+  if (!leaveSubjectsReady) return toast("Your subject list is still loading. Please try again.");
 
   const fromDate = $("#leaveFrom").value;
   const toDate = $("#leaveTo").value;
@@ -422,6 +452,7 @@ $("#leaveForm").addEventListener("submit", async (e) => {
 
   const result = await AttendIQSupabase.createLeave({
     type: selectedLeaveType,
+    course_offering_id: $("#leaveSubject").value,
     from_date: fromDate,
     to_date: toDate,
     reason: reason,

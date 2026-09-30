@@ -44,7 +44,8 @@ plain HTML, CSS, and JavaScript.
 - Student dashboard and attendance log computed from the signed-in student's
   own marks, with subject percentages and threshold warnings
 - Leave workflow: student submission with optional private document upload,
-  teacher/admin review, and approve/reject/undo status changes
+  optional routing to one current subject or all current subjects, and review
+  restricted to the matching instructors and administrators
 - Teacher, admin, and student CSV report downloads
 - Demo data includes TU BSc CSIT Semester 7 subjects (CSC419–CSC425), while
   student records can be assigned Semester 1–8 independently; sample data also
@@ -74,8 +75,9 @@ plain HTML, CSS, and JavaScript.
 - A password-reset link returns to this login page. Use **Forgot password?** to request
   the email; the recovery screen then updates the password through Supabase Auth.
 - The hosted project has migrations through
-  `20261001000100_require_teacher_for_class_schedule.sql` applied. Schedule
-  creation is validated by the database and requires a teacher-assigned course.
+  `20261001000200_route_leave_requests_by_subject.sql` applied. Leave requests
+  can target one current subject or all current subjects, with teacher review
+  limited to assigned offerings.
 
 ## Supabase status
 
@@ -83,7 +85,8 @@ The hosted project `yvvgvteijtxnuwtncfio` has migrations
 `20260930000200_use_program_and_current_semester.sql` and
 `20260930000300_fix_current_semester_rpc_lint.sql` and
 `20260930000400_assign_semester_per_student.sql` and
-`20261001000100_require_teacher_for_class_schedule.sql` applied. They seed
+`20261001000100_require_teacher_for_class_schedule.sql` and
+`20261001000200_route_leave_requests_by_subject.sql` applied. They seed
 Gregorian years 2020-2026 and semesters 1-8, with 2026 active and all eight
 semesters available. Administrators select Semester 1-8 separately for each
 student and can create later years in Settings. Initial term date bounds span

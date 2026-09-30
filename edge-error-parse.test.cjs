@@ -236,6 +236,85 @@ test("class schedules are created through the database with only the required de
   });
 });
 
+test("student leave subject options come from the current-subject database function", async () => {
+  let rpcName;
+  useClient({
+    rpc: (name) => {
+      rpcName = name;
+      return Promise.resolve({
+        data: [{
+          course_offering_id: "offering-1",
+          subject_code: "CSC420",
+          subject_name: "Scripting Language",
+          teacher_name: "Assigned Teacher",
+        }],
+        error: null,
+      });
+    },
+  });
+
+  const result = await globalThis.AttendIQSupabase.getMyLeaveSubjects();
+
+  assert.equal(result.ok, true);
+  assert.equal(rpcName, "get_my_leave_subjects");
+  assert.equal(result.data[0].teacher_name, "Assigned Teacher");
+});
+
+test("student leave requests include the selected course offering for subject routing", async () => {
+  let insertedLeave;
+  const profileQuery = {
+    select: () => profileQuery,
+    eq: () => profileQuery,
+    single: async () => ({ data: { id: "student-profile-1", role: "student" }, error: null }),
+  };
+  const studentQuery = {
+    select: () => studentQuery,
+    eq: () => studentQuery,
+    limit: () => studentQuery,
+    single: async () => ({ data: { id: "student-1" }, error: null }),
+  };
+  const leaveQuery = {
+    insert: (row) => {
+      insertedLeave = row;
+      return leaveQuery;
+    },
+    select: () => leaveQuery,
+    single: async () => ({ data: { id: "leave-1", ...insertedLeave }, error: null }),
+  };
+  useClient({
+    auth: { getUser: async () => ({ data: { user: { id: "student-profile-1" } }, error: null }) },
+    from: (table) => {
+      if (table === "profiles") return profileQuery;
+      if (table === "students") return studentQuery;
+      if (table === "leaves") return leaveQuery;
+      throw new Error("Unexpected table: " + table);
+    },
+  });
+
+  const result = await globalThis.AttendIQSupabase.createLeave({
+    type: "Medical",
+    course_offering_id: "offering-1",
+    from_date: "2026-10-01",
+    to_date: "2026-10-01",
+    reason: "Medical appointment",
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(insertedLeave.course_offering_id, "offering-1");
+  assert.equal(insertedLeave.status, "pending");
+
+  const allSubjectsResult = await globalThis.AttendIQSupabase.createLeave({
+    type: "Medical",
+    course_offering_id: "all",
+    from_date: "2026-10-01",
+    to_date: "2026-10-01",
+    reason: "Medical appointment",
+  });
+
+  assert.equal(allSubjectsResult.ok, true);
+  assert.equal(insertedLeave.course_offering_id, null);
+});
+
 test("invalid class schedules are rejected before reaching the database", async () => {
   let calls = 0;
   useClient({

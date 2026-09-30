@@ -412,21 +412,29 @@ function loadTeacherReports() {
 
 // Render leave requests with approve, reject, and undo controls.
 function renderLeaves() {
-  $("#leaveRows").innerHTML = leaves
-    .map(
-      (l) =>
-        `<div class="leave-row"><div class="leave-main"><span class="student-avatar">${h(l.name
-          .split(" ")
-          .map((x) => x[0])
-          .join(""))}</span><div><div><strong>${h(l.name)}</strong> <small class="mono">${h(l.roll)}</small> ${status(l.status)}</div><p>${h(l.type)} · ${h(l.date)} · ${h(l.reason)}</p>${l.reviewComment ? `<small>Reviewer: ${h(l.reviewComment)}</small>` : ""}${l.doc ? `<small class="document">✓ Supporting document attached</small><button type="button" data-review-document="${h(l.docPath)}">Open document</button>` : ""}</div></div>${l.status === "pending" ? `<div class="leave-actions"><button class="approve" data-leave="${h(l.id)}" data-state="approved">Approve</button><button class="reject" data-leave="${h(l.id)}" data-state="rejected">Reject</button></div>` : `<button class="undo" data-leave="${h(l.id)}" data-state="pending">Undo</button>`}</div>`,
-    )
-    .join("");
+  $("#leaveRows").innerHTML = leaves.map(function (leave) {
+    const initials = leave.name.split(" ").map((part) => part[0]).join("");
+    const actions = leave.status === "pending"
+      ? `<div class="leave-actions"><button class="approve" data-leave="${h(leave.id)}" data-state="approved">Approve</button><button class="reject" data-leave="${h(leave.id)}" data-state="rejected">Reject</button></div>`
+      : "";
+    const document = leave.doc
+      ? `<small class="document">✓ Supporting document attached</small><button type="button" data-review-document="${h(leave.docPath)}">Open document</button>`
+      : "";
+    const reviewComment = leave.reviewComment ? `<small>Reviewer: ${h(leave.reviewComment)}</small>` : "";
+    return `<div class="leave-row"><div class="leave-main"><span class="student-avatar">${h(initials)}</span><div><div><strong>${h(leave.name)}</strong> <small class="mono">${h(leave.roll)}</small> ${status(leave.status)}</div><p>${h(leave.subjectLabel)} · ${h(leave.type)} · ${h(leave.date)} · ${h(leave.reason)}</p>${reviewComment}${document}</div></div>${actions}</div>`;
+  }).join("");
 }
 
 function formatLeaveDates(row) {
   return row.from_date === row.to_date
     ? row.from_date
     : row.from_date + " → " + row.to_date;
+}
+
+function leaveSubjectLabel(row) {
+  const offering = Array.isArray(row.course_offerings) ? row.course_offerings[0] : row.course_offerings;
+  const subject = offering && (Array.isArray(offering.subjects) ? offering.subjects[0] : offering.subjects);
+  return subject ? `${subject.code} · ${subject.name}` : "All subjects";
 }
 
 // Load real leave requests and join them to the student roster by UUID.
@@ -446,6 +454,7 @@ function loadTeacherLeaves() {
         id: row.id,
         name: student.name,
         roll: student.roll,
+        subjectLabel: leaveSubjectLabel(row),
         type: row.type,
         date: formatLeaveDates(row),
         reason: row.reason,

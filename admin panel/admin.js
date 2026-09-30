@@ -400,7 +400,7 @@ function requestMarkup(request, actions = true) {
     .split(" ")
     .map((part) => part[0])
     .join("");
-  return `<div class="request-row"><div class="request-main"><span class="request-avatar">${h(initials)}</span><div><div class="request-title"><strong>${h(request.name)}</strong><span class="mono">${h(request.roll)}</span>${statusBadge(request.status)}</div><p>${h(request.type)} · ${h(request.dates)} · ${h(request.reason)}</p>${request.reviewComment ? `<small>Reviewer: ${h(request.reviewComment)}</small>` : ""}${request.doc ? `<small class="document">✓ Document submitted</small><button type="button" data-review-document="${h(request.docPath)}">Open document</button>` : ""}</div></div>${actionMarkup}</div>`;
+  return `<div class="request-row"><div class="request-main"><span class="request-avatar">${h(initials)}</span><div><div class="request-title"><strong>${h(request.name)}</strong><span class="mono">${h(request.roll)}</span>${statusBadge(request.status)}</div><p>${h(request.subjectLabel)} · ${h(request.type)} · ${h(request.dates)} · ${h(request.reason)}</p>${request.reviewComment ? `<small>Reviewer: ${h(request.reviewComment)}</small>` : ""}${request.doc ? `<small class="document">✓ Document submitted</small><button type="button" data-review-document="${h(request.docPath)}">Open document</button>` : ""}</div></div>${actionMarkup}</div>`;
 }
 
 function renderLeaves(target = "#leaveRequests", limit = false) {
@@ -423,6 +423,12 @@ function formatLeaveDates(row) {
   return row.from_date === row.to_date
     ? row.from_date
     : row.from_date + " → " + row.to_date;
+}
+
+function leaveSubjectLabel(row) {
+  const offering = Array.isArray(row.course_offerings) ? row.course_offerings[0] : row.course_offerings;
+  const subject = offering && (Array.isArray(offering.subjects) ? offering.subjects[0] : offering.subjects);
+  return subject ? `${subject.code} · ${subject.name}` : "All subjects";
 }
 
 // Load real leave requests and join them to the student roster by UUID.
@@ -452,6 +458,7 @@ function loadAdminLeaves() {
         id: row.id,
         name: student.name,
         roll: student.roll,
+        subjectLabel: leaveSubjectLabel(row),
         type: row.type,
         dates: formatLeaveDates(row),
         reason: row.reason,
