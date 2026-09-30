@@ -295,6 +295,60 @@ h2 {
 .metrics em {
   margin-top: 8px;
 }
+.schedule-card {
+  margin-bottom: 18px;
+}
+.schedule-day {
+  background: #eeedff;
+  border-radius: 7px;
+  color: var(--indigo);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+.upcoming-list {
+  margin: 17px -20px -20px;
+}
+.upcoming-class {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 13px 20px;
+}
+.class-time {
+  border-right: 1px solid var(--line);
+  display: grid;
+  flex: 0 0 88px;
+  gap: 2px;
+  padding-right: 12px;
+}
+.class-time strong {
+  color: var(--indigo);
+  font-size: 12px;
+}
+.class-time span,
+.class-copy span {
+  color: var(--muted);
+  font-size: 10px;
+}
+.class-copy {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+}
+.class-copy strong {
+  font-size: 11px;
+}
+.class-copy span {
+  overflow-wrap: anywhere;
+}
+.start-class {
+  flex: 0 0 auto;
+}
 .two-col {
   display: grid;
   gap: 18px;
@@ -805,6 +859,17 @@ td strong {
   .leave-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .upcoming-class {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 9px 12px;
+  }
+  .class-copy {
+    flex-basis: calc(100% - 105px);
+  }
+  .start-class {
+    margin-left: 100px;
   }
   .leave-actions {
     margin-left: 41px;

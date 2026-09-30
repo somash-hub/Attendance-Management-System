@@ -149,6 +149,87 @@ function scheduleSubject(schedule) {
   return Array.isArray(offering) ? offering[0] : offering;
 }
 
+function scheduleDayName(day) {
+  return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][Number(day)] || "";
+}
+
+function scheduleTimeMinutes(value) {
+  const match = /^(\d{1,2}):(\d{2})/.exec(String(value || ""));
+  return match ? Number(match[1]) * 60 + Number(match[2]) : -1;
+}
+
+function formatScheduleTime(value) {
+  const minutes = scheduleTimeMinutes(value);
+  if (minutes < 0) return String(value || "");
+  const hour = Math.floor(minutes / 60);
+  return `${hour % 12 || 12}:${String(minutes % 60).padStart(2, "0")} ${hour < 12 ? "AM" : "PM"}`;
+}
+
+function renderUpcomingClasses(schedules, loadError) {
+  const copy = $("#upcomingClassesCopy");
+  const dayLabel = $("#upcomingClassesDay");
+  const list = $("#upcomingClassesList");
+  const now = new Date();
+  const today = now.getDay();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  if (loadError) {
+    copy.textContent = "Your assigned classes could not be loaded.";
+    dayLabel.textContent = "";
+    list.textContent = loadError;
+    return;
+  }
+  if (!window.AttendIQDb) {
+    copy.textContent = "Connect to Supabase to load your assigned classes.";
+    dayLabel.textContent = "";
+    list.replaceChildren();
+    return;
+  }
+  if (!schedules || !schedules.length) {
+    copy.textContent = "No active class schedules are assigned to you.";
+    dayLabel.textContent = "";
+    list.replaceChildren();
+    return;
+  }
+
+  const active = schedules.filter((schedule) => schedule.status === "active");
+  const todaySchedules = active
+    .filter((schedule) => Number(schedule.day_of_week) === today && scheduleTimeMinutes(schedule.start_time) >= currentMinutes)
+    .sort((a, b) => scheduleTimeMinutes(a.start_time) - scheduleTimeMinutes(b.start_time));
+  let displaySchedules = todaySchedules;
+  let displayDay = today;
+  let isToday = true;
+
+  if (!todaySchedules.length && active.length) {
+    const nextOffset = (schedule) => {
+      const offset = (Number(schedule.day_of_week) - today + 7) % 7;
+      return offset === 0 ? 7 : offset;
+    };
+    const nearestOffset = Math.min(...active.map(nextOffset));
+    displayDay = (today + nearestOffset) % 7;
+    displaySchedules = active
+      .filter((schedule) => nextOffset(schedule) === nearestOffset)
+      .sort((a, b) => scheduleTimeMinutes(a.start_time) - scheduleTimeMinutes(b.start_time));
+    isToday = false;
+  }
+
+  const dateLabel = now.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+  copy.textContent = isToday ? "Your remaining classes for today" : "Your next scheduled classes";
+  dayLabel.textContent = isToday ? dateLabel : scheduleDayName(displayDay);
+  list.innerHTML = displaySchedules.map(function (schedule) {
+    const offering = scheduleSubject(schedule) || {};
+    const subject = Array.isArray(offering.subjects) ? offering.subjects[0] : offering.subjects || {};
+    const semester = Array.isArray(offering.semesters) ? offering.semesters[0] : offering.semesters || {};
+    const title = subject.name ? `${subject.code || offering.subject_code} · ${subject.name}` : subject.code || offering.subject_code || "Scheduled class";
+    const details = [
+      semester.number ? `Semester ${semester.number}` : "",
+      subject.program || "",
+      schedule.room ? `Room ${schedule.room}` : "Room not set",
+    ].filter(Boolean).join(" · ");
+    return `<article class="upcoming-class"><div class="class-time"><strong>${h(formatScheduleTime(schedule.start_time))}</strong><span>${h(formatScheduleTime(schedule.end_time))}</span></div><div class="class-copy"><strong>${h(title)}</strong><span>${h(details)}</span></div><button class="button outline start-class" type="button" data-start-schedule="${h(schedule.id)}">Start class</button></article>`;
+  }).join("");
+}
+
 function populateScheduleOptions(schedules) {
   const select = $("#markSchedule");
   select.replaceChildren();
@@ -228,6 +309,7 @@ function loadTeacherData() {
   if (!window.AttendIQDb) {
     attendanceReady = false;
     populateScheduleOptions([]);
+    renderUpcomingClasses([]);
     updateSessionUi();
     renderAttendance();
     return Promise.resolve();
@@ -240,6 +322,8 @@ function loadTeacherData() {
     const studentsResult = results[0];
     const subjectsResult = results[1];
     const schedulesResult = results[2];
+    classSchedules = schedulesResult.ok ? schedulesResult.data : [];
+    renderUpcomingClasses(schedulesResult.ok ? classSchedules : null, schedulesResult.ok ? "" : schedulesResult.error);
     if (!studentsResult.ok || !subjectsResult.ok || !schedulesResult.ok) {
       attendanceReady = false;
       toast(studentsResult.error || subjectsResult.error || schedulesResult.error || "Attendance data could not be loaded.");
@@ -256,7 +340,6 @@ function loadTeacherData() {
     studentDirectory = Object.fromEntries(
       studentsResult.data.map((student) => [student.id, { name: student.name, roll: student.roll }]),
     );
-    classSchedules = schedulesResult.data;
     populateSubjectOptions(subjectsResult.data);
     populateScheduleOptions(classSchedules);
     updateSessionUi();
@@ -466,6 +549,28 @@ $("#menuButton").addEventListener("click", () =>
   $("#sidebar").classList.toggle("open"),
 );
 document.addEventListener("click", (e) => {
+  const startSchedule = e.target.closest("[data-start-schedule]");
+  if (startSchedule) {
+    const scheduleId = startSchedule.dataset.startSchedule;
+    if (!classSchedules.some((schedule) => schedule.id === scheduleId)) {
+      return toast("That class is no longer available. Refresh your schedule and try again.");
+    }
+    openTab("mark");
+    const today = new Date();
+    $("#markDate").value = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0"),
+    ].join("-");
+    $("#markDateBs").value = "";
+    $("#markSchedule").value = scheduleId;
+    currentSession = null;
+    updateSessionUi();
+    $("#markSchedule").dispatchEvent(new Event("change"));
+    $("#markDateBs").focus();
+    toast("Class selected. Enter today's BS date to open attendance.");
+    return;
+  }
   const option = e.target.closest("[data-student]");
   if (option) {
     attendance[option.dataset.student] = option.dataset.status;
