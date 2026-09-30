@@ -164,8 +164,7 @@ function renderStudents(query = "") {
     .map((student) => {
       // The warned status is derived from the administrator's threshold.
       const warned = student.attendance < settings.threshold;
-      const semester = currentSemesters.find((item) => item.is_current);
-      return `<tr><td><strong>${h(student.name)}</strong><small>${h(student.email)}</small></td><td class="mono">${h(student.roll)}</td><td>${h(student.dept)}</td><td>${h(student.batch || "—")}</td><td>${h(semester?.name || "—")}</td><td><strong class="${warned ? "danger-text" : ""}">${h(student.attendance)}%</strong></td><td>${statusBadge(warned ? "Warned" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-student="${h(student.id)}">Edit</button><button type="button" data-archive-student="${h(student.id)}">Archive</button></div></td></tr>`;
+      return `<tr><td><strong>${h(student.name)}</strong><small>${h(student.email)}</small></td><td class="mono">${h(student.roll)}</td><td>${h(student.dept)}</td><td>${h(student.batch || "—")}</td><td>Semester ${h(student.semester || "—")}</td><td><strong class="${warned ? "danger-text" : ""}">${h(student.attendance)}%</strong></td><td>${statusBadge(warned ? "Warned" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-student="${h(student.id)}">Edit</button><button type="button" data-archive-student="${h(student.id)}">Archive</button></div></td></tr>`;
     })
     .join("");
   $("#studentRows").innerHTML = rows || `<tr><td colspan="8" class="empty-state">No students match the selected filters.</td></tr>`;
@@ -279,13 +278,11 @@ function loadAdminCourses() {
       currentAcademicYears = yearsResult.data;
       academicEvents = eventsResult.data;
       classSchedules = schedulesResult.data;
-      const currentSemester = currentSemesters.find((semester) => semester.is_current);
-      const currentYear = currentAcademicYears.find((year) => year.id === currentSemester?.academic_year_id);
+      const currentYear = currentAcademicYears.find((year) => year.is_current);
       const yearValue = Number(currentYear?.name);
       $("#currentAcademicYear").value = Number.isInteger(yearValue) && yearValue >= 2020
         ? String(yearValue)
         : String(new Date().getFullYear());
-      if (currentSemester) $("#currentSemesterNumber").value = String(currentSemester.number);
       renderAcademicEvents();
       renderClassSchedules();
     });
@@ -499,16 +496,13 @@ function loadAdminStudents() {
         roll: student.roll,
         dept: student.program,
         batch: student.batch,
-        semester: currentSemesters.find((item) => item.is_current)?.number || "",
+        semester: student.semester,
         attendance: entry.total ? Math.round((entry.present / entry.total) * 100) : 0,
       };
     });
     setFilterOptions("#studentProgramFilter", students.map((student) => student.dept), "All programs");
     setFilterOptions("#studentBatchFilter", students.map((student) => student.batch), "All batches");
-    setFilterOptions("#studentSemesterFilter", students.map((student) => {
-      const semester = currentSemesters.find((item) => item.number === Number(student.semester));
-      return semester ? String(semester.number) : student.semester;
-    }), "All semesters");
+    setFilterOptions("#studentSemesterFilter", students.map((student) => String(student.semester)), "All semesters");
     renderStudents();
     renderThreshold();
     renderAdminMetrics();
@@ -673,6 +667,7 @@ function updateAccountFields() {
   document.getElementById("newUserRoll").required = role === "student";
   document.getElementById("newUserProgram").required = role === "student";
   document.getElementById("newUserBatch").required = role === "student";
+  document.getElementById("newUserSemester").required = role === "student";
   document.getElementById("newFacultyId").required = role === "teacher";
 }
 roleSelect.addEventListener("change", updateAccountFields);
@@ -689,6 +684,7 @@ $("#userForm").addEventListener("submit", async (event) => {
     roll: $("#newUserRoll").value,
     program: $("#newUserProgram").value,
     batch: $("#newUserBatch").value,
+    semester: $("#newUserSemester").value,
     faculty_id: $("#newFacultyId").value,
   });
   if (!result.ok) return showToast(result.error);
@@ -701,7 +697,7 @@ $("#userForm").addEventListener("submit", async (event) => {
   showToast(`${created.name} added as ${ROLE_LABELS[created.role]}.`);
 });
 
-// Student create/edit/archive controls use the college's global current semester.
+// Student create/edit/archive controls store each student's semester.
 function openStudentEditor(student) {
   const editor = $("#studentEditor");
   const form = $("#studentForm");
@@ -709,12 +705,10 @@ function openStudentEditor(student) {
   $("#studentId").value = student ? student.id : "";
   $("#studentFormTitle").textContent = student ? "Edit student" : "Add student";
   $("#studentFormCopy").textContent = student
-    ? "Update the student's directory information. Their semester follows the college calendar."
-    : "Enter the student's program, batch, and official TU roll number. The current college semester is applied automatically.";
+    ? "Update the student's directory information and semester."
+    : "Enter the student's program, batch, official TU roll number, and semester.";
   $("#studentPasswordField").hidden = Boolean(student);
   $("#studentPassword").required = !student;
-  const currentSemester = currentSemesters.find((semester) => semester.is_current);
-  $("#studentSemester").value = currentSemester?.name || "No current semester configured";
   $("#studentSave").textContent = student ? "Save changes" : "Create student";
   if (student) {
     $("#studentName").value = student.name;
@@ -722,6 +716,7 @@ function openStudentEditor(student) {
     $("#studentRoll").value = student.roll;
     $("#studentProgram").value = student.dept;
     $("#studentBatch").value = student.batch;
+    $("#studentSemester").value = String(student.semester || "");
   }
   editor.hidden = false;
   $("#studentName").focus();
@@ -741,6 +736,7 @@ $("#studentForm").addEventListener("submit", async (event) => {
     roll: $("#studentRoll").value,
     program: $("#studentProgram").value,
     batch: $("#studentBatch").value,
+    semester: $("#studentSemester").value,
   };
   const result = studentId
     ? await AttendIQSupabase.updateStudent({ id: studentId, ...formData })
@@ -748,7 +744,7 @@ $("#studentForm").addEventListener("submit", async (event) => {
   if (!result.ok) return showToast(result.error);
   closeStudentEditor();
   await loadAdminStudents();
-  showToast(studentId ? "Student details updated." : "Student account created and grouped under the current college semester.");
+  showToast(studentId ? "Student details updated." : "Student account created with the selected semester.");
 });
 
 // Faculty create/edit/archive controls use the linked account and faculty record.
@@ -807,14 +803,13 @@ $("#currentSemesterForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = $("#currentSemesterSave");
   button.disabled = true;
-  const result = await AttendIQSupabase.setCurrentSemester({
+  const result = await AttendIQSupabase.setCurrentAcademicYear({
     year: $("#currentAcademicYear").value,
-    semester: $("#currentSemesterNumber").value,
   });
   button.disabled = false;
   if (!result.ok) return showToast(result.error);
   await Promise.all([loadAdminStudents(), loadAdminCourses()]);
-  showToast("Current college semester updated.");
+  showToast("Active academic year updated. Choose each student's semester in the student form.");
 });
 
   $("#facultyCancel").addEventListener("click", closeFacultyEditor);
@@ -881,21 +876,28 @@ function populateOfferingSelectors() {
     semester: semesterSelect.value,
     teacher: teacherSelect.value,
   };
-  const currentSemester = currentSemesters.find((semester) => semester.is_current);
-  subjectSelect.innerHTML = courses.filter((subject) =>
-    subject.active !== false && subject.semester === currentSemester?.number
-  )
-    .map((subject) => `<option value="${h(subject.code)}">${h(subject.code)} · ${h(subject.name)}</option>`).join("");
   teacherSelect.innerHTML = faculty.filter((member) => member.profile_id).map((member) => {
     const count = teacherWorkload(member.profile_id);
     const leaveLabel = member.status === "on_leave" ? " · On leave" : "";
     return `<option value="${h(member.profile_id)}">${h(member.name)} · ${count} active ${count === 1 ? "assignment" : "assignments"}${leaveLabel}</option>`;
   }).join("");
-  if (previous.subject) subjectSelect.value = previous.subject;
-  semesterSelect.value = previous.semester ||
-    String(currentSemesters.find((semester) => semester.is_current)?.number || "");
+  semesterSelect.value = previous.semester || String(currentSemesters[0]?.number || "");
+  populateOfferingSubjectOptions(previous.subject);
   if (previous.teacher) teacherSelect.value = previous.teacher;
   updateOfferingTeacherWorkload();
+}
+
+function populateOfferingSubjectOptions(selectedCode) {
+  const semesterNumber = Number($("#offeringSemester").value);
+  const available = courses.filter((subject) =>
+    subject.active !== false && subject.semester === semesterNumber
+  );
+  $("#offeringSubject").innerHTML = available.map((subject) =>
+    `<option value="${h(subject.code)}">${h(subject.code)} · ${h(subject.name)}</option>`
+  ).join("");
+  if (selectedCode && available.some((subject) => subject.code === selectedCode)) {
+    $("#offeringSubject").value = selectedCode;
+  }
 }
 
 function openOfferingEditor(offering) {
@@ -903,7 +905,8 @@ function openOfferingEditor(offering) {
   const editor = $("#offeringEditor");
   const form = $("#offeringForm");
   form.reset();
-  $("#offeringSemester").value = String(currentSemesters.find((semester) => semester.is_current)?.number || "");
+  $("#offeringSemester").value = String(currentSemesters[0]?.number || "");
+  populateOfferingSubjectOptions();
   $("#offeringId").value = offering ? offering.id : "";
   $("#offeringFormTitle").textContent = offering ? "Edit course offering" : "Assign course offering";
   $("#offeringSave").textContent = offering ? "Save offering" : "Create offering";
@@ -912,6 +915,7 @@ function openOfferingEditor(offering) {
     const subject = offeringSubject(offering);
     const semester = offeringSemester(offering) || currentSemesters.find((item) => item.id === offering.semester_id);
     $("#offeringSemester").value = String(semester?.number || subject?.semester || "");
+    populateOfferingSubjectOptions(offering.subject_code);
     $("#offeringTeacher").value = offering.teacher_id || "";
     $("#offeringStatus").value = offering.status === "archived" ? "archived" : "active";
     ["offeringSubject", "offeringSemester"].forEach((id) => { $("#" + id).disabled = true; });
@@ -922,6 +926,9 @@ function openOfferingEditor(offering) {
   updateOfferingTeacherWorkload();
   $("#offeringTeacher").focus();
 }
+
+$("#offeringSemester").addEventListener("input", () => populateOfferingSubjectOptions());
+$("#offeringSemester").addEventListener("change", () => populateOfferingSubjectOptions());
 
 function closeOfferingEditor() {
   $("#offeringEditor").hidden = true;

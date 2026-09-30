@@ -46,15 +46,16 @@ plain HTML, CSS, and JavaScript.
 - Leave workflow: student submission with optional private document upload,
   teacher/admin review, and approve/reject/undo status changes
 - Teacher, admin, and student CSV report downloads
-- Demo data aligned with TU BSc CSIT: Semester 7 subjects (CSC419–CSC425),
-  Bikram Sambat dates, and Nepali roll numbers
+- Demo data includes TU BSc CSIT Semester 7 subjects (CSC419–CSC425), while
+  student records can be assigned Semester 1–8 independently; sample data also
+  uses Bikram Sambat dates and Nepali roll numbers
 - Supabase schema with row-level security, demo seeds, a private document
   storage bucket, and admin-only account-management edge functions
 - Academic data model keeps legacy sections and enrollments for historical
-  continuity; current course access is based on student program and the single
-  college-wide current semester
+  continuity; current course access is based on student program, the student's
+  semester (1-8), and the active academic year
 - Administrator student CRUD: create a linked login using program, batch, and
-  TU roll number; students share the centrally managed current semester
+  TU roll number, and select or update each student's semester independently
 - Relationship-scoped teacher and student queries for offerings, rosters,
   attendance, and leave requests
 - Scheduled attendance sessions with relationship-scoped RLS, atomic session
@@ -70,23 +71,21 @@ plain HTML, CSS, and JavaScript.
 - A password-reset link returns to this login page. Use **Forgot password?** to request
   the email; the recovery screen then updates the password through Supabase Auth.
 - The hosted project has migrations through
-  `20260930000300_fix_current_semester_rpc_lint.sql` applied. Remote schema lint
-  passes with only intentional unused-section-argument warnings from legacy RPC
-  signatures retained for compatibility.
+  `20260930000400_assign_semester_per_student.sql` applied. Student records now
+  carry their own Semester 1-8 assignment.
 
 ## Supabase status
 
 The hosted project `yvvgvteijtxnuwtncfio` has migrations
 `20260930000200_use_program_and_current_semester.sql` and
-`20260930000300_fix_current_semester_rpc_lint.sql` applied. They seed
-Gregorian years 2020-2026 and semesters 1-8, with 2026 Semester 1 current;
-administrators can create later years and switch the current semester from
-Settings, which creates the selected year and all eight semesters on demand.
-Initial term date bounds span the whole Gregorian year. The live catalog
-currently contains only BCA Semester 4 subjects and no course offerings, so
-Semester 1 course access stays empty until the college adds matching subjects
-and offerings. Remote schema lint passes with only intentional unused-section-
-argument warnings from legacy RPC signatures retained for compatibility. The
+`20260930000300_fix_current_semester_rpc_lint.sql` and
+`20260930000400_assign_semester_per_student.sql` applied. They seed Gregorian
+years 2020-2026 and semesters 1-8, with 2026 active and all eight semesters
+available. Administrators select Semester 1-8 separately for each student and
+can create later years in Settings. Initial term date bounds span the whole
+Gregorian year. The live catalog currently contains five BCA Semester 4
+subjects but no course offerings; administrators must create offerings for the
+program and semesters students use. The
 project includes Phase 1 security, Phase 2 academic relationships, and the
 complete Phase 3 administrator student, faculty, subject, course-offering,
 enrollment, academic-calendar, and class-schedule administration slices. The
@@ -97,14 +96,14 @@ publishable key. Phase 5 adds `attendance_sessions`, teacher-assignment checks
 for opening sessions, atomic session attendance RPCs, relationship-aware RLS,
 and adapter methods for teacher/student session reads. The teacher portal now
 connects the schedule → open session → mark roster → save → close flow; the
-student portal loads its program/current-semester course schedules, database notifications,
+student portal loads its program/semester course schedules, database notifications,
 leave history, signed document links, and real monthly attendance trend. Phase 6
 adds server-validated leave overlap protection, reviewer notes/timestamps,
 student cancellation, and notifications. Phase 8 metrics and charts use the
 same current attendance records as the directory/report views. The current
-hosted database has five assigned course offerings but no active class schedules
-yet, so an administrator must add a schedule before a teacher can open a live
-session.
+hosted database currently has no course offerings or active class schedules,
+so administrators must configure offerings and schedules before a teacher can
+open a live session.
 
 The frontend calls the backend through `shared/supabase-store.js`; a configured
 client never silently falls back to localStorage after a request error. The

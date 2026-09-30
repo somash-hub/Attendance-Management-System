@@ -34,6 +34,7 @@ type CreateUserInput = {
   program?: string;
   department?: string;
   batch?: string;
+  semester?: number;
   faculty_id?: string;
   designation?: string;
 };
@@ -90,6 +91,7 @@ Deno.serve(async (req) => {
   const program = String(input.program ?? "BSc CSIT").trim() || "BSc CSIT";
   const department = String(input.department ?? program).trim() || program;
   const batch = String(input.batch ?? "").trim();
+  const semester = Number(input.semester);
   const facultyId = String(input.faculty_id ?? "").trim();
   const designation = String(input.designation ?? "").trim();
 
@@ -106,6 +108,9 @@ Deno.serve(async (req) => {
   }
   if (role === "student" && (!roll || !batch)) {
     return json(req, { error: "Enter the student's roll number and batch." }, 400);
+  }
+  if (role === "student" && (!Number.isInteger(semester) || semester < 1 || semester > 8)) {
+    return json(req, { error: "Choose a semester from 1 to 8." }, 400);
   }
   if (role === "teacher" && !facultyId) {
     return json(req, { error: "Enter the faculty ID." }, 400);
@@ -152,6 +157,7 @@ Deno.serve(async (req) => {
         email,
         program,
         batch,
+        semester,
         active: true,
       })
       .select("id")

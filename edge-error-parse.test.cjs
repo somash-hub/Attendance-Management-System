@@ -73,6 +73,7 @@ test("Edge Function validation messages reach the UI", async () => {
     email: "student@example.com",
     password: "Str0ng!Pass",
     role: "student",
+    semester: 3,
   });
 
   assert.equal(result.ok, false);
@@ -81,7 +82,7 @@ test("Edge Function validation messages reach the UI", async () => {
   assert.equal(request.options.body.email, "student@example.com");
 });
 
-test("student creation sends program and batch without section fields", async () => {
+test("student creation sends program, batch, and semester without section fields", async () => {
   let request;
   useClient({
     functions: {
@@ -100,6 +101,7 @@ test("student creation sends program and batch without section fields", async ()
     roll: "2082CSIT001",
     program: "BSc CSIT",
     batch: "2082",
+    semester: 3,
     section: "A",
     section_id: "legacy-section",
   });
@@ -108,8 +110,35 @@ test("student creation sends program and batch without section fields", async ()
   assert.equal(request.name, "admin-create-user");
   assert.equal(request.options.body.program, "BSc CSIT");
   assert.equal(request.options.body.batch, "2082");
+  assert.equal(request.options.body.semester, 3);
   assert.equal("section" in request.options.body, false);
   assert.equal("section_id" in request.options.body, false);
+});
+
+test("student creation rejects semesters outside 1-8 before invoking the Edge Function", async () => {
+  let calls = 0;
+  useClient({
+    functions: {
+      invoke: async () => {
+        calls += 1;
+        return { data: {}, error: null };
+      },
+    },
+  });
+
+  const result = await globalThis.AttendIQSupabase.createUser({
+    name: "Test Student",
+    email: "student@kct.edu.np",
+    password: "Str0ng!Pass",
+    role: "student",
+    roll: "2082CSIT001",
+    batch: "2082",
+    semester: 9,
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "Choose a semester from 1 to 8.");
+  assert.equal(calls, 0);
 });
 
 test("transport errors without a JSON response remain actionable", async () => {
@@ -148,12 +177,14 @@ test("student edits cannot assign a legacy section", async () => {
     roll: "CSIT-001",
     program: "BSc CSIT",
     batch: "2082",
+    semester: 5,
     section_id: "legacy-section",
   });
 
   assert.equal(result.ok, true);
   assert.equal(request.name, "admin_update_student");
   assert.equal(request.args.p_section_id, null);
+  assert.equal(request.args.p_semester, 5);
 });
 
 test("course offerings can be created without a section", async () => {
@@ -212,11 +243,11 @@ test("current semester changes reject years before 2020 and semesters outside 1-
   assert.equal(calls, 0);
 });
 
-test("student subjects are queried by program and the college current semester", async () => {
+test("student subjects are queried by program and the student's semester", async () => {
   const queryFilters = [];
   const rowsByTable = {
     profiles: { id: "profile-1", name: "Test Student", email: "student@kct.edu.np", role: "student" },
-    students: { id: "student-1", profile_id: "profile-1", program: "BSc CSIT" },
+    students: { id: "student-1", profile_id: "profile-1", program: "BSc CSIT", semester: 3 },
     semesters: [{ id: "semester-current", number: 3, is_current: true }],
     course_offerings: [{
       id: "offering-1",
@@ -249,7 +280,6 @@ test("student subjects are queried by program and the college current semester",
 
   assert.equal(result.ok, true);
   assert.equal(result.data.length, 1);
-  assert.ok(queryFilters.some((filter) => filter.table === "course_offerings" && filter.column === "semester_id" && filter.value === "semester-current"));
   assert.ok(queryFilters.some((filter) => filter.table === "course_offerings" && filter.column === "subjects.semester" && filter.value === 3));
   assert.ok(queryFilters.some((filter) => filter.table === "course_offerings" && filter.column === "subjects.program" && filter.value === "BSc CSIT"));
 });

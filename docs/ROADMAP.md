@@ -7,11 +7,10 @@
 - Existing core flows: authentication, role redirects, attendance marking, student dashboard, leave review, settings, and CSV exports.
 - All ten frontend JavaScript files pass `node --check`.
 - The hosted Supabase project is connected. The current repository revision is the source of truth for this roadmap.
-- The source and hosted backend use one college-wide current semester and
-  program-based course access. Migrations `20260930000200` and `20260930000300`
-  are applied; admins can select a year from 2020 onward and semester 1-8, with
-  later years created on demand. Remote schema lint passes with only intentional
-  unused-section-argument warnings from legacy RPC signatures.
+- The source uses program plus each student's semester for course access.
+  Migrations `20260930000200` through `20260930000400` are live. Administrators
+  can set an active year from 2020 onward; all eight semesters are available
+  and individually assigned to students within that year.
 
 ## Phase 0 — Foundation and decisions
 
@@ -24,8 +23,8 @@ Phase 0 is intentionally non-functional. It establishes the development rules be
 1. **Frontend technology** — remain plain HTML, CSS, and JavaScript. Do not migrate the browser application to TypeScript or add a frontend build step.
 2. **Edge Functions** — remain Deno-compatible TypeScript. Each function gets its own `deno.json` so dependencies and compiler settings stay isolated.
 3. **Current attendance formula** — preserve the existing behavior during the migration: `Present` contributes to the attendance percentage; `Absent` and `Late` do not. `Late` remains visible as a separate status. This rule must be centralized before the new reporting model is implemented.
-4. **Academic relationships** — use one college-wide current semester.
-   Students access offerings through their program and that semester; batches
+4. **Academic relationships** — each student has an individual semester from
+   1-8. Students access offerings through their program and semester; batches
    remain roster information. Legacy sections and enrollments are retained as
    historical records, not as current access controls.
 5. **Historical records** — do not hard-delete students, teachers, subjects, or semesters once attendance history exists. Add archive/status fields and preserve audit history.
@@ -115,7 +114,8 @@ The completed vertical slices are:
 
 1. **Student create/edit/archive — complete.** The admin portal creates a
    linked student login and directory record using program, batch, and TU roll;
-   students share the college's current semester. Archiving preserves history.
+   students have an individually selected semester from 1-8. Archiving
+   preserves history.
 2. **Faculty create/edit/archive — complete.** The admin portal creates linked
    teacher accounts and faculty records, edits directory metadata and Auth email,
    and archives faculty while preserving the faculty record and history. The

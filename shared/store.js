@@ -13,7 +13,7 @@
   var OFFERINGS_KEY = "attendiq.offerings";
   var EVENTS_KEY = "attendiq.academic-events";
   var SCHEDULES_KEY = "attendiq.class-schedules";
-  var DEMO_DATASET_VERSION = "tu-bachelors-150-v2";
+  var DEMO_DATASET_VERSION = "tu-bachelors-150-v4";
 
   // TU requires 80% attendance per subject; administrators can adjust it.
   var DEFAULT_THRESHOLD = 80;
@@ -83,25 +83,32 @@
     { code: "CSC425", name: "Software Project Management", semester: 7, program: "BSc CSIT", credits: 3, course_type: "theory", active: true, archived_at: null },
   ];
 
-  var DEMO_SEMESTERS = [
-    { id: "sem-7", name: "Semester 7", number: 7, is_current: true },
-  ];
+  var DEMO_SEMESTERS = Array.from({ length: 8 }, function (_, index) {
+    var number = index + 1;
+    return {
+      id: "tu-sem-" + number,
+      academic_year_id: "year-2026",
+      name: "Semester " + number,
+      number: number,
+      is_current: true,
+    };
+  });
 
   var DEMO_OFFERINGS = [
-    { id: "offering-csc419", subject_code: "CSC419", semester_id: "sem-7", teacher_id: "u-teacher", status: "active" },
-    { id: "offering-csc420", subject_code: "CSC420", semester_id: "sem-7", teacher_id: "u-teacher", status: "active" },
-    { id: "offering-csc421", subject_code: "CSC421", semester_id: "sem-7", teacher_id: "u-teacher", status: "active" },
-    { id: "offering-csc422", subject_code: "CSC422", semester_id: "sem-7", teacher_id: "u-teacher", status: "active" },
-    { id: "offering-csc425", subject_code: "CSC425", semester_id: "sem-7", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc419", subject_code: "CSC419", semester_id: "tu-sem-7", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc420", subject_code: "CSC420", semester_id: "tu-sem-7", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc421", subject_code: "CSC421", semester_id: "tu-sem-7", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc422", subject_code: "CSC422", semester_id: "tu-sem-7", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc425", subject_code: "CSC425", semester_id: "tu-sem-7", teacher_id: "u-teacher", status: "active" },
   ];
 
   var DEMO_ACADEMIC_YEARS = [
-    { id: "year-2082", name: "2082/83 BS", start_date: "2025-04-01", end_date: "2026-03-31", is_current: true },
+    { id: "year-2026", name: "2026", start_date: "2026-01-01", end_date: "2026-12-31", is_current: true },
   ];
 
   var DEMO_EVENTS = [
-    { id: "event-1", academic_year_id: "year-2082", semester_id: "sem-7", title: "Semester 7 begins", event_type: "semester", start_date: "2025-06-01", end_date: "2025-06-01", description: "Classes begin", status: "active" },
-    { id: "event-2", academic_year_id: "year-2082", semester_id: "sem-7", title: "Mid-semester break", event_type: "holiday", start_date: "2025-08-10", end_date: "2025-08-16", description: "College holiday", status: "active" },
+    { id: "event-1", academic_year_id: "year-2026", semester_id: "tu-sem-7", title: "Semester 7 begins", event_type: "semester", start_date: "2026-06-01", end_date: "2026-06-01", description: "Classes begin", status: "active" },
+    { id: "event-2", academic_year_id: "year-2026", semester_id: "tu-sem-7", title: "Mid-semester break", event_type: "holiday", start_date: "2026-08-10", end_date: "2026-08-16", description: "College holiday", status: "active" },
   ];
 
   var DEMO_SCHEDULES = [
@@ -129,10 +136,15 @@
     });
     offerings.forEach(function (offering) {
       delete offering.section_id;
+      var legacySemester = /^sem-(\d+)$/.exec(String(offering.semester_id || ""));
+      if (legacySemester) offering.semester_id = "tu-sem-" + legacySemester[1];
       var semester = semesters.find(function (item) { return item.id === offering.semester_id; });
-      if (semester && !semester.is_current && String(offering.id || "").indexOf("tu-offering-") === 0) {
-        offering.status = "archived";
+      if (semester && String(offering.id || "").indexOf("tu-offering-") === 0) {
+        offering.status = "active";
       }
+    });
+    semesters = semesters.filter(function (semester) {
+      return !/^sem-\d+$/.test(String(semester.id || ""));
     });
     schedules.forEach(function (schedule) {
       var offering = offerings.find(function (item) { return item.id === schedule.course_offering_id; });
@@ -176,9 +188,15 @@
     for (var semesterNumber = 1; semesterNumber <= 8; semesterNumber += 1) {
       var semesterId = "tu-sem-" + semesterNumber;
       if (!semesters.some(function (semester) { return semester.id === semesterId; })) {
-        semesters.push({ id: semesterId, name: "Semester " + semesterNumber, number: semesterNumber, is_current: semesterNumber === 7 });
+        semesters.push({ id: semesterId, academic_year_id: "year-2026", name: "Semester " + semesterNumber, number: semesterNumber, is_current: true });
       }
     }
+    semesters.forEach(function (semester) {
+      if (String(semester.id || "").indexOf("tu-sem-") === 0) {
+        semester.academic_year_id = "year-2026";
+        semester.is_current = true;
+      }
+    });
     teachers.forEach(function (teacher, index) {
       var teacherId = "u-demo-teacher-" + (index + 1);
       if (!users.some(function (user) { return user.id === teacherId; })) {
@@ -215,8 +233,7 @@
           }
           var offeringId = "tu-offering-" + code.toLowerCase();
           if (!offerings.some(function (offering) { return offering.id === offeringId; })) {
-            var isCurrentSemester = semesters.some(function (item) { return item.id === semesterId && item.is_current; });
-            var status = isCurrentSemester ? "active" : "archived";
+            var status = "active";
             offerings.push({ id: offeringId, subject_code: code, semester_id: semesterId, teacher_id: "u-demo-teacher-" + ((subjectIndex % teachers.length) + 1), status: status });
             schedules.push({ id: "tu-schedule-" + code.toLowerCase(), course_offering_id: offeringId, day_of_week: ((subjectIndex % 6) + 1), start_time: (8 + (subjectIndex % 5)) + ":00", end_time: (9 + (subjectIndex % 5)) + ":00", room: program.code + "-" + (101 + (subjectIndex % 10)), status: status });
           }
@@ -346,6 +363,7 @@
         email: user.email,
         program: user.program || "BSc CSIT",
         batch: user.batch || "2079",
+        semester: Number(user.semester) || 1,
         active: true,
         archived_at: null,
       };
@@ -362,8 +380,10 @@
     user.roll = String(value.roll || "").trim();
     user.program = String(value.program || "BSc CSIT").trim();
     user.batch = String(value.batch || "").trim();
-    if (!user.name || !user.email || !user.roll || !user.batch) {
-      return { ok: false, error: "Complete every student field before saving." };
+    user.semester = Number(value.semester);
+    if (!user.name || !user.email || !user.roll || !user.batch ||
+        !Number.isInteger(user.semester) || user.semester < 1 || user.semester > 8) {
+      return { ok: false, error: "Complete every student field and choose a semester from 1 to 8." };
     }
     if (!write(USERS_KEY, users)) return { ok: false, error: "Browser storage is unavailable, so the student was not updated." };
     return { ok: true, student: user };
@@ -543,7 +563,7 @@
     var event = value || {};
     if (!event.title || !event.start_date || !event.end_date || event.end_date < event.start_date) return { ok: false, error: "Complete the event title and valid date range." };
     var events = getAcademicEvents(true);
-    var created = { id: "event-" + Date.now().toString(36), academic_year_id: event.academic_year_id || "year-2082", semester_id: event.semester_id || "sem-7", title: event.title.trim(), event_type: event.event_type || "college_event", start_date: event.start_date, end_date: event.end_date, description: String(event.description || "").trim(), status: "active" };
+    var created = { id: "event-" + Date.now().toString(36), academic_year_id: event.academic_year_id || "year-2026", semester_id: event.semester_id || "tu-sem-7", title: event.title.trim(), event_type: event.event_type || "college_event", start_date: event.start_date, end_date: event.end_date, description: String(event.description || "").trim(), status: "active" };
     events.push(created);
     if (!write(EVENTS_KEY, events)) return { ok: false, error: "Browser storage is unavailable, so the academic event was not saved." };
     return { ok: true, event: created };
@@ -623,7 +643,10 @@
       }
     });
     Object.keys(generatedYears).forEach(function (yearNumber) {
-      years.push(generatedYears[yearNumber]);
+      var generated = generatedYears[yearNumber];
+      var existing = years.find(function (year) { return year.id === generated.id; });
+      if (existing) existing.is_current = generated.is_current;
+      else years.push(generated);
     });
     return years;
   }
@@ -631,7 +654,10 @@
   function getSemesters() {
     ensureDemoAcademicDataset();
     var semesters = read("attendiq.semesters", null) || DEMO_SEMESTERS;
-    return semesters.map(function (semester) { return Object.assign({}, semester); });
+    return semesters.map(function (semester) { return Object.assign({}, semester); })
+      .sort(function (left, right) {
+        return Number(left.number) - Number(right.number);
+      });
   }
 
   function setCurrentSemester(year, semesterNumber) {
@@ -662,6 +688,7 @@
         };
         semesters.push(yearSemester);
       }
+      yearSemester.is_current = true;
       if (index === number) selected = yearSemester;
     }
     selected.is_current = true;
@@ -791,6 +818,9 @@
     if (ROLES.indexOf(role) === -1) return "Choose a valid role.";
     if (role === "student" && !email.endsWith(STUDENT_EMAIL_DOMAIN))
       return "Student accounts must use an " + STUDENT_EMAIL_DOMAIN + " email.";
+    var semester = Number(input.semester);
+    if (role === "student" && (!Number.isInteger(semester) || semester < 1 || semester > 8))
+      return "Choose a semester from 1 to 8.";
     if (findUserByEmail(email))
       return "An account with this email already exists.";
     if (password.length < 8) return "Password must be at least 8 characters.";
@@ -823,6 +853,7 @@
       roll: String(input.roll || "").trim(),
       program: String(input.program || "BSc CSIT").trim(),
       batch: String(input.batch || "").trim(),
+      semester: input.role === "student" ? Number(input.semester) : undefined,
     };
     var faculty = null;
     if (input.role === "teacher") {

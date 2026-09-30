@@ -373,6 +373,10 @@
     var value = input || {};
     var roleError = validRole(value.role);
     if (roleError) return Promise.resolve(failure(roleError, client() ? "supabase" : "local"));
+    var studentSemester = Number(value.semester);
+    if (value.role === "student" && (!Number.isInteger(studentSemester) || studentSemester < 1 || studentSemester > 8)) {
+      return Promise.resolve(failure("Choose a semester from 1 to 8.", client() ? "supabase" : "local"));
+    }
     var passwordError = validPassword(value.password);
     if (passwordError) return Promise.resolve(failure(passwordError, client() ? "supabase" : "local"));
     if (root.AttendIQDemoMode === true || !client()) {
@@ -390,6 +394,7 @@
       program: String(value.program || "BSc CSIT").trim(),
       department: String(value.department || value.program || "BSc CSIT").trim(),
       batch: String(value.batch || "").trim(),
+      semester: value.role === "student" ? studentSemester : undefined,
       faculty_id: String(value.faculty_id || "").trim(),
       designation: String(value.designation || "").trim(),
     }, "The account could not be created.");
@@ -440,7 +445,7 @@
     if (root.AttendIQDemoMode === true || !client()) return local(function (store) { return store.getStudents(); }, "Student records could not be loaded.");
     return remote(function () {
       return client().from("students")
-        .select("id, profile_id, roll, name, email, program, batch, active, archived_at")
+        .select("id, profile_id, roll, name, email, program, batch, semester, active, archived_at")
         .eq("active", true)
         .order("roll", { ascending: true });
     }, "Students could not be loaded.");
@@ -497,19 +502,14 @@
 
   function getTeacherCourseOfferings() {
     if (!client()) return Promise.resolve(unsupportedLocal("Teacher course offerings"));
-    return Promise.all([currentProfile(), getSemesters()]).then(function (results) {
-      var profileResult = results[0];
-      var semestersResult = results[1];
-      if (!profileResult.ok || !semestersResult.ok) return profileResult.ok ? semestersResult : profileResult;
-      var currentSemester = semestersResult.data.find(function (semester) { return semester.is_current; });
-      if (!currentSemester) return success([], "supabase");
+    return currentProfile().then(function (profileResult) {
+      if (!profileResult.ok) return profileResult;
       return remote(function () {
         return client().from("course_offerings")
-          .select("id, subject_code, semester_id, teacher_id, status, subjects!inner(code, name, semester, program)")
+          .select("id, subject_code, semester_id, teacher_id, status, subjects!inner(code, name, semester, program), semesters!inner(is_current)")
           .eq("teacher_id", profileResult.data.user.id)
           .eq("status", "active")
-          .eq("semester_id", currentSemester.id)
-          .eq("subjects.semester", currentSemester.number)
+          .eq("semesters.is_current", true)
           .order("subject_code", { ascending: true });
       }, "Assigned course offerings could not be loaded.");
     });
@@ -537,18 +537,26 @@
   function getTeacherStudents() {
     return getTeacherCourseOfferings().then(function (offeringResult) {
       if (!offeringResult.ok) return offeringResult;
-      var programs = Array.from(new Set(offeringResult.data.map(function (row) {
+      var offeringScopes = new Set(offeringResult.data.map(function (row) {
         var subject = Array.isArray(row.subjects) ? row.subjects[0] : row.subjects;
-        return subject && subject.program;
-      }).filter(Boolean)));
+        return subject && subject.program + "|" + subject.semester;
+      }).filter(Boolean));
+      var programs = Array.from(new Set(Array.from(offeringScopes).map(function (scope) {
+        return scope.split("|")[0];
+      })));
       if (!programs.length) return success([], "supabase");
       return remote(function () {
         return client().from("students")
-          .select("id, profile_id, roll, name, email, program, batch, active")
+          .select("id, profile_id, roll, name, email, program, batch, semester, active")
           .eq("active", true)
           .in("program", programs)
           .order("roll", { ascending: true });
-      }, "Assigned students could not be loaded.");
+      }, "Assigned students could not be loaded.").then(function (studentsResult) {
+        if (!studentsResult.ok) return studentsResult;
+        return success(studentsResult.data.filter(function (student) {
+          return offeringScopes.has(student.program + "|" + student.semester);
+        }), studentsResult.source);
+      });
     });
   }
 
@@ -574,7 +582,7 @@
       if (!profileResult.ok) return profileResult;
       return remote(function () {
         return client().from("students")
-          .select("id, profile_id, roll, name, email, program, batch, active")
+          .select("id, profile_id, roll, name, email, program, batch, semester, active")
           .eq("profile_id", profileResult.data.user.id)
           .eq("active", true)
           .limit(1)
@@ -584,19 +592,15 @@
   }
 
   function getMySubjects() {
-    return Promise.all([getMyStudentProfile(), getSemesters()]).then(function (results) {
-      var profileResult = results[0];
-      var semestersResult = results[1];
-      if (!profileResult.ok || !semestersResult.ok) return profileResult.ok ? semestersResult : profileResult;
-      var currentSemester = semestersResult.data.find(function (semester) { return semester.is_current; });
-      if (!currentSemester) return success([], "supabase");
+    return getMyStudentProfile().then(function (profileResult) {
+      if (!profileResult.ok) return profileResult;
       return remote(function () {
         return client().from("course_offerings")
-          .select("id, subject_code, semester_id, subjects!inner(code, name, semester, program)")
-          .eq("semester_id", currentSemester.id)
-          .eq("subjects.semester", currentSemester.number)
+          .select("id, subject_code, semester_id, subjects!inner(code, name, semester, program), semesters!inner(is_current)")
+          .eq("subjects.semester", profileResult.data.semester)
           .eq("subjects.program", profileResult.data.program)
           .eq("status", "active")
+          .eq("semesters.is_current", true)
           .order("subject_code", { ascending: true });
       }, "Your subjects could not be loaded.");
     }).then(function (result) {
@@ -868,7 +872,7 @@
       return client().from("semesters")
         .select("id, academic_year_id, name, number, start_date, end_date, is_current")
         .eq("is_current", true)
-        .order("number", { ascending: false });
+        .order("number", { ascending: true });
     }, "Semesters could not be loaded.");
   }
 
@@ -891,6 +895,24 @@
         p_semester: semester,
       }).single();
     }, "The current semester could not be changed.");
+  }
+
+  function setCurrentAcademicYear(input) {
+    var year = Number(input && input.year);
+    if (!Number.isInteger(year) || year < 2020 || year > 9999) {
+      return Promise.resolve(failure("Choose a Gregorian year from 2020 onward.", client() ? "supabase" : "local"));
+    }
+    if (root.AttendIQDemoMode === true || !client()) {
+      return local(function (store) {
+        return store.setCurrentSemester(year, 1);
+      }, "The active academic year could not be changed.");
+    }
+    return remote(function () {
+      return client().rpc("admin_set_current_semester", {
+        p_year: year,
+        p_semester: 1,
+      }).single();
+    }, "The active academic year could not be changed.");
   }
 
   function getCourseOfferings(filters) {
@@ -991,9 +1013,13 @@
   function updateStudent(input) {
     if (root.AttendIQDemoMode === true || !client()) return local(function (store) { return store.updateStudent(input); }, "The student could not be updated.");
     var value = input || {};
-    var required = [value.id, value.name, value.email, value.roll, value.program, value.batch];
+    var required = [value.id, value.name, value.email, value.roll, value.program, value.batch, value.semester];
     if (required.some(function (item) { return !String(item || "").trim(); })) {
-      return Promise.resolve(failure("Complete every student field before saving.", "supabase"));
+      return Promise.resolve(failure("Complete every student field, including semester, before saving.", "supabase"));
+    }
+    var semester = Number(value.semester);
+    if (!Number.isInteger(semester) || semester < 1 || semester > 8) {
+      return Promise.resolve(failure("Choose a semester from 1 to 8.", "supabase"));
     }
     return remote(function () {
       return client().rpc("admin_update_student", {
@@ -1003,6 +1029,7 @@
         p_roll: String(value.roll).trim(),
         p_program: String(value.program).trim(),
         p_batch: String(value.batch).trim(),
+        p_semester: semester,
         p_section_id: null,
       }).single();
     }, "The student could not be updated.");
@@ -1314,6 +1341,7 @@
   api.getAcademicYears = getAcademicYears;
   api.getSemesters = getSemesters;
   api.setCurrentSemester = setCurrentSemester;
+  api.setCurrentAcademicYear = setCurrentAcademicYear;
   api.getAcademicEvents = getAcademicEvents;
   api.createAcademicEvent = createAcademicEvent;
   api.updateAcademicEvent = updateAcademicEvent;

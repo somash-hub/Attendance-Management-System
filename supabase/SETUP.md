@@ -4,10 +4,10 @@ Project reference: `yvvgvteijtxnuwtncfio`
 Everything in this folder is **re-runnable** — the schema drops and recreates
 its named policies before enabling them, so policy changes can be applied
 again safely. The hosted project has migrations through
-`20260930000300_fix_current_semester_rpc_lint.sql` applied, and the
-`admin-create-user` Edge Function has been redeployed with section-free student
-creation. Remote schema lint passes with only intentional unused-section-
-argument warnings from legacy RPC signatures.
+`20260930000400_assign_semester_per_student.sql` applied, and the
+`admin-create-user` Edge Function has been redeployed to require and store each
+student's semester. Remote schema lint last passed before migration 004; the
+latest migration was verified against the hosted schema and data.
 
 ## 1. Create the three demo accounts
 
@@ -46,6 +46,7 @@ Apply the migrations in order from `supabase/migrations/`:
 16. `20260924001302_phase6_8_function_sync.sql`
 17. `20260930000200_use_program_and_current_semester.sql`
 18. `20260930000300_fix_current_semester_rpc_lint.sql`
+19. `20260930000400_assign_semester_per_student.sql`
 
 Use separate SQL Editor queries, or paste them in order and run each query.
 
@@ -70,12 +71,13 @@ It creates:
   row level security policies
 - Teacher attendance access restricted to assigned subjects, and student leave
   submissions forced to begin as pending
-- Migration `20260930000200` replaces active section-based access with student
-  program plus one college-wide current semester, while retaining archived
-  enrollment history. It seeds Gregorian years 2020-2026 and semesters 1-8,
-  with 2026 Semester 1 current; administrators can select a later year and
-  semester in Settings, creating the year and all eight semesters on demand.
-  Initial year/semester date bounds span the whole Gregorian year.
+- Migrations `20260930000200`-`20260930000400` replace active section-based
+  access with student program and an active academic year, while retaining
+  archived enrollment history. They seed Gregorian years 2020-2026 and
+  semesters 1-8, with 2026 active. Administrators choose each student's
+  semester from 1-8. All eight semester offerings in the active year can be
+  assigned, and new years are created when selected in Settings. Initial
+  year/semester date bounds span the whole Gregorian year.
 - Administrator student CRUD RPCs support editing and archiving students while
   preserving attendance and leave history; the local semester-model migration
   archives existing enrollments without deleting them
@@ -85,12 +87,12 @@ It creates:
 - Administrator subject catalog CRUD is implemented in the admin portal; subject
   codes are permanent, and archive/restore preserves historical attendance and
   course-offering references
-- Course offerings are shared by students in the matching program and current
+- Course offerings are shared by students matching the program and individual
   semester; section enrollment operations are no longer used for current access
 - Administrator academic-calendar events and recurring class schedules are
   managed in **Settings**; archive/restore preserves their history and does not
   delete attendance records
-- The local adapter scopes teacher and student reads to current-semester
+- The adapter scopes teacher and student reads to active-year semester
   offerings, program rosters, attendance, and leave requests
 - Phase 5 adds scheduled attendance sessions with teacher-assignment checks,
   atomic session attendance saving, relationship-aware RLS, and a lint follow-up

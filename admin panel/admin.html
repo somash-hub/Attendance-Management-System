@@ -250,7 +250,7 @@
               <div class="toolbar">
                 <div>
                   <h2>Student Directory</h2>
-                  <p>Students are grouped automatically by program and the current college semester.</p>
+                  <p>Students are assigned by program, batch, and their individual semester.</p>
                 </div>
                 <button class="button button-primary" type="button" data-action="student">＋ Add student</button>
               </div>
@@ -258,7 +258,7 @@
                 <div class="card-heading">
                   <div>
                     <h2 id="studentFormTitle">Add student</h2>
-                    <p id="studentFormCopy">Enter the student's program, batch, and official TU roll number. The current college semester is applied automatically.</p>
+                    <p id="studentFormCopy">Enter the student's program, batch, TU roll number, and semester.</p>
                   </div>
                 </div>
                 <form id="studentForm" class="date-grid student-form">
@@ -268,7 +268,7 @@
                   <label>Official TU roll number<input id="studentRoll" type="text" placeholder="e.g. 2079CSIT042" required /><small>Copy the roll number from the student's TU registration record. It must be unique.</small></label>
                   <label>Program<input id="studentProgram" type="text" value="BSc CSIT" placeholder="e.g. BSc CSIT" required /><small>Enter the program name as used by your college, for example BSc CSIT or BCA.</small></label>
                   <label>Batch<input id="studentBatch" type="text" value="2079" placeholder="e.g. 2080" required /><small>Enter the student's admission batch/year.</small></label>
-                  <label>Current semester<input id="studentSemester" type="text" readonly /><small>Set centrally by the college; this semester applies to all students.</small></label>
+                  <label>Semester<select id="studentSemester" required><option value="">Choose semester</option><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option><option value="7">Semester 7</option><option value="8">Semester 8</option></select></label>
                   <label id="studentPasswordField"
                     >Login password<input id="studentPassword" type="password" placeholder="8+ chars with uppercase, lowercase, number, symbol" required minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" title="Use at least 8 characters with uppercase, lowercase, number, and symbol."
                   /><small>At least 8 characters with uppercase, lowercase, number, and symbol.</small></label>
@@ -682,6 +682,9 @@
                   <label data-account-field="student" hidden
                     >Batch<input id="newUserBatch" type="text" placeholder="e.g. 2082"
                   /></label>
+                  <label data-account-field="student" hidden
+                    >Semester<select id="newUserSemester" required><option value="">Choose semester</option><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option><option value="7">Semester 7</option><option value="8">Semester 8</option></select>
+                  </label>
                   <label data-account-field="teacher" hidden
                     >Faculty ID<input id="newFacultyId" type="text" placeholder="e.g. FAC006"
                   /></label>
@@ -711,13 +714,12 @@
                   <button class="button button-secondary" type="button" data-action="event">＋ Add event</button>
                 </div>
                 <div class="subsection-heading">
-                  <h3>Current college semester</h3>
-                  <p>All student and course access follows this one college-wide semester. Years from 2020 onward are created as needed.</p>
+                  <h3>Active academic year</h3>
+                  <p>Semester 1–8 course access is available within this year; choose each student's semester in the student form. Future years are created as needed.</p>
                 </div>
                 <form id="currentSemesterForm" class="date-grid student-form">
                   <label>Gregorian year<input id="currentAcademicYear" type="number" min="2020" max="9999" step="1" required /></label>
-                  <label>Semester<select id="currentSemesterNumber" required><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option><option value="7">Semester 7</option><option value="8">Semester 8</option></select></label>
-                  <div class="student-form-actions"><button class="button button-primary" id="currentSemesterSave" type="submit">Set current semester</button></div>
+                  <div class="student-form-actions"><button class="button button-primary" id="currentSemesterSave" type="submit">Set active academic year</button></div>
                 </form>
                 <div class="student-editor" id="eventEditor" hidden>
                   <div class="card-heading">
