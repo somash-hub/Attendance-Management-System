@@ -25,6 +25,13 @@ function initializePortal(session) {
       return;
     }
     let settings = result.data;
+    AttendIQNotificationCenter.initialize({
+      buttonId: "adminNotifications",
+      badgeId: "adminNotificationCount",
+      onError: showToast,
+      onOpen: loadAdminLeaves,
+      onItem: function () { openTab("leaves"); },
+    });
 
 // Demo records used by the administrator portal before backend integration.
 let students = [
@@ -392,15 +399,28 @@ function renderClassSchedules() {
 }
 
 function requestMarkup(request, actions = true) {
-  const actionMarkup =
-    actions && request.status === "pending"
+  const awaitingTeacher = request.status === "pending"
+    && settings.leaveWorkflow === "teacher_admin"
+    && !request.teacherApprovedAt;
+  const stageLabel = request.status === "pending"
+    ? request.teacherApprovedAt
+      ? "Teacher approved · awaiting admin review"
+      : settings.leaveWorkflow === "teacher_admin"
+        ? "Awaiting teacher review"
+        : ""
+    : "";
+  const actionMarkup = !actions
+    ? ""
+    : request.status === "pending" && !awaitingTeacher
       ? `<div class="request-actions"><button class="approve" data-leave="${h(request.id)}" data-status="approved">Approve</button><button class="reject" data-leave="${h(request.id)}" data-status="rejected">Reject</button></div>`
-      : `<button class="undo" data-leave="${h(request.id)}" data-status="pending">Undo</button>`;
+      : request.status === "pending"
+        ? ""
+        : `<button class="undo" data-leave="${h(request.id)}" data-status="pending">Undo</button>`;
   const initials = String(request.name || "?")
     .split(" ")
     .map((part) => part[0])
     .join("");
-  return `<div class="request-row"><div class="request-main"><span class="request-avatar">${h(initials)}</span><div><div class="request-title"><strong>${h(request.name)}</strong><span class="mono">${h(request.roll)}</span>${statusBadge(request.status)}</div><p>${h(request.subjectLabel)} · ${h(request.type)} · ${h(request.dates)} · ${h(request.reason)}</p>${request.reviewComment ? `<small>Reviewer: ${h(request.reviewComment)}</small>` : ""}${request.doc ? `<small class="document">✓ Document submitted</small><button type="button" data-review-document="${h(request.docPath)}">Open document</button>` : ""}</div></div>${actionMarkup}</div>`;
+  return `<div class="request-row"><div class="request-main"><span class="request-avatar">${h(initials)}</span><div><div class="request-title"><strong>${h(request.name)}</strong><span class="mono">${h(request.roll)}</span>${statusBadge(request.status)}</div><p>${h(request.subjectLabel)} · ${h(request.type)} · ${h(request.dates)} · ${h(request.reason)}</p>${stageLabel ? `<small>${h(stageLabel)}</small>` : ""}${request.teacherReviewComment ? `<small>Teacher note: ${h(request.teacherReviewComment)}</small>` : ""}${request.reviewComment ? `<small>Reviewer: ${h(request.reviewComment)}</small>` : ""}${request.doc ? `<small class="document">✓ Document submitted</small><button type="button" data-review-document="${h(request.docPath)}">Open document</button>` : ""}</div></div>${actionMarkup}</div>`;
 }
 
 function renderLeaves(target = "#leaveRequests", limit = false) {
@@ -463,6 +483,8 @@ function loadAdminLeaves() {
         dates: formatLeaveDates(row),
         reason: row.reason,
         status: row.status,
+        teacherApprovedAt: row.teacher_approved_at,
+        teacherReviewComment: row.teacher_review_comment || "",
         doc: !!row.document_url,
         docPath: row.document_url,
         reviewComment: row.review_comment || "",
@@ -605,6 +627,9 @@ function renderThreshold() {
   $("#thresholdValue").textContent = `${settings.threshold}%`;
   $("#thresholdCopy").textContent = `${settings.threshold}%`;
   $("#atRiskCopy").textContent = `Below ${settings.threshold}% threshold`;
+  $("#notifySwitch").classList.toggle("on", settings.autoNotifyBelowThreshold);
+  $("#notifySwitch").setAttribute("aria-pressed", String(settings.autoNotifyBelowThreshold));
+  $("#leaveWorkflow").value = settings.leaveWorkflow;
   renderAdminMetrics();
 }
 
@@ -1433,7 +1458,10 @@ document.addEventListener("click", async (event) => {
     const comment = window.prompt("Optional reviewer note:", "") || "";
     AttendIQSupabase.reviewLeave(leaveButton.dataset.leave, leaveButton.dataset.status, comment).then(function (result) {
       if (!result.ok) return showToast(result.error);
-      showToast(`Leave request ${leaveButton.dataset.status}.`);
+      const stagedApproval = leaveButton.dataset.status === "approved" && result.data.teacher_approved_at;
+      showToast(stagedApproval
+        ? "Teacher approval recorded; the request is waiting for admin review."
+        : `Leave request ${leaveButton.dataset.status}.`);
       return loadAdminLeaves();
     });
     return;
@@ -1457,12 +1485,14 @@ $("#notifySwitch").addEventListener("click", (event) => {
 $("#saveSettings").addEventListener("click", async () => {
   const result = await AttendIQSupabase.saveSettings({
     threshold: Number($("#threshold").value),
+    autoNotifyBelowThreshold: $("#notifySwitch").classList.contains("on"),
+    leaveWorkflow: $("#leaveWorkflow").value,
   });
   if (!result.ok) return showToast(result.error);
   settings = result.data;
   renderThreshold();
   renderStudents();
-  showToast("Attendance threshold saved.");
+  showToast("Attendance and leave settings saved.");
 });
 $("#headerAction").addEventListener("click", () =>
   showToast("This form will connect to the backend."),

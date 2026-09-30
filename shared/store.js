@@ -988,7 +988,13 @@
     var threshold = stored ? Number(stored.threshold) : NaN;
     if (!isFinite(threshold) || threshold < 40 || threshold > 100)
       threshold = DEFAULT_THRESHOLD;
-    return { threshold: threshold };
+    return {
+      threshold: threshold,
+      autoNotifyBelowThreshold: stored ? stored.autoNotifyBelowThreshold !== false : true,
+      leaveWorkflow: stored && ["teacher_admin", "admin_only", "auto_approve"].indexOf(stored.leaveWorkflow) !== -1
+        ? stored.leaveWorkflow
+        : "teacher_admin",
+    };
   }
 
   // Persist a settings change such as the attendance threshold.
@@ -1000,12 +1006,21 @@
         ok: false,
         error: "Attendance threshold must be between 40 and 100.",
       };
-    if (!write(SETTINGS_KEY, { threshold: threshold }))
+    if (typeof merged.autoNotifyBelowThreshold !== "boolean")
+      return { ok: false, error: "Choose whether automatic attendance alerts are enabled." };
+    if (["teacher_admin", "admin_only", "auto_approve"].indexOf(merged.leaveWorkflow) === -1)
+      return { ok: false, error: "Choose a valid leave approval workflow." };
+    var settings = {
+      threshold: threshold,
+      autoNotifyBelowThreshold: merged.autoNotifyBelowThreshold,
+      leaveWorkflow: merged.leaveWorkflow,
+    };
+    if (!write(SETTINGS_KEY, settings))
       return {
         ok: false,
         error: "Browser storage is unavailable, so the settings were not saved.",
       };
-    return { ok: true, settings: { threshold: threshold } };
+    return { ok: true, settings: settings };
   }
 
   var api = {

@@ -13,6 +13,7 @@
     <script src="../shared/store.js" defer></script>
     <!-- The async Supabase adapter is the only frontend module for backend calls. -->
     <script src="../shared/supabase-store.js" defer></script>
+    <script src="../shared/notification-center.js" defer></script>
     <!-- Shared CSV download helper for report exports. -->
     <script src="../shared/safe-dom.js" defer></script>
     <script src="../shared/csv.js" defer></script>
@@ -28,7 +29,7 @@
       >
       <div class="top-actions">
         <span class="date">Wednesday, Ashadh 25, 2082</span
-        ><button class="notification">♢<b>2</b></button
+        ><button class="notification" id="teacherNotifications" type="button" aria-label="Notifications">♢<b id="teacherNotificationCount" hidden></b></button
         ><span class="avatar" id="userAvatar">PM</span
         ><span class="user-copy"
           ><strong id="userName">Dr. Priya Mehta</strong

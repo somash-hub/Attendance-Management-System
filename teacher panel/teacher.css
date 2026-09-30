@@ -96,6 +96,45 @@ a {
   right: -4px;
   top: -5px;
 }
+.notification b[hidden],
+.notification-center[hidden] {
+  display: none;
+}
+.notification-center {
+  background: #fff;
+  border: 1px solid #e5e5ea;
+  border-radius: 12px;
+  box-shadow: 0 14px 36px #20243324;
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  padding: 16px;
+  position: fixed;
+  right: 24px;
+  top: 72px;
+  width: min(360px, calc(100vw - 32px));
+  z-index: 30;
+}
+.notification-center-list {
+  margin-top: 12px;
+}
+.notification-center-list article,
+.notification-center-list > p {
+  border-top: 1px solid #e5e5ea;
+  padding: 12px 0;
+}
+.notification-center-list article p {
+  color: #737887;
+  font-size: 13px;
+  margin: 5px 0;
+}
+.notification-center-list article button {
+  background: transparent;
+  border: 0;
+  color: #3d38f5;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0;
+}
 .avatar,
 .student-avatar {
   align-items: center;

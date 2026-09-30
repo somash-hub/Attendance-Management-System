@@ -45,7 +45,11 @@ plain HTML, CSS, and JavaScript.
   own marks, with subject percentages and threshold warnings
 - Leave workflow: student submission with optional private document upload,
   optional routing to one current subject or all current subjects, and review
-  restricted to the matching instructors and administrators
+  restricted to the matching instructors and administrators; administrator
+  settings control teacher-then-admin review, admin-only review, or auto-approval
+- Attendance rules save the minimum threshold and automatic subject-level
+  student alerts; teachers can also send an in-app warning to a student below
+  threshold in their assigned courses
 - Teacher, admin, and student CSV report downloads
 - Demo data includes TU BSc CSIT Semester 7 subjects (CSC419–CSC425), while
   student records can be assigned Semester 1–8 independently; sample data also

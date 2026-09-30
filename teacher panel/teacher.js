@@ -22,6 +22,13 @@ function initializePortal(session) {
       return;
     }
     const settings = result.data;
+    AttendIQNotificationCenter.initialize({
+      buttonId: "teacherNotifications",
+      badgeId: "teacherNotificationCount",
+      onError: toast,
+      onOpen: loadTeacherLeaves,
+      onItem: function () { openTab("leaves"); },
+    });
 
 // Demo class roster and leave data used by the teacher portal.
 let students = [
@@ -335,7 +342,7 @@ function loadTeacherData() {
       roll: student.roll,
     }));
     students = studentsResult.data.map(function (student) {
-      return [student.name, student.roll, 0, "present"];
+      return [student.name, student.roll, 0, "present", student.id];
     });
     studentDirectory = Object.fromEntries(
       studentsResult.data.map((student) => [student.id, { name: student.name, roll: student.roll }]),
@@ -403,7 +410,7 @@ function loadTeacherReports() {
         percent: entry.total ? Math.round((entry.present / entry.total) * 100) : 0,
       };
     });
-    students = reportRows.map(function (row) { return [row.name, row.roll, row.percent, "present"]; });
+    students = reportRows.map(function (row) { return [row.name, row.roll, row.percent, "present", row.id]; });
     renderReports();
     renderTeacherMetrics();
     renderThreshold();
@@ -414,14 +421,15 @@ function loadTeacherReports() {
 function renderLeaves() {
   $("#leaveRows").innerHTML = leaves.map(function (leave) {
     const initials = leave.name.split(" ").map((part) => part[0]).join("");
-    const actions = leave.status === "pending"
+    const actions = leave.status === "pending" && !leave.teacherApprovedAt
       ? `<div class="leave-actions"><button class="approve" data-leave="${h(leave.id)}" data-state="approved">Approve</button><button class="reject" data-leave="${h(leave.id)}" data-state="rejected">Reject</button></div>`
       : "";
     const document = leave.doc
       ? `<small class="document">✓ Supporting document attached</small><button type="button" data-review-document="${h(leave.docPath)}">Open document</button>`
       : "";
     const reviewComment = leave.reviewComment ? `<small>Reviewer: ${h(leave.reviewComment)}</small>` : "";
-    return `<div class="leave-row"><div class="leave-main"><span class="student-avatar">${h(initials)}</span><div><div><strong>${h(leave.name)}</strong> <small class="mono">${h(leave.roll)}</small> ${status(leave.status)}</div><p>${h(leave.subjectLabel)} · ${h(leave.type)} · ${h(leave.date)} · ${h(leave.reason)}</p>${reviewComment}${document}</div></div>${actions}</div>`;
+    const teacherReviewComment = leave.teacherReviewComment ? `<small>Teacher note: ${h(leave.teacherReviewComment)}</small>` : "";
+    return `<div class="leave-row"><div class="leave-main"><span class="student-avatar">${h(initials)}</span><div><div><strong>${h(leave.name)}</strong> <small class="mono">${h(leave.roll)}</small> ${status(leave.status)}</div><p>${h(leave.subjectLabel)} · ${h(leave.type)} · ${h(leave.date)} · ${h(leave.reason)}</p>${reviewComment}${teacherReviewComment}${document}</div></div>${actions}</div>`;
   }).join("");
 }
 
@@ -459,6 +467,8 @@ function loadTeacherLeaves() {
         date: formatLeaveDates(row),
         reason: row.reason,
         status: row.status,
+        teacherApprovedAt: row.teacher_approved_at,
+        teacherReviewComment: row.teacher_review_comment || "",
         doc: !!row.document_url,
         docPath: row.document_url,
         reviewComment: row.review_comment || "",
@@ -493,7 +503,7 @@ function renderThreshold() {
         `<div><span class="student-avatar">${h(student[0]
           .split(" ")
           .map((part) => part[0])
-          .join(""))}</span><strong>${h(student[0])}<small>${h(student[1])}</small></strong><b class="danger">${h(student[2])}%</b><button class="link">Notify</button></div>`,
+          .join(""))}</span><strong>${h(student[0])}<small>${h(student[1])}</small></strong><b class="danger">${h(student[2])}%</b><button class="link" type="button" data-notify-student="${h(student[4] || "")}" ${student[4] ? "" : "disabled"}>Notify</button></div>`,
     )
     .join("");
 }
@@ -557,7 +567,7 @@ $$("[data-tab-link]").forEach((n) =>
 $("#menuButton").addEventListener("click", () =>
   $("#sidebar").classList.toggle("open"),
 );
-document.addEventListener("click", (e) => {
+document.addEventListener("click", async (e) => {
   const startSchedule = e.target.closest("[data-start-schedule]");
   if (startSchedule) {
     const scheduleId = startSchedule.dataset.startSchedule;
@@ -585,12 +595,22 @@ document.addEventListener("click", (e) => {
     attendance[option.dataset.student] = option.dataset.status;
     renderAttendance();
   }
+  const notifyButton = e.target.closest("[data-notify-student]");
+  if (notifyButton) {
+    const result = await AttendIQSupabase.notifyAtRiskStudent(notifyButton.dataset.notifyStudent);
+    if (!result.ok) return toast(result.error);
+    toast("Attendance warning sent to the student.");
+    return;
+  }
   const leave = e.target.closest("[data-leave]");
   if (leave) {
     const comment = window.prompt("Optional reviewer note:", "") || "";
     AttendIQSupabase.reviewLeave(leave.dataset.leave, leave.dataset.state, comment).then(function (result) {
       if (!result.ok) return toast(result.error);
-      toast("Leave request updated.");
+      const stagedApproval = leave.dataset.state === "approved" && result.data.teacher_approved_at;
+      toast(stagedApproval
+        ? "Leave request approved by you and sent to the administrator."
+        : "Leave request updated.");
       return loadTeacherLeaves();
     });
     return;

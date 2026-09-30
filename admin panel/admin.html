@@ -14,6 +14,7 @@
     <script src="../shared/store.js" defer></script>
     <!-- The async Supabase adapter is the only frontend module for backend calls. -->
     <script src="../shared/supabase-store.js" defer></script>
+    <script src="../shared/notification-center.js" defer></script>
     <!-- Shared CSV download helper for report exports. -->
     <script src="../shared/safe-dom.js" defer></script>
     <script src="../shared/csv.js" defer></script>
@@ -39,8 +40,8 @@
           >
         </div>
         <div class="topbar-right">
-          <button class="icon-button" type="button" aria-label="Notifications">
-            ♢<span class="notification-dot"></span>
+          <button class="icon-button" id="adminNotifications" type="button" aria-label="Notifications">
+            ♢<span class="notification-dot" id="adminNotificationCount" hidden></span>
           </button>
           <span class="admin-badge">◇ Admin</span>
           <div class="profile">
@@ -608,8 +609,9 @@
                   <div>
                     <strong>Auto-notify students below threshold</strong
                     ><small
-                      >Send an alert when attendance drops below
-                      <span id="thresholdCopy">80%</span>.</small
+                      >Send an in-app alert each time attendance is saved
+                      while the student is below <span id="thresholdCopy">80%</span>
+                      in that subject.</small
                     >
                   </div>
                   <button
@@ -624,12 +626,12 @@
                 <div class="setting-row separated">
                   <div>
                     <strong>Leave approval workflow</strong
-                    ><small>Choose who reviews leave applications first.</small>
+                    ><small>New requests use the selected approval path.</small>
                   </div>
                   <label class="visually-hidden" for="leaveWorkflow">Leave approval workflow</label><select id="leaveWorkflow">
-                    <option>Teacher → Admin</option>
-                    <option>Admin only</option>
-                    <option>Auto-approve</option>
+                    <option value="teacher_admin">Teacher → Admin</option>
+                    <option value="admin_only">Admin only</option>
+                    <option value="auto_approve">Auto-approve</option>
                   </select>
                 </div>
               </article>

@@ -328,32 +328,64 @@
   function getSettings() {
     if (!client()) return local(function (store) { return store.getSettings(); });
     return remote(function () {
-      return client().from("settings").select("threshold").eq("id", 1).single();
+      return client().from("settings")
+        .select("threshold, auto_notify_below_threshold, leave_workflow")
+        .eq("id", 1)
+        .single();
     }, "Attendance settings could not be loaded.").then(function (result) {
-      return result.ok ? success({ threshold: result.data.threshold }) : result;
+      return result.ok ? success({
+        threshold: result.data.threshold,
+        autoNotifyBelowThreshold: result.data.auto_notify_below_threshold,
+        leaveWorkflow: result.data.leave_workflow,
+      }) : result;
     });
   }
 
   function saveSettings(patch) {
-    var threshold = patch && patch.threshold;
+    var value = patch || {};
+    var threshold = value.threshold;
     var validationError = validThreshold(threshold);
     if (validationError) {
       return Promise.resolve(failure(validationError, client() ? "supabase" : "local"));
     }
+    var settingsPatch = { threshold: Number(threshold) };
+    if (Object.prototype.hasOwnProperty.call(value, "autoNotifyBelowThreshold")) {
+      if (typeof value.autoNotifyBelowThreshold !== "boolean") {
+        return Promise.resolve(failure("Choose whether automatic attendance alerts are enabled.", client() ? "supabase" : "local"));
+      }
+      settingsPatch.autoNotifyBelowThreshold = value.autoNotifyBelowThreshold;
+    }
+    if (Object.prototype.hasOwnProperty.call(value, "leaveWorkflow")) {
+      if (["teacher_admin", "admin_only", "auto_approve"].indexOf(value.leaveWorkflow) === -1) {
+        return Promise.resolve(failure("Choose a valid leave approval workflow.", client() ? "supabase" : "local"));
+      }
+      settingsPatch.leaveWorkflow = value.leaveWorkflow;
+    }
     if (!client()) {
       return local(function (store) {
-        var result = store.saveSettings({ threshold: Number(threshold) });
+        var result = store.saveSettings(settingsPatch);
         return result.ok ? result.settings : result;
       }, "Settings could not be saved.");
     }
+    var databasePatch = { threshold: settingsPatch.threshold };
+    if (Object.prototype.hasOwnProperty.call(settingsPatch, "autoNotifyBelowThreshold")) {
+      databasePatch.auto_notify_below_threshold = settingsPatch.autoNotifyBelowThreshold;
+    }
+    if (Object.prototype.hasOwnProperty.call(settingsPatch, "leaveWorkflow")) {
+      databasePatch.leave_workflow = settingsPatch.leaveWorkflow;
+    }
     return remote(function () {
       return client().from("settings")
-        .update({ threshold: Number(threshold) })
+        .update(databasePatch)
         .eq("id", 1)
-        .select("threshold")
+        .select("threshold, auto_notify_below_threshold, leave_workflow")
         .single();
     }, "Attendance settings could not be saved.").then(function (result) {
-      return result.ok ? success({ threshold: result.data.threshold }) : result;
+      return result.ok ? success({
+        threshold: result.data.threshold,
+        autoNotifyBelowThreshold: result.data.auto_notify_below_threshold,
+        leaveWorkflow: result.data.leave_workflow,
+      }) : result;
     });
   }
 
@@ -748,7 +780,7 @@
       var value = filters || {};
       return remote(function () {
         var query = client().from("leaves")
-          .select("id, student_id, course_offering_id, course_offerings(subject_code, subjects(code, name)), type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
+          .select("id, student_id, course_offering_id, course_offerings(subject_code, subjects(code, name)), type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, teacher_approved_at, teacher_review_comment, cancelled_at, created_at")
           .eq("student_id", profileResult.data.id)
           .order("created_at", { ascending: false });
         if (value.status) query = query.eq("status", value.status);
@@ -1095,7 +1127,7 @@
       var value = filters || {};
       return remote(function () {
         var query = client().from("leaves")
-          .select("id, student_id, course_offering_id, course_offerings(subject_code, subjects(code, name)), type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
+          .select("id, student_id, course_offering_id, course_offerings(subject_code, subjects(code, name)), type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, teacher_approved_at, teacher_review_comment, cancelled_at, created_at")
           .in("student_id", studentIds)
           .order("created_at", { ascending: false });
         if (value.status) query = query.eq("status", value.status);
@@ -1204,7 +1236,7 @@
     var value = filters || {};
     return remote(function () {
       var query = client().from("leaves")
-        .select("id, student_id, course_offering_id, course_offerings(subject_code, subjects(code, name)), type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
+        .select("id, student_id, course_offering_id, course_offerings(subject_code, subjects(code, name)), type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, teacher_approved_at, teacher_review_comment, cancelled_at, created_at")
         .order("created_at", { ascending: false });
       if (value.student_id) query = query.eq("student_id", value.student_id);
       if (value.status) query = query.eq("status", value.status);
@@ -1251,7 +1283,7 @@
         };
         return remote(function () {
           return client().from("leaves").insert(row)
-            .select("id, student_id, course_offering_id, course_offerings(subject_code, subjects(code, name)), type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
+            .select("id, student_id, course_offering_id, course_offerings(subject_code, subjects(code, name)), type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, teacher_approved_at, teacher_review_comment, cancelled_at, created_at")
             .single();
         }, "The leave request could not be saved.");
       });
@@ -1272,6 +1304,16 @@
     }, "The leave request could not be reviewed.");
   }
 
+  function notifyAtRiskStudent(studentId) {
+    if (!client()) return Promise.resolve(unsupportedLocal("Attendance alerts"));
+    if (!studentId) return Promise.resolve(failure("Choose a student to notify.", "supabase"));
+    return remote(function () {
+      return client().rpc("notify_at_risk_student", {
+        p_student_id: String(studentId),
+      });
+    }, "The student could not be notified.");
+  }
+
   function cancelLeave(leaveId) {
     if (!client()) return Promise.resolve(unsupportedLocal("Leave cancellation"));
     return remote(function () {
@@ -1281,14 +1323,18 @@
 
   function getNotifications(includeRead) {
     if (!client()) return Promise.resolve(unsupportedLocal("Notifications"));
-    return remote(function () {
-      var query = client().from("notifications")
-        .select("id, notification_type, title, message, related_table, related_id, read_at, created_at")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (!includeRead) query = query.is("read_at", null);
-      return query;
-    }, "Notifications could not be loaded.");
+    return currentProfile().then(function (profileResult) {
+      if (!profileResult.ok) return profileResult;
+      return remote(function () {
+        var query = client().from("notifications")
+          .select("id, notification_type, title, message, related_table, related_id, read_at, created_at")
+          .eq("user_id", profileResult.data.user.id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (!includeRead) query = query.is("read_at", null);
+        return query;
+      }, "Notifications could not be loaded.");
+    });
   }
 
   function sendMassNotification(input) {
@@ -1391,6 +1437,7 @@
   api.getLeaves = getLeaves;
   api.createLeave = createLeave;
   api.reviewLeave = reviewLeave;
+  api.notifyAtRiskStudent = notifyAtRiskStudent;
   api.cancelLeave = cancelLeave;
   api.getNotifications = getNotifications;
   api.sendMassNotification = sendMassNotification;
