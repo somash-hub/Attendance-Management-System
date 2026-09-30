@@ -4,9 +4,10 @@ Project reference: `yvvgvteijtxnuwtncfio`
 Everything in this folder is **re-runnable** — the schema drops and recreates
 its named policies before enabling them, so policy changes can be applied
 again safely. The hosted project has migrations through
-`20260930000200_use_program_and_current_semester.sql` applied, and the
+`20260930000300_fix_current_semester_rpc_lint.sql` applied, and the
 `admin-create-user` Edge Function has been redeployed with section-free student
-creation.
+creation. Remote schema lint passes with only intentional unused-section-
+argument warnings from legacy RPC signatures.
 
 ## 1. Create the three demo accounts
 
@@ -44,6 +45,7 @@ Apply the migrations in order from `supabase/migrations/`:
 15. `20260924001301_phase6_8_rls_correction.sql`
 16. `20260924001302_phase6_8_function_sync.sql`
 17. `20260930000200_use_program_and_current_semester.sql`
+18. `20260930000300_fix_current_semester_rpc_lint.sql`
 
 Use separate SQL Editor queries, or paste them in order and run each query.
 

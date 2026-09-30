@@ -70,23 +70,23 @@ plain HTML, CSS, and JavaScript.
 - A password-reset link returns to this login page. Use **Forgot password?** to request
   the email; the recovery screen then updates the password through Supabase Auth.
 - The hosted project has migrations through
-  `20260930000200_use_program_and_current_semester.sql` applied. The latest
-  migration was applied successfully, but a post-migration linked schema lint
-  could not run because direct CLI database authentication is unavailable.
+  `20260930000300_fix_current_semester_rpc_lint.sql` applied. Remote schema lint
+  passes with only intentional unused-section-argument warnings from legacy RPC
+  signatures retained for compatibility.
 
 ## Supabase status
 
-The hosted project `yvvgvteijtxnuwtncfio` has migration
-`20260930000200_use_program_and_current_semester.sql` applied. It seeds
+The hosted project `yvvgvteijtxnuwtncfio` has migrations
+`20260930000200_use_program_and_current_semester.sql` and
+`20260930000300_fix_current_semester_rpc_lint.sql` applied. They seed
 Gregorian years 2020-2026 and semesters 1-8, with 2026 Semester 1 current;
 administrators can create later years and switch the current semester from
 Settings, which creates the selected year and all eight semesters on demand.
 Initial term date bounds span the whole Gregorian year. The live catalog
 currently contains only BCA Semester 4 subjects and no course offerings, so
 Semester 1 course access stays empty until the college adds matching subjects
-and offerings. The latest migration was applied successfully, but post-migration
-schema lint could not run because direct CLI database authentication is
-unavailable. The
+and offerings. Remote schema lint passes with only intentional unused-section-
+argument warnings from legacy RPC signatures retained for compatibility. The
 project includes Phase 1 security, Phase 2 academic relationships, and the
 complete Phase 3 administrator student, faculty, subject, course-offering,
 enrollment, academic-calendar, and class-schedule administration slices. The

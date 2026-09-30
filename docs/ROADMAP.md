@@ -8,10 +8,10 @@
 - All ten frontend JavaScript files pass `node --check`.
 - The hosted Supabase project is connected. The current repository revision is the source of truth for this roadmap.
 - The source and hosted backend use one college-wide current semester and
-  program-based course access. Migration `20260930000200` is applied; admins can
-  select a year from 2020 onward and semester 1-8, with later years created on
-  demand. Post-migration schema lint remains unverified because direct CLI
-  database authentication is unavailable.
+  program-based course access. Migrations `20260930000200` and `20260930000300`
+  are applied; admins can select a year from 2020 onward and semester 1-8, with
+  later years created on demand. Remote schema lint passes with only intentional
+  unused-section-argument warnings from legacy RPC signatures.
 
 ## Phase 0 — Foundation and decisions
 
