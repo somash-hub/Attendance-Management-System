@@ -375,7 +375,7 @@
       program: String(value.program || "BSc CSIT").trim(),
       department: String(value.department || value.program || "BSc CSIT").trim(),
       batch: String(value.batch || "").trim(),
-      section: String(value.section || "A").trim(),
+      section: String(value.section || "").trim(),
       section_id: String(value.section_id || "").trim(),
       faculty_id: String(value.faculty_id || "").trim(),
       designation: String(value.designation || "").trim(),
@@ -427,9 +427,8 @@
     if (root.AttendIQDemoMode === true || !client()) return local(function (store) { return store.getStudents(); }, "Student records could not be loaded.");
     return remote(function () {
       return client().from("students")
-        .select("id, profile_id, roll, name, email, program, batch, section, active, archived_at, enrollments!inner(id, section_id, status)")
+        .select("id, profile_id, roll, name, email, program, batch, section, active, archived_at, enrollments(id, section_id, status)")
         .eq("active", true)
-        .eq("enrollments.status", "active")
         .order("roll", { ascending: true });
     }, "Students could not be loaded.");
   }

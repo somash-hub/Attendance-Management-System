@@ -273,7 +273,7 @@
                   <label>Roll number<input id="studentRoll" type="text" required /></label>
                   <label>Program<input id="studentProgram" type="text" value="BSc CSIT" required /></label>
                   <label>Batch<input id="studentBatch" type="text" value="2079" required /></label>
-                  <label>Section<select id="studentSection" required></select></label>
+                  <label>Section<input id="studentSection" type="text" list="studentSectionOptions" autocomplete="off" /><datalist id="studentSectionOptions"></datalist><small>Optional. Type a section or choose a current section matching the program and batch.</small></label>
                   <label id="studentPasswordField"
                     >Login password<input id="studentPassword" type="password" required minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" title="Use at least 8 characters with uppercase, lowercase, number, and symbol."
                   /><small>At least 8 characters with uppercase, lowercase, number, and symbol.</small></label>

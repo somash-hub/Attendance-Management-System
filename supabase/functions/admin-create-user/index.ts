@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
   const program = String(input.program ?? "BSc CSIT").trim() || "BSc CSIT";
   const department = String(input.department ?? program).trim() || program;
   const batch = String(input.batch ?? "").trim();
-  const section = String(input.section ?? "A").trim() || "A";
+  let section = String(input.section ?? "").trim();
   const sectionId = String(input.section_id ?? "").trim();
   const facultyId = String(input.faculty_id ?? "").trim();
   const designation = String(input.designation ?? "").trim();
@@ -128,25 +128,26 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Resolve the current section before creating Auth so an incomplete academic
-  // relationship cannot be created and then repaired manually.
+  // Resolve a selected section before creating Auth so invalid enrollment data
+  // cannot leave behind an unusable account.
   let currentSectionId = sectionId;
-  if (role === "student") {
+  if (role === "student" && (sectionId || section)) {
     let sectionQuery = admin
       .from("sections")
       .select("id, program, batch, name")
       .eq("program", program)
       .eq("batch", batch)
-      .eq("name", section)
       .eq("is_current", true)
       .limit(1);
+    if (section) sectionQuery = sectionQuery.eq("name", section);
     if (currentSectionId) sectionQuery = sectionQuery.eq("id", currentSectionId);
     const { data: sections, error: sectionError } = await sectionQuery;
     if (sectionError) return json(req, { error: sectionError.message }, 400);
     if (!sections || !sections.length) {
-      return json(req, { error: "No current section matches this program, batch, and section." }, 400);
+      return json(req, { error: "No current section matches this program and batch." }, 400);
     }
     currentSectionId = sections[0].id;
+    section = sections[0].name;
   }
 
   // Create the login account (auto-confirmed because the admin vouches for it).
@@ -177,7 +178,7 @@ Deno.serve(async (req) => {
         email,
         program,
         batch,
-        section,
+        section: section || null,
         active: true,
       })
       .select("id")
@@ -186,15 +187,17 @@ Deno.serve(async (req) => {
       await admin.auth.admin.deleteUser(created.user.id);
       return json(req, { error: studentError.message }, 400);
     }
-    const { error: enrollmentError } = await admin.from("enrollments").insert({
-      student_id: student.id,
-      section_id: currentSectionId,
-      status: "active",
-    });
-    if (enrollmentError) {
-      await admin.from("students").delete().eq("profile_id", created.user.id);
-      await admin.auth.admin.deleteUser(created.user.id);
-      return json(req, { error: enrollmentError.message }, 400);
+    if (currentSectionId) {
+      const { error: enrollmentError } = await admin.from("enrollments").insert({
+        student_id: student.id,
+        section_id: currentSectionId,
+        status: "active",
+      });
+      if (enrollmentError) {
+        await admin.from("students").delete().eq("profile_id", created.user.id);
+        await admin.auth.admin.deleteUser(created.user.id);
+        return json(req, { error: enrollmentError.message }, 400);
+      }
     }
   } else if (role === "teacher") {
     const { error: facultyError } = await admin.from("faculty").insert({

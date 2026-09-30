@@ -457,7 +457,7 @@ function loadEnrollmentStudents() {
       enrollmentStudents = students.map(function (student, index) {
         return Object.assign({}, student, {
           id: "demo-student-" + (index + 1),
-          enrollments: currentSections.length ? [{ section_id: currentSections[0].id, status: "active" }] : [],
+          enrollments: student.section_id ? [{ section_id: student.section_id, status: "active" }] : [],
         });
       });
       renderEnrollmentRows();
@@ -542,10 +542,7 @@ function loadAdminStudents() {
     currentSections = sectionsResult.data;
     currentSemesters = semestersResult.data;
     renderEnrollmentRows();
-    const sectionSelect = $("#studentSection");
-    sectionSelect.innerHTML = currentSections
-      .map((section) => `<option value="${h(section.id)}">${h(section.program)} · ${h(section.batch)} · ${h(section.name)}</option>`)
-      .join("");
+    populateStudentSections();
     const totals = {};
     attendanceResult.data.forEach(function (row) {
       const entry = totals[row.student_id] || { total: 0, present: 0 };
@@ -784,10 +781,20 @@ $("#userForm").addEventListener("submit", async (event) => {
 
 // Student create/edit/archive controls use the shared adapter and current section
 // list. Existing accounts are edited without changing their Auth password.
+function populateStudentSections() {
+  const program = $("#studentProgram").value.trim();
+  const batch = $("#studentBatch").value.trim();
+  $("#studentSectionOptions").innerHTML = currentSections
+    .filter((section) => section.program === program && section.batch === batch)
+    .map((section) => `<option value="${h(section.name)}"></option>`)
+    .join("");
+}
+
 function openStudentEditor(student) {
   const editor = $("#studentEditor");
   const form = $("#studentForm");
   form.reset();
+  populateStudentSections();
   $("#studentId").value = student ? student.id : "";
   $("#studentFormTitle").textContent = student ? "Edit student" : "Add student";
   $("#studentFormCopy").textContent = student
@@ -795,6 +802,7 @@ function openStudentEditor(student) {
     : "Create a linked login, student record, and current enrollment.";
   $("#studentPasswordField").hidden = Boolean(student);
   $("#studentPassword").required = !student;
+  $("#studentSection").required = Boolean(student);
   $("#studentSave").textContent = student ? "Save changes" : "Create student";
   if (student) {
     $("#studentName").value = student.name;
@@ -802,8 +810,9 @@ function openStudentEditor(student) {
     $("#studentRoll").value = student.roll;
     $("#studentProgram").value = student.dept;
     $("#studentBatch").value = student.batch;
-    $("#studentSection").value = student.section_id;
+    $("#studentSection").value = currentSections.find((section) => section.id === student.section_id)?.name || student.section;
   }
+  populateStudentSections();
   editor.hidden = false;
   $("#studentName").focus();
 }
@@ -824,13 +833,34 @@ $("#studentForm").addEventListener("submit", async (event) => {
     batch: $("#studentBatch").value,
     section_id: $("#studentSection").value,
   };
+  const section = currentSections.find((item) =>
+    item.id === formData.section_id ||
+    (item.name === formData.section_id &&
+      item.program === formData.program.trim() &&
+      item.batch === formData.batch.trim()),
+  );
+  if (formData.section_id && !section) {
+    showToast("Enter or choose a current section matching the program and batch.");
+    $("#studentSection").focus();
+    return;
+  }
+  if (studentId && !section) {
+    showToast("Choose a current section when editing a student.");
+    $("#studentSection").focus();
+    return;
+  }
+  formData.section_id = section ? section.id : "";
   const result = studentId
     ? await AttendIQSupabase.updateStudent({ id: studentId, ...formData })
-    : await AttendIQSupabase.createUser({ ...formData, password: $("#studentPassword").value, role: "student", section: currentSections.find((section) => section.id === formData.section_id)?.name || "A" });
+    : await AttendIQSupabase.createUser({ ...formData, password: $("#studentPassword").value, role: "student", section: section ? section.name : "" });
   if (!result.ok) return showToast(result.error);
   closeStudentEditor();
   await loadAdminStudents();
-  showToast(studentId ? "Student details updated." : "Student account and enrollment created.");
+  showToast(studentId ? "Student details updated." : section ? "Student account and enrollment created." : "Student account created without section enrollment.");
+});
+
+["#studentProgram", "#studentBatch"].forEach((selector) => {
+  $(selector).addEventListener("input", populateStudentSections);
 });
 
 // Faculty create/edit/archive controls use the linked account and faculty record.

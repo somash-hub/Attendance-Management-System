@@ -338,10 +338,12 @@
         email: user.email,
         program: user.program || "BSc CSIT",
         batch: user.batch || "2079",
-        section: user.section || "A",
+        section: user.section || "",
         active: true,
         archived_at: null,
-        enrollments: [{ id: "enrollment-" + user.id, section_id: user.section_id || "section-a", status: "active" }],
+        enrollments: user.section_id
+          ? [{ id: "enrollment-" + user.id, section_id: user.section_id, status: "active" }]
+          : [],
       };
     });
   }
@@ -745,7 +747,7 @@
       roll: String(input.roll || "").trim(),
       program: String(input.program || "BSc CSIT").trim(),
       batch: String(input.batch || "").trim(),
-      section: String(input.section || "A").trim(),
+      section: String(input.section || "").trim(),
       section_id: String(input.section_id || "").trim(),
     };
     var faculty = null;
