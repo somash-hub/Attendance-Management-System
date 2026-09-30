@@ -192,8 +192,9 @@ hardening and scale-oriented improvements:
 
 This is a static frontend and does not require a build step.
 
-1. Run `npm start` from the project root and open
-   `http://localhost:3000/login/login.html`, or use VS Code Live Server at
+1. From VS Code, run **Terminal → Run Task → AttendIQ: Start local Supabase app**,
+   then open `http://localhost:3000/login/login.html`. Alternatively, run
+   `npm start` from the project root or use VS Code Live Server at
    `http://127.0.0.1:5500/login/login.html`.
 2. Open `landing page/landing.html` in the browser to view the public
    landing page.
@@ -208,8 +209,10 @@ This is a static frontend and does not require a build step.
 8. The pages use the hosted Supabase client in `shared/supabase.js`. The
    localStorage store is used only in explicit demo mode (`?demo=1`).
 
-Do not open the portal pages directly from `file://`. Supabase authentication
-and the Edge Functions require an `http://` or `https://` origin.
+Do not open the portal pages directly from `file://` or a VS Code preview that
+uses a local file/webview URL. Supabase authentication and Edge Functions
+require an `http://` or `https://` origin; the VS Code task serves the app at
+localhost with the existing hosted Supabase project configuration.
 
 ### Demo Accounts
 
