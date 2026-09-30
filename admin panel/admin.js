@@ -392,6 +392,7 @@ function renderClassSchedules() {
 }
 
 function requestMarkup(request, actions = true) {
+  const statusClass = String(request.status || "unknown").toLowerCase().replace(/[^a-z0-9-]+/g, "-");
   const actionMarkup =
     actions && request.status === "pending"
       ? `<div class="request-actions"><button class="approve" data-leave="${h(request.id)}" data-status="approved">Approve</button><button class="reject" data-leave="${h(request.id)}" data-status="rejected">Reject</button></div>`
@@ -400,7 +401,7 @@ function requestMarkup(request, actions = true) {
     .split(" ")
     .map((part) => part[0])
     .join("");
-  return `<div class="request-row"><div class="request-main"><span class="request-avatar">${h(initials)}</span><div><div class="request-title"><strong>${h(request.name)}</strong><span class="mono">${h(request.roll)}</span>${statusBadge(request.status)}</div><p>${h(request.subjectLabel)} · ${h(request.type)} · ${h(request.dates)} · ${h(request.reason)}</p>${request.reviewComment ? `<small>Reviewer: ${h(request.reviewComment)}</small>` : ""}${request.doc ? `<small class="document">✓ Document submitted</small><button type="button" data-review-document="${h(request.docPath)}">Open document</button>` : ""}</div></div>${actionMarkup}</div>`;
+  return `<div class="request-row leave-${h(statusClass)}"><div class="request-main"><span class="request-avatar">${h(initials)}</span><div><div class="request-title"><strong>${h(request.name)}</strong><span class="mono">${h(request.roll)}</span>${statusBadge(request.status)}</div><p>${h(request.subjectLabel)} · ${h(request.type)} · ${h(request.dates)} · ${h(request.reason)}</p>${request.reviewComment ? `<small>Reviewer: ${h(request.reviewComment)}</small>` : ""}${request.doc ? `<small class="document">✓ Document submitted</small><button type="button" data-review-document="${h(request.docPath)}">Open document</button>` : ""}</div></div>${actionMarkup}</div>`;
 }
 
 function renderLeaves(target = "#leaveRequests", limit = false) {

@@ -421,7 +421,8 @@ function renderLeaves() {
       ? `<small class="document">✓ Supporting document attached</small><button type="button" data-review-document="${h(leave.docPath)}">Open document</button>`
       : "";
     const reviewComment = leave.reviewComment ? `<small>Reviewer: ${h(leave.reviewComment)}</small>` : "";
-    return `<div class="leave-row"><div class="leave-main"><span class="student-avatar">${h(initials)}</span><div><div><strong>${h(leave.name)}</strong> <small class="mono">${h(leave.roll)}</small> ${status(leave.status)}</div><p>${h(leave.subjectLabel)} · ${h(leave.type)} · ${h(leave.date)} · ${h(leave.reason)}</p>${reviewComment}${document}</div></div>${actions}</div>`;
+    const statusClass = String(leave.status || "unknown").toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+    return `<div class="leave-row leave-${h(statusClass)}"><div class="leave-main"><span class="student-avatar">${h(initials)}</span><div><div><strong>${h(leave.name)}</strong> <small class="mono">${h(leave.roll)}</small> ${status(leave.status)}</div><p>${h(leave.subjectLabel)} · ${h(leave.type)} · ${h(leave.date)} · ${h(leave.reason)}</p>${reviewComment}${document}</div></div>${actions}</div>`;
   }).join("");
 }
 

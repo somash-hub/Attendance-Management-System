@@ -157,7 +157,8 @@ function renderLeaves() {
     const dates = leave.from_date === leave.to_date ? leave.from_date : leave.from_date + " → " + leave.to_date;
     const documentButton = leave.document_url ? `<button type="button" data-leave-document="${h(leave.document_url)}">Open document</button>` : "";
     const cancelButton = leave.status === "pending" ? `<button type="button" data-cancel-leave="${h(leave.id)}">Cancel</button>` : "";
-    return `<div class="request-row"><div><strong>${h(leave.type)}</strong>${badge(leave.status)}<p>${h(dates)} · ${h(leave.reason)}</p>${leave.review_comment ? `<small>Reviewer: ${h(leave.review_comment)}</small>` : ""}</div><div class="request-actions">${documentButton}${cancelButton}</div></div>`;
+    const statusClass = String(leave.status || "unknown").toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+    return `<div class="request-row leave-${h(statusClass)}"><div><strong>${h(leave.type)}</strong>${badge(leave.status)}<p>${h(dates)} · ${h(leave.reason)}</p>${leave.review_comment ? `<small>Reviewer: ${h(leave.review_comment)}</small>` : ""}</div><div class="request-actions">${documentButton}${cancelButton}</div></div>`;
   }).join("") : "<p><small>No leave requests submitted.</small></p>";
   liveLeaves.forEach(function (leave, index) {
     const offering = Array.isArray(leave.course_offerings) ? leave.course_offerings[0] : leave.course_offerings;

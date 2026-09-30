@@ -659,6 +659,12 @@ textarea {
   justify-content: space-between;
   padding-top: 12px;
 }
+.request-row.leave-approved,
+.request-row.leave-cancelled {
+  background: #ecfdf5;
+  border-radius: 8px;
+  padding: 12px;
+}
 .request-row p {
   color: var(--muted);
   font-size: 11px;
