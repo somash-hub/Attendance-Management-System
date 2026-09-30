@@ -159,12 +159,12 @@ function populateScheduleOptions(schedules) {
   schedules.forEach((schedule) => {
     const offering = scheduleSubject(schedule);
     const subject = offering && (Array.isArray(offering.subjects) ? offering.subjects[0] : offering.subjects);
-    const section = offering && (Array.isArray(offering.sections) ? offering.sections[0] : offering.sections);
+    const semester = offering && (Array.isArray(offering.semesters) ? offering.semesters[0] : offering.semesters);
     const option = document.createElement("option");
     option.value = schedule.id;
     option.dataset.offeringId = schedule.course_offering_id;
     option.dataset.subjectCode = subject && subject.code || "";
-    option.textContent = `${subject && subject.code || "Course"} · ${subject && subject.name || "Scheduled class"} · ${section && section.name || "Section"} · ${schedule.start_time}-${schedule.end_time}`;
+    option.textContent = `${subject && subject.code || "Course"} · ${subject && subject.name || "Scheduled class"} · Semester ${semester && semester.number || subject && subject.semester || ""} · ${schedule.start_time}-${schedule.end_time}`;
     select.appendChild(option);
   });
 }
@@ -385,7 +385,7 @@ function renderTeacherMetrics() {
   $("#teacherPendingLeaves").textContent = leaves.filter(function (leave) { return leave.status === "pending"; }).length;
 }
 
-// Keep the at-risk metric, the section heading, and the risk list aligned
+// Keep the at-risk metric, the heading, and the risk list aligned
 // with the shared attendance threshold.
 function renderThreshold() {
   renderTeacherMetrics();

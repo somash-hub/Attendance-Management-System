@@ -34,8 +34,6 @@ type CreateUserInput = {
   program?: string;
   department?: string;
   batch?: string;
-  section?: string;
-  section_id?: string;
   faculty_id?: string;
   designation?: string;
 };
@@ -92,8 +90,6 @@ Deno.serve(async (req) => {
   const program = String(input.program ?? "BSc CSIT").trim() || "BSc CSIT";
   const department = String(input.department ?? program).trim() || program;
   const batch = String(input.batch ?? "").trim();
-  let section = String(input.section ?? "").trim();
-  const sectionId = String(input.section_id ?? "").trim();
   const facultyId = String(input.faculty_id ?? "").trim();
   const designation = String(input.designation ?? "").trim();
 
@@ -128,31 +124,6 @@ Deno.serve(async (req) => {
     );
   }
 
-  // A section is only an enrollment hint. Older clients may submit a default
-  // section that does not match the student's program or batch; create the
-  // student without enrollment rather than rejecting account creation.
-  let currentSectionId = sectionId;
-  if (role === "student" && (sectionId || section)) {
-    let sectionQuery = admin
-      .from("sections")
-      .select("id, program, batch, name")
-      .eq("program", program)
-      .eq("batch", batch)
-      .eq("is_current", true)
-      .limit(1);
-    if (section) sectionQuery = sectionQuery.eq("name", section);
-    if (currentSectionId) sectionQuery = sectionQuery.eq("id", currentSectionId);
-    const { data: sections, error: sectionError } = await sectionQuery;
-    if (sectionError) return json(req, { error: sectionError.message }, 400);
-    if (!sections || !sections.length) {
-      currentSectionId = "";
-      section = "";
-    } else {
-      currentSectionId = sections[0].id;
-      section = sections[0].name;
-    }
-  }
-
   // Create the login account (auto-confirmed because the admin vouches for it).
   const { data: created, error: createError } = await admin.auth.admin.createUser(
     { email, password, email_confirm: true, user_metadata: { name } },
@@ -181,7 +152,6 @@ Deno.serve(async (req) => {
         email,
         program,
         batch,
-        section: section || null,
         active: true,
       })
       .select("id")
@@ -189,18 +159,6 @@ Deno.serve(async (req) => {
     if (studentError) {
       await admin.auth.admin.deleteUser(created.user.id);
       return json(req, { error: studentError.message }, 400);
-    }
-    if (currentSectionId) {
-      const { error: enrollmentError } = await admin.from("enrollments").insert({
-        student_id: student.id,
-        section_id: currentSectionId,
-        status: "active",
-      });
-      if (enrollmentError) {
-        await admin.from("students").delete().eq("profile_id", created.user.id);
-        await admin.auth.admin.deleteUser(created.user.id);
-        return json(req, { error: enrollmentError.message }, 400);
-      }
     }
   } else if (role === "teacher") {
     const { error: facultyError } = await admin.from("faculty").insert({

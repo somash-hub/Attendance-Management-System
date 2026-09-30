@@ -241,6 +241,7 @@
       if (root.AttendIQDemoMode !== true) {
         return Promise.resolve(failure(new Error("Supabase is not configured for this browser. Use a served page or explicit demo mode."), "supabase"));
       }
+
       return local(function (store) {
         var user = store.authenticate(cleanEmail(email), password);
         if (!user) throw new Error("Invalid email or password.");
@@ -248,6 +249,7 @@
         return store.getSession();
       }, "Sign-in failed.");
     }
+
     var missing = requireSupabase();
     if (missing) return Promise.resolve(failure(missing, "supabase"));
     return remote(function () {
@@ -267,6 +269,19 @@
           profile: profileResult.data.profile,
         }, "supabase");
       });
+    });
+  }
+
+  function resetApplicationData(email, password, confirmation) {
+    if (String(confirmation || "") !== "RESET") {
+      return Promise.resolve(failure("Type RESET to confirm this destructive action.", "supabase"));
+    }
+    if (!client()) return Promise.resolve(unsupportedLocal("Application reset"));
+    return signIn(email, password).then(function (result) {
+      if (!result.ok) return result;
+      return invokeFunction("admin-reset-application", {
+        confirmation: "RESET",
+      }, "The application data could not be reset.");
     });
   }
 
@@ -375,8 +390,6 @@
       program: String(value.program || "BSc CSIT").trim(),
       department: String(value.department || value.program || "BSc CSIT").trim(),
       batch: String(value.batch || "").trim(),
-      section: String(value.section || "").trim(),
-      section_id: String(value.section_id || "").trim(),
       faculty_id: String(value.faculty_id || "").trim(),
       designation: String(value.designation || "").trim(),
     }, "The account could not be created.");
@@ -427,7 +440,7 @@
     if (root.AttendIQDemoMode === true || !client()) return local(function (store) { return store.getStudents(); }, "Student records could not be loaded.");
     return remote(function () {
       return client().from("students")
-        .select("id, profile_id, roll, name, email, program, batch, section, active, archived_at, enrollments(id, section_id, status)")
+        .select("id, profile_id, roll, name, email, program, batch, active, archived_at")
         .eq("active", true)
         .order("roll", { ascending: true });
     }, "Students could not be loaded.");
@@ -475,7 +488,6 @@
     if (Array.isArray(subject)) subject = subject[0];
     return {
       course_offering_id: offering.id,
-      section_id: offering.section_id,
       code: offering.subject_code || (subject && subject.code) || "",
       name: (subject && subject.name) || "",
       semester: (subject && subject.semester) || null,
@@ -485,13 +497,19 @@
 
   function getTeacherCourseOfferings() {
     if (!client()) return Promise.resolve(unsupportedLocal("Teacher course offerings"));
-    return currentProfile().then(function (profileResult) {
-      if (!profileResult.ok) return profileResult;
+    return Promise.all([currentProfile(), getSemesters()]).then(function (results) {
+      var profileResult = results[0];
+      var semestersResult = results[1];
+      if (!profileResult.ok || !semestersResult.ok) return profileResult.ok ? semestersResult : profileResult;
+      var currentSemester = semestersResult.data.find(function (semester) { return semester.is_current; });
+      if (!currentSemester) return success([], "supabase");
       return remote(function () {
         return client().from("course_offerings")
-          .select("id, subject_code, section_id, teacher_id, status, subjects!inner(code, name, semester, program)")
+          .select("id, subject_code, semester_id, teacher_id, status, subjects!inner(code, name, semester, program)")
           .eq("teacher_id", profileResult.data.user.id)
           .eq("status", "active")
+          .eq("semester_id", currentSemester.id)
+          .eq("subjects.semester", currentSemester.number)
           .order("subject_code", { ascending: true });
       }, "Assigned course offerings could not be loaded.");
     });
@@ -505,7 +523,7 @@
       var value = filters || {};
       return remote(function () {
         var query = client().from("class_schedules")
-          .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, course_offerings!inner(id, subject_code, section_id, teacher_id, status, subjects!inner(code, name), sections!course_offerings_section_id_fkey!inner(program, batch, name))")
+          .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, course_offerings!inner(id, subject_code, semester_id, teacher_id, status, subjects!inner(code, name, semester, program), semesters!inner(name, number))")
           .in("course_offering_id", offeringIds)
           .eq("status", "active")
           .order("day_of_week", { ascending: true })
@@ -519,16 +537,16 @@
   function getTeacherStudents() {
     return getTeacherCourseOfferings().then(function (offeringResult) {
       if (!offeringResult.ok) return offeringResult;
-      var sectionIds = Array.from(new Set(offeringResult.data.map(function (row) {
-        return row.section_id;
+      var programs = Array.from(new Set(offeringResult.data.map(function (row) {
+        var subject = Array.isArray(row.subjects) ? row.subjects[0] : row.subjects;
+        return subject && subject.program;
       }).filter(Boolean)));
-      if (!sectionIds.length) return success([], "supabase");
+      if (!programs.length) return success([], "supabase");
       return remote(function () {
         return client().from("students")
-          .select("id, profile_id, roll, name, email, program, batch, section, active, enrollments!inner(id, section_id, status)")
+          .select("id, profile_id, roll, name, email, program, batch, active")
           .eq("active", true)
-          .in("enrollments.section_id", sectionIds)
-          .eq("enrollments.status", "active")
+          .in("program", programs)
           .order("roll", { ascending: true });
       }, "Assigned students could not be loaded.");
     });
@@ -556,10 +574,9 @@
       if (!profileResult.ok) return profileResult;
       return remote(function () {
         return client().from("students")
-          .select("id, profile_id, roll, name, email, program, batch, section, active, enrollments!inner(id, section_id, status)")
+          .select("id, profile_id, roll, name, email, program, batch, active")
           .eq("profile_id", profileResult.data.user.id)
           .eq("active", true)
-          .eq("enrollments.status", "active")
           .limit(1)
           .single();
       }, "Your student profile could not be loaded.");
@@ -567,16 +584,18 @@
   }
 
   function getMySubjects() {
-    return getMyStudentProfile().then(function (profileResult) {
-      if (!profileResult.ok) return profileResult;
-      var sectionIds = Array.from(new Set((profileResult.data.enrollments || []).map(function (row) {
-        return row.section_id;
-      }).filter(Boolean)));
-      if (!sectionIds.length) return success([], "supabase");
+    return Promise.all([getMyStudentProfile(), getSemesters()]).then(function (results) {
+      var profileResult = results[0];
+      var semestersResult = results[1];
+      if (!profileResult.ok || !semestersResult.ok) return profileResult.ok ? semestersResult : profileResult;
+      var currentSemester = semestersResult.data.find(function (semester) { return semester.is_current; });
+      if (!currentSemester) return success([], "supabase");
       return remote(function () {
         return client().from("course_offerings")
-          .select("id, subject_code, section_id, subjects!inner(code, name, semester, program)")
-          .in("section_id", sectionIds)
+          .select("id, subject_code, semester_id, subjects!inner(code, name, semester, program)")
+          .eq("semester_id", currentSemester.id)
+          .eq("subjects.semester", currentSemester.number)
+          .eq("subjects.program", profileResult.data.program)
           .eq("status", "active")
           .order("subject_code", { ascending: true });
       }, "Your subjects could not be loaded.");
@@ -604,7 +623,7 @@
       if (!offeringIds.length) return success([], "supabase");
       return remote(function () {
         return client().from("class_schedules")
-          .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, course_offerings!inner(id, subject_code, section_id, subjects!inner(code, name), sections!course_offerings_section_id_fkey!inner(program, batch, name))")
+          .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, course_offerings!inner(id, subject_code, semester_id, subjects!inner(code, name, semester, program), semesters!inner(name, number))")
           .in("course_offering_id", offeringIds)
           .eq("status", "active")
           .order("day_of_week", { ascending: true })
@@ -628,8 +647,8 @@
     });
   }
 
-  // Session reads are explicit so the student portal never has to guess which
-  // scheduled classes belong to its active enrollment.
+  // Session reads are explicit so the student portal only loads sessions for
+  // its program's current-semester offerings.
   function getMyAttendanceSessions(filters) {
     return getMyStudentProfile().then(function (profileResult) {
       if (!profileResult.ok) return profileResult;
@@ -718,7 +737,7 @@
       var value = filters || {};
       return remote(function () {
         var query = client().from("leaves")
-          .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
+          .select("id, student_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
           .eq("student_id", profileResult.data.id)
           .order("created_at", { ascending: false });
         if (value.status) query = query.eq("status", value.status);
@@ -853,16 +872,25 @@
     }, "Semesters could not be loaded.");
   }
 
-  function getSections() {
-    if (!client()) return local(function (store) { return store.getSections(); }, "Academic sections could not be loaded.");
+  function setCurrentSemester(input) {
+    var value = input || {};
+    var year = Number(value.year);
+    var semester = Number(value.semester);
+    if (!Number.isInteger(year) || year < 2020 || year > 9999 ||
+        !Number.isInteger(semester) || semester < 1 || semester > 8) {
+      return Promise.resolve(failure("Choose a year from 2020 onward and a semester from 1 to 8.", client() ? "supabase" : "local"));
+    }
+    if (root.AttendIQDemoMode === true || !client()) {
+      return local(function (store) {
+        return store.setCurrentSemester(year, semester);
+      }, "The current semester could not be changed.");
+    }
     return remote(function () {
-      return client().from("sections")
-        .select("id, academic_year_id, semester_id, program, batch, name, is_current")
-        .eq("is_current", true)
-        .order("program", { ascending: true })
-        .order("batch", { ascending: true })
-        .order("name", { ascending: true });
-    }, "Academic sections could not be loaded.");
+      return client().rpc("admin_set_current_semester", {
+        p_year: year,
+        p_semester: semester,
+      }).single();
+    }, "The current semester could not be changed.");
   }
 
   function getCourseOfferings(filters) {
@@ -870,11 +898,10 @@
     var value = filters || {};
     return remote(function () {
       var query = client().from("course_offerings")
-        .select("id, subject_code, semester_id, section_id, teacher_id, status, created_at, updated_at, subjects!inner(code, name, semester, program, credits, course_type, active), sections!course_offerings_section_id_fkey!inner(program, batch, name, is_current), semesters!inner(name, number, is_current)")
+        .select("id, subject_code, semester_id, teacher_id, status, created_at, updated_at, subjects!inner(code, name, semester, program, credits, course_type, active), semesters!inner(name, number, is_current)")
         .order("subject_code", { ascending: true });
       if (!value.include_archived) query = query.eq("status", "active");
       if (value.semester_id) query = query.eq("semester_id", value.semester_id);
-      if (value.section_id) query = query.eq("section_id", value.section_id);
       return query;
     }, "Course offerings could not be loaded.");
   }
@@ -886,7 +913,7 @@
       return client().rpc("admin_create_course_offering", {
         p_subject_code: String(value.subject_code || "").trim(),
         p_semester_id: String(value.semester_id || "").trim(),
-        p_section_id: String(value.section_id || "").trim(),
+        p_section_id: null,
         p_teacher_id: String(value.teacher_id || "").trim(),
       }).single();
     }, "The course offering could not be created.");
@@ -900,6 +927,7 @@
         p_offering_id: String(value.id || "").trim(),
         p_teacher_id: value.teacher_id ? String(value.teacher_id).trim() : null,
         p_status: value.status === "archived" ? "archived" : "active",
+        p_section_id: null,
       }).single();
     }, "The course offering could not be updated.");
   }
@@ -916,7 +944,7 @@
     var value = filters || {};
     return remote(function () {
       var query = client().from("class_schedules")
-        .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, created_at, updated_at, course_offerings(id, subject_code, section_id, subjects(code, name), sections!course_offerings_section_id_fkey(program, batch, name))")
+        .select("id, course_offering_id, day_of_week, start_time, end_time, room, status, created_at, updated_at, course_offerings(id, subject_code, semester_id, status, subjects(code, name, semester, program), semesters(name, number, is_current))")
         .order("day_of_week", { ascending: true })
         .order("start_time", { ascending: true });
       if (!value.include_archived) query = query.eq("status", "active");
@@ -960,42 +988,10 @@
     }, "The class schedule could not be archived.");
   }
 
-  function getEnrollmentStudents() {
-    if (!client()) return Promise.resolve(unsupportedLocal("Enrollment records"));
-    return remote(function () {
-      return client().from("students")
-        .select("id, profile_id, roll, name, email, program, batch, section, active, archived_at, enrollments(id, section_id, status, enrolled_at, archived_at)")
-        .eq("active", true)
-        .order("roll", { ascending: true });
-    }, "Student enrollment records could not be loaded.");
-  }
-
-  function setStudentEnrollment(input) {
-    var value = input || {};
-    if (!client()) return Promise.resolve(unsupportedLocal("Enrollment management"));
-    if (!value.student_id || !value.section_id) {
-      return Promise.resolve(failure("Student and section are required.", "supabase"));
-    }
-    return remote(function () {
-      return client().rpc("admin_set_student_enrollment", {
-        p_student_id: String(value.student_id).trim(),
-        p_section_id: String(value.section_id).trim(),
-      }).single();
-    }, "The student enrollment could not be updated.");
-  }
-
-  function archiveStudentEnrollment(studentId) {
-    if (!client()) return Promise.resolve(unsupportedLocal("Enrollment management"));
-    if (!studentId) return Promise.resolve(failure("Student is required.", "supabase"));
-    return remote(function () {
-      return client().rpc("admin_archive_student_enrollment", { p_student_id: String(studentId).trim() }).single();
-    }, "The student enrollment could not be archived.");
-  }
-
   function updateStudent(input) {
     if (root.AttendIQDemoMode === true || !client()) return local(function (store) { return store.updateStudent(input); }, "The student could not be updated.");
     var value = input || {};
-    var required = [value.id, value.name, value.email, value.roll, value.program, value.batch, value.section_id];
+    var required = [value.id, value.name, value.email, value.roll, value.program, value.batch];
     if (required.some(function (item) { return !String(item || "").trim(); })) {
       return Promise.resolve(failure("Complete every student field before saving.", "supabase"));
     }
@@ -1007,7 +1003,7 @@
         p_roll: String(value.roll).trim(),
         p_program: String(value.program).trim(),
         p_batch: String(value.batch).trim(),
-        p_section_id: String(value.section_id).trim(),
+        p_section_id: null,
       }).single();
     }, "The student could not be updated.");
   }
@@ -1040,17 +1036,17 @@
   }
 
   function getTeacherLeaves(filters) {
-    return getTeacherCourseOfferings().then(function (offeringResult) {
-      if (!offeringResult.ok) return offeringResult;
-      var sectionIds = Array.from(new Set(offeringResult.data.map(function (row) {
-        return row.section_id;
+    return getTeacherStudents().then(function (studentsResult) {
+      if (!studentsResult.ok) return studentsResult;
+      var studentIds = Array.from(new Set(studentsResult.data.map(function (student) {
+        return student.id;
       }).filter(Boolean)));
-      if (!sectionIds.length) return success([], "supabase");
+      if (!studentIds.length) return success([], "supabase");
       var value = filters || {};
       return remote(function () {
         var query = client().from("leaves")
-          .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
-          .in("section_id", sectionIds)
+          .select("id, student_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
+          .in("student_id", studentIds)
           .order("created_at", { ascending: false });
         if (value.status) query = query.eq("status", value.status);
         return query;
@@ -1158,7 +1154,7 @@
     var value = filters || {};
     return remote(function () {
       var query = client().from("leaves")
-        .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
+        .select("id, student_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
         .order("created_at", { ascending: false });
       if (value.student_id) query = query.eq("student_id", value.student_id);
       if (value.status) query = query.eq("status", value.status);
@@ -1184,17 +1180,15 @@
       var userId = profileResult.data.user.id;
       return remote(function () {
         return client().from("students")
-          .select("id, enrollments!inner(section_id, status)")
+          .select("id")
           .eq("profile_id", userId)
           .eq("active", true)
-          .eq("enrollments.status", "active")
           .limit(1)
           .single();
       }, "Your student record could not be found.").then(function (studentResult) {
         if (!studentResult.ok) return studentResult;
         var row = {
           student_id: studentResult.data.id,
-          section_id: studentResult.data.enrollments[0].section_id,
           type: type,
           from_date: value.from_date,
           to_date: value.to_date,
@@ -1205,7 +1199,7 @@
         };
         return remote(function () {
           return client().from("leaves").insert(row)
-            .select("id, student_id, section_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
+            .select("id, student_id, type, from_date, to_date, reason, status, document_url, review_comment, reviewed_at, reviewed_by, cancelled_at, created_at")
             .single();
         }, "The leave request could not be saved.");
       });
@@ -1285,6 +1279,7 @@
   }
 
   api.signIn = signIn;
+  api.resetApplicationData = resetApplicationData;
   api.requestPasswordReset = requestPasswordReset;
   api.updatePassword = updatePassword;
   api.signOut = signOut;
@@ -1316,9 +1311,9 @@
   api.createAttendanceSession = createAttendanceSession;
   api.closeAttendanceSession = closeAttendanceSession;
   api.saveAttendanceSession = saveAttendanceSession;
-  api.getSections = getSections;
   api.getAcademicYears = getAcademicYears;
   api.getSemesters = getSemesters;
+  api.setCurrentSemester = setCurrentSemester;
   api.getAcademicEvents = getAcademicEvents;
   api.createAcademicEvent = createAcademicEvent;
   api.updateAcademicEvent = updateAcademicEvent;
@@ -1331,9 +1326,6 @@
   api.createCourseOffering = createCourseOffering;
   api.updateCourseOffering = updateCourseOffering;
   api.archiveCourseOffering = archiveCourseOffering;
-  api.getEnrollmentStudents = getEnrollmentStudents;
-  api.setStudentEnrollment = setStudentEnrollment;
-  api.archiveStudentEnrollment = archiveStudentEnrollment;
   api.updateStudent = updateStudent;
   api.archiveStudent = archiveStudent;
   api.getSubjects = getSubjects;

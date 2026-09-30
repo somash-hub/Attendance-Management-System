@@ -1,5 +1,6 @@
 // Access control: wait for the verified Supabase profile before initializing.
 const PORTAL_ROLE = "admin";
+let activeAdminEmail = "";
 AttendIQSupabase.getCurrentProfile().then(function (result) {
   if (!result.ok || !result.data) {
     location.replace("../login/login.html");
@@ -16,6 +17,7 @@ AttendIQSupabase.getCurrentProfile().then(function (result) {
 });
 
 function initializePortal(session) {
+  activeAdminEmail = String(session.email || "").trim().toLowerCase();
   // Load the shared threshold from Supabase before rendering the portal.
   return AttendIQSupabase.getSettings().then(function (result) {
     if (!result.ok) {
@@ -126,8 +128,6 @@ let leaves = [
 ];
 
 let currentFilter = "all";
-let currentSections = [];
-let enrollmentStudents = [];
 
 // Shared DOM helpers.
 const $ = (selector) => document.querySelector(selector);
@@ -146,35 +146,29 @@ function renderStudents(query = "") {
   const programFilter = $("#studentProgramFilter")?.value || "";
   const batchFilter = $("#studentBatchFilter")?.value || "";
   const semesterFilter = $("#studentSemesterFilter")?.value || "";
-  const sectionFilter = $("#studentSectionFilter")?.value || "";
   const statusFilter = $("#studentStatusFilter")?.value || "";
   const rows = students
     .filter((student) => {
       const warned = student.attendance < settings.threshold;
       const status = warned ? "Warned" : "Active";
-      const section = currentSections.find((item) => item.id === student.section_id);
-      const batch = student.batch || section?.batch || "";
-      const semester = currentSemesters.find((item) => item.id === section?.semester_id);
-      const semesterValue = String(semester?.number || semester?.name || student.semester || "");
-      const sectionName = student.section || section?.name || "";
+      const batch = student.batch || "";
+      const semesterValue = String(student.semester || "");
       return (
         `${student.name} ${student.roll} ${student.email || ""}`.toLowerCase().includes(normalized) &&
         (!programFilter || student.dept === programFilter) &&
         (!batchFilter || batch === batchFilter) &&
         (!semesterFilter || semesterValue === semesterFilter) &&
-        (!sectionFilter || sectionName === sectionFilter) &&
         (!statusFilter || status === statusFilter)
       );
     })
     .map((student) => {
       // The warned status is derived from the administrator's threshold.
       const warned = student.attendance < settings.threshold;
-      const section = currentSections.find((item) => item.id === student.section_id);
-      const semester = currentSemesters.find((item) => item.id === section?.semester_id);
-      return `<tr><td><strong>${h(student.name)}</strong><small>${h(student.email)}</small></td><td class="mono">${h(student.roll)}</td><td>${h(student.dept)}</td><td>${h(student.batch || section?.batch || "—")}</td><td>${h(semester?.name || student.semester || "—")}</td><td>${h(student.section || section?.name || "—")}</td><td><strong class="${warned ? "danger-text" : ""}">${h(student.attendance)}%</strong></td><td>${statusBadge(warned ? "Warned" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-student="${h(student.id)}">Edit</button><button type="button" data-archive-student="${h(student.id)}">Archive</button></div></td></tr>`;
+      const semester = currentSemesters.find((item) => item.is_current);
+      return `<tr><td><strong>${h(student.name)}</strong><small>${h(student.email)}</small></td><td class="mono">${h(student.roll)}</td><td>${h(student.dept)}</td><td>${h(student.batch || "—")}</td><td>${h(semester?.name || "—")}</td><td><strong class="${warned ? "danger-text" : ""}">${h(student.attendance)}%</strong></td><td>${statusBadge(warned ? "Warned" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-student="${h(student.id)}">Edit</button><button type="button" data-archive-student="${h(student.id)}">Archive</button></div></td></tr>`;
     })
     .join("");
-  $("#studentRows").innerHTML = rows || `<tr><td colspan="10" class="empty-state">No students match the selected filters.</td></tr>`;
+  $("#studentRows").innerHTML = rows || `<tr><td colspan="8" class="empty-state">No students match the selected filters.</td></tr>`;
 }
 
 function setFilterOptions(selector, values, label) {
@@ -213,11 +207,10 @@ function renderFaculty() {
 function renderFacultyAssignments() {
   const rows = offerings.map((offering) => {
     const subject = offeringSubject(offering) || {};
-    const section = offeringSection(offering) || {};
     const semester = offeringSemester(offering) || currentSemesters.find((item) => item.id === offering.semester_id);
-    return `<tr><td>${h(offeringTeacherName(offering))}</td><td>${h(section.program || subject.program || "—")}</td><td>${h(section.batch || "—")}</td><td>${h(semester?.name || semester?.number || "—")}</td><td>${h(section.name || "—")}</td><td><strong>${h(subject.code || offering.subject_code || "—")}</strong><small>${h(subject.name || "")}</small></td><td>${statusBadge(offering.status === "archived" ? "Archived" : "Active")}</td></tr>`;
+    return `<tr><td>${h(offeringTeacherName(offering))}</td><td>${h(subject.program || "—")}</td><td>${h(semester?.name || semester?.number || "—")}</td><td><strong>${h(subject.code || offering.subject_code || "—")}</strong><small>${h(subject.name || "")}</small></td><td>${statusBadge(offering.status === "archived" ? "Archived" : "Active")}</td></tr>`;
   });
-  $("#facultyAssignmentRows").innerHTML = rows.join("") || `<tr><td colspan="7" class="empty-state">No teaching assignments are available.</td></tr>`;
+  $("#facultyAssignmentRows").innerHTML = rows.join("") || `<tr><td colspan="5" class="empty-state">No teaching assignments are available.</td></tr>`;
 }
 
 function renderCourses() {
@@ -256,20 +249,17 @@ function loadAdminCourses() {
     AttendIQSupabase.getSubjects({ include_archived: true }),
     AttendIQSupabase.getCourseOfferings({ include_archived: true }),
     AttendIQSupabase.getSemesters(),
-    AttendIQSupabase.getSections(),
   ]).then(function (results) {
     const subjectsResult = results[0];
     const offeringsResult = results[1];
     const semestersResult = results[2];
-    const sectionsResult = results[3];
-    if (!subjectsResult.ok || !offeringsResult.ok || !semestersResult.ok || !sectionsResult.ok) {
-      showToast(subjectsResult.error || offeringsResult.error || semestersResult.error || sectionsResult.error);
+    if (!subjectsResult.ok || !offeringsResult.ok || !semestersResult.ok) {
+      showToast(subjectsResult.error || offeringsResult.error || semestersResult.error);
       return;
     }
     courses = subjectsResult.data;
     offerings = offeringsResult.data;
     currentSemesters = semestersResult.data;
-    currentSections = sectionsResult.data;
     renderCourses();
     renderOfferings();
     renderFacultyAssignments();
@@ -289,6 +279,13 @@ function loadAdminCourses() {
       currentAcademicYears = yearsResult.data;
       academicEvents = eventsResult.data;
       classSchedules = schedulesResult.data;
+      const currentSemester = currentSemesters.find((semester) => semester.is_current);
+      const currentYear = currentAcademicYears.find((year) => year.id === currentSemester?.academic_year_id);
+      const yearValue = Number(currentYear?.name);
+      $("#currentAcademicYear").value = Number.isInteger(yearValue) && yearValue >= 2020
+        ? String(yearValue)
+        : String(new Date().getFullYear());
+      if (currentSemester) $("#currentSemesterNumber").value = String(currentSemester.number);
       renderAcademicEvents();
       renderClassSchedules();
     });
@@ -300,14 +297,15 @@ function offeringSubject(offering) {
   return Array.isArray(subject) ? subject[0] : subject;
 }
 
-function offeringSection(offering) {
-  const section = offering.sections;
-  return Array.isArray(section) ? section[0] : section;
-}
-
 function offeringSemester(offering) {
   const semester = offering.semesters;
   return Array.isArray(semester) ? semester[0] : semester;
+}
+
+function offeringIsInCurrentSemester(offering) {
+  const semester = offeringSemester(offering) ||
+    currentSemesters.find((item) => item.id === offering.semester_id);
+  return Boolean(semester?.is_current);
 }
 
 function offeringTeacherName(offering) {
@@ -315,12 +313,37 @@ function offeringTeacherName(offering) {
   return member ? member.name : "Unassigned";
 }
 
+function teacherWorkload(profileId, excludeOfferingId) {
+  return offerings.filter((offering) =>
+    offering.teacher_id === profileId &&
+    offering.status !== "archived" &&
+    offering.id !== excludeOfferingId
+  ).length;
+}
+
+function updateOfferingTeacherWorkload() {
+  const teacherSelect = $("#offeringTeacher");
+  const workloadCopy = $("#offeringTeacherWorkload");
+  if (!teacherSelect || !workloadCopy || !teacherSelect.value) {
+    if (workloadCopy) workloadCopy.textContent = "Select a teacher to view their current assignments.";
+    return;
+  }
+  const currentOfferingId = $("#offeringId")?.value || "";
+  const count = teacherWorkload(teacherSelect.value, currentOfferingId);
+  const member = faculty.find((item) => item.profile_id === teacherSelect.value);
+  const status = member?.status === "on_leave" ? " This teacher is currently on leave." : "";
+  workloadCopy.textContent = `${count} active ${count === 1 ? "assignment" : "assignments"} after this change.${status}`;
+}
+
 function renderOfferings() {
   $("#offeringRows").innerHTML = offerings
     .map((offering) => {
       const subject = offeringSubject(offering) || { code: offering.subject_code, name: "" };
-      const section = offeringSection(offering) || { program: "", batch: "", name: "" };
-      return `<tr><td><strong>${h(subject.code || offering.subject_code)}</strong><small>${h(subject.name || "")}</small></td><td>${h(section.program)} · ${h(section.batch)} · ${h(section.name)}</td><td>${h(offeringTeacherName(offering))}</td><td>${statusBadge(offering.status === "archived" ? "Archived" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-offering="${h(offering.id)}">Edit</button>${offering.status !== "archived" ? `<button type="button" data-archive-offering="${h(offering.id)}">Archive</button>` : `<button type="button" data-restore-offering="${h(offering.id)}">Restore</button>`}</div></td></tr>`;
+      const semester = offeringSemester(offering) || currentSemesters.find((item) => item.id === offering.semester_id);
+      const actions = offeringIsInCurrentSemester(offering)
+        ? `<button type="button" data-edit-offering="${h(offering.id)}">Edit</button>${offering.status !== "archived" ? `<button type="button" data-archive-offering="${h(offering.id)}">Archive</button>` : `<button type="button" data-restore-offering="${h(offering.id)}">Restore</button>`}`
+        : "";
+      return `<tr><td><strong>${h(subject.code || offering.subject_code)}</strong><small>${h(subject.name || "")}</small></td><td>${h(semester?.name || semester?.number || "—")}</td><td>${h(offeringTeacherName(offering))}</td><td>${statusBadge(offering.status === "archived" ? "Archived" : "Active")}</td><td><div class="student-row-actions">${actions}</div></td></tr>`;
     })
     .join("");
 }
@@ -360,8 +383,13 @@ function renderClassSchedules() {
   $("#scheduleRows").innerHTML = classSchedules.map(function (schedule) {
     const offering = scheduleOffering(schedule) || {};
     const subject = Array.isArray(offering.subjects) ? offering.subjects[0] : offering.subjects || {};
-    const section = Array.isArray(offering.sections) ? offering.sections[0] : offering.sections || {};
-    return `<tr><td><strong>${h(subject.code || offering.subject_code || "—")}</strong><small>${h(subject.name || "")}</small></td><td>${h(section.program || "—")} · ${h(section.batch || "—")} · ${h(section.name || "—")}</td><td>${h(scheduleDayName(schedule.day_of_week))}<small>${h(schedule.start_time)} – ${h(schedule.end_time)}</small></td><td>${h(schedule.room || "—")}</td><td>${statusBadge(schedule.status === "archived" ? "Archived" : "Active")}</td><td><div class="student-row-actions"><button type="button" data-edit-schedule="${h(schedule.id)}">Edit</button>${schedule.status !== "archived" ? `<button type="button" data-archive-schedule="${h(schedule.id)}">Archive</button>` : `<button type="button" data-restore-schedule="${h(schedule.id)}">Restore</button>`}</div></td></tr>`;
+    const semester = Array.isArray(offering.semesters) ? offering.semesters[0] : offering.semesters || {};
+    const manageable = offering.status !== "archived" && offeringIsInCurrentSemester(offering);
+    const status = schedule.status === "archived" || !manageable ? "Archived" : "Active";
+    const actions = manageable
+      ? `<button type="button" data-edit-schedule="${h(schedule.id)}">Edit</button>${schedule.status !== "archived" ? `<button type="button" data-archive-schedule="${h(schedule.id)}">Archive</button>` : `<button type="button" data-restore-schedule="${h(schedule.id)}">Restore</button>`}`
+      : "";
+    return `<tr><td><strong>${h(subject.code || offering.subject_code || "—")}</strong><small>${h(subject.name || "")}</small></td><td>${h(subject.program || "—")} · ${h(semester.name || "Semester")}</td><td>${h(scheduleDayName(schedule.day_of_week))}<small>${h(schedule.start_time)} – ${h(schedule.end_time)}</small></td><td>${h(schedule.room || "—")}</td><td>${statusBadge(status)}</td><td><div class="student-row-actions">${actions}</div></td></tr>`;
   }).join("");
 }
 
@@ -440,109 +468,21 @@ function loadAdminLeaves() {
   });
 }
 
-// Load real students, current sections, and attendance percentages.
-function renderEnrollmentRows() {
-  $("#enrollmentRows").innerHTML = enrollmentStudents.map((student) => {
-    const enrollment = (student.enrollments || []).find((row) => row.status === "active") || {};
-    const section = currentSections.find((item) => item.id === enrollment.section_id);
-    return `<tr><td><strong>${h(student.name)}</strong><small>${h(student.email || "")}</small></td><td>${h(student.roll)}</td><td>${section ? `${h(section.program)} · ${h(section.batch)} · ${h(section.name)}` : "Unassigned"}</td><td>${statusBadge(enrollment.status === "archived" ? "Archived" : enrollment.status ? "Active" : "Unassigned")}</td><td><div class="student-row-actions"><button type="button" data-edit-enrollment="${h(student.id)}">Manage</button></div></td></tr>`;
-  }).join("");
-}
-
-function loadEnrollmentStudents() {
-  if (!window.AttendIQDb) {
-    return AttendIQSupabase.getSections().then(function (sectionResult) {
-      if (!sectionResult.ok) return showToast(sectionResult.error);
-      currentSections = sectionResult.data;
-      enrollmentStudents = students.map(function (student, index) {
-        return Object.assign({}, student, {
-          id: "demo-student-" + (index + 1),
-          enrollments: student.section_id ? [{ section_id: student.section_id, status: "active" }] : [],
-        });
-      });
-      renderEnrollmentRows();
-    });
-  }
-  return AttendIQSupabase.getEnrollmentStudents().then(function (result) {
-    if (!result.ok) return showToast(result.error);
-    enrollmentStudents = result.data;
-    renderEnrollmentRows();
-  });
-}
-
-function populateEnrollmentSelectors() {
-  const studentSelect = $("#enrollmentStudent");
-  const sectionSelect = $("#enrollmentSection");
-  const previousStudent = studentSelect.value;
-  const previousSection = sectionSelect.value;
-  studentSelect.innerHTML = enrollmentStudents.map((student) => `<option value="${h(student.id)}">${h(student.name)} · ${h(student.roll)}</option>`).join("");
-  sectionSelect.innerHTML = currentSections.map((section) => `<option value="${h(section.id)}">${h(section.program)} · ${h(section.batch)} · ${h(section.name)}</option>`).join("");
-  if (previousStudent) studentSelect.value = previousStudent;
-  if (previousSection) sectionSelect.value = previousSection;
-}
-
-function openEnrollmentEditor(student) {
-  populateEnrollmentSelectors();
-  const editor = $("#enrollmentEditor");
-  $("#enrollmentStudentId").value = student ? student.id : "";
-  $("#enrollmentStudent").value = student ? student.id : "";
-  if (student) {
-    const enrollment = (student.enrollments || []).find((row) => row.status === "active");
-    if (enrollment) $("#enrollmentSection").value = enrollment.section_id;
-  }
-  editor.hidden = false;
-  $("#enrollmentStudent").focus();
-}
-
-function closeEnrollmentEditor() {
-  $("#enrollmentEditor").hidden = true;
-  $("#enrollmentForm").reset();
-}
-
-$("#enrollmentForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const result = await AttendIQSupabase.setStudentEnrollment({
-    student_id: $("#enrollmentStudent").value,
-    section_id: $("#enrollmentSection").value,
-  });
-  if (!result.ok) return showToast(result.error);
-  closeEnrollmentEditor();
-  await Promise.all([loadAdminStudents(), loadEnrollmentStudents()]);
-  showToast("Student enrollment updated.");
-});
-
-$("#enrollmentArchive").addEventListener("click", async () => {
-  const studentId = $("#enrollmentStudent").value;
-  const student = enrollmentStudents.find((item) => item.id === studentId);
-  if (!student || !window.confirm(`Archive ${student.name}'s current enrollment? Historical records will be preserved.`)) return;
-  const result = await AttendIQSupabase.archiveStudentEnrollment(studentId);
-  if (!result.ok) return showToast(result.error);
-  closeEnrollmentEditor();
-  await Promise.all([loadAdminStudents(), loadEnrollmentStudents()]);
-  showToast("Student enrollment archived.");
-});
-
-$("#enrollmentCancel").addEventListener("click", closeEnrollmentEditor);
-
+// Load student directory and attendance data for administrator metrics.
 function loadAdminStudents() {
   return Promise.all([
     AttendIQSupabase.getStudents(),
     AttendIQSupabase.getAttendance(),
-    AttendIQSupabase.getSections(),
     AttendIQSupabase.getSemesters(),
   ]).then(function (results) {
     const studentsResult = results[0];
     const attendanceResult = results[1];
-    const sectionsResult = results[2];
-    const semestersResult = results[3];
-    if (!studentsResult.ok || !attendanceResult.ok || !sectionsResult.ok || !semestersResult.ok) {
-      showToast(studentsResult.error || attendanceResult.error || sectionsResult.error || semestersResult.error || "Student records could not be loaded.");
+    const semestersResult = results[2];
+    if (!studentsResult.ok || !attendanceResult.ok || !semestersResult.ok) {
+      showToast(studentsResult.error || attendanceResult.error || semestersResult.error || "Student records could not be loaded.");
       return;
     }
-    currentSections = sectionsResult.data;
     currentSemesters = semestersResult.data;
-    renderEnrollmentRows();
-    populateStudentSections();
     const totals = {};
     attendanceResult.data.forEach(function (row) {
       const entry = totals[row.student_id] || { total: 0, present: 0 };
@@ -552,8 +492,6 @@ function loadAdminStudents() {
     });
     students = studentsResult.data.map(function (student) {
       const entry = totals[student.id] || { total: 0, present: 0 };
-      const enrollment = (student.enrollments || []).find((row) => row.status === "active") || student.enrollments?.[0];
-      const section = currentSections.find((item) => item.id === enrollment?.section_id);
       return {
         id: student.id,
         name: student.name,
@@ -561,19 +499,16 @@ function loadAdminStudents() {
         roll: student.roll,
         dept: student.program,
         batch: student.batch,
-        section: student.section || section?.name || "",
-        section_id: enrollment ? enrollment.section_id : "",
-        semester: currentSemesters.find((item) => item.id === section?.semester_id)?.number || "",
+        semester: currentSemesters.find((item) => item.is_current)?.number || "",
         attendance: entry.total ? Math.round((entry.present / entry.total) * 100) : 0,
       };
     });
     setFilterOptions("#studentProgramFilter", students.map((student) => student.dept), "All programs");
-    setFilterOptions("#studentBatchFilter", students.map((student) => student.batch || currentSections.find((section) => section.id === student.section_id)?.batch), "All batches");
+    setFilterOptions("#studentBatchFilter", students.map((student) => student.batch), "All batches");
     setFilterOptions("#studentSemesterFilter", students.map((student) => {
       const semester = currentSemesters.find((item) => item.number === Number(student.semester));
       return semester ? String(semester.number) : student.semester;
     }), "All semesters");
-    setFilterOptions("#studentSectionFilter", students.map((student) => student.section), "All sections");
     renderStudents();
     renderThreshold();
     renderAdminMetrics();
@@ -695,18 +630,6 @@ function renderUsers() {
 
 $("#userRoleFilter").addEventListener("change", renderUsers);
 
-function setStudentView(view) {
-  const directory = view === "directory";
-  $("#studentDirectoryView").hidden = !directory;
-  $("#studentEnrollmentView").hidden = directory;
-  $$("[data-student-view]").forEach((tab) => {
-    const active = tab.dataset.studentView === view;
-    tab.classList.toggle("active", active);
-    tab.setAttribute("aria-selected", String(active));
-  });
-  if (!directory) loadEnrollmentStudents();
-}
-
 function setCourseView(view) {
   const subjects = view === "subjects";
   const offeringsView = view === "offerings";
@@ -720,9 +643,6 @@ function setCourseView(view) {
   });
 }
 
-$$("[data-student-view]").forEach((tab) =>
-  tab.addEventListener("click", () => setStudentView(tab.dataset.studentView)),
-);
 $$("[data-faculty-view]").forEach((tab) =>
   tab.addEventListener("click", () => setFacultyView(tab.dataset.facultyView)),
 );
@@ -751,6 +671,7 @@ function updateAccountFields() {
     field.hidden = field.dataset.accountField !== role;
   });
   document.getElementById("newUserRoll").required = role === "student";
+  document.getElementById("newUserProgram").required = role === "student";
   document.getElementById("newUserBatch").required = role === "student";
   document.getElementById("newFacultyId").required = role === "teacher";
 }
@@ -766,43 +687,34 @@ $("#userForm").addEventListener("submit", async (event) => {
     role: $("#newUserRole").value,
     password: $("#newUserPassword").value,
     roll: $("#newUserRoll").value,
+    program: $("#newUserProgram").value,
     batch: $("#newUserBatch").value,
-    section: $("#newUserSection").value,
     faculty_id: $("#newFacultyId").value,
   });
   if (!result.ok) return showToast(result.error);
   const created = result.data && (result.data.user || result.data);
   event.target.reset();
+  updateAccountFields();
   await loadUsers();
   if (created.role === "student") await loadAdminStudents();
   if (created.role === "teacher") await loadAdminFaculty();
   showToast(`${created.name} added as ${ROLE_LABELS[created.role]}.`);
 });
 
-// Student create/edit/archive controls use the shared adapter and current section
-// list. Existing accounts are edited without changing their Auth password.
-function populateStudentSections() {
-  const program = $("#studentProgram").value.trim();
-  const batch = $("#studentBatch").value.trim();
-  $("#studentSectionOptions").innerHTML = currentSections
-    .filter((section) => section.program === program && section.batch === batch)
-    .map((section) => `<option value="${h(section.name)}"></option>`)
-    .join("");
-}
-
+// Student create/edit/archive controls use the college's global current semester.
 function openStudentEditor(student) {
   const editor = $("#studentEditor");
   const form = $("#studentForm");
   form.reset();
-  populateStudentSections();
   $("#studentId").value = student ? student.id : "";
   $("#studentFormTitle").textContent = student ? "Edit student" : "Add student";
   $("#studentFormCopy").textContent = student
-    ? "Update directory information and current enrollment."
-    : "Create a linked login, student record, and current enrollment.";
+    ? "Update the student's directory information. Their semester follows the college calendar."
+    : "Enter the student's program, batch, and official TU roll number. The current college semester is applied automatically.";
   $("#studentPasswordField").hidden = Boolean(student);
   $("#studentPassword").required = !student;
-  $("#studentSection").required = Boolean(student);
+  const currentSemester = currentSemesters.find((semester) => semester.is_current);
+  $("#studentSemester").value = currentSemester?.name || "No current semester configured";
   $("#studentSave").textContent = student ? "Save changes" : "Create student";
   if (student) {
     $("#studentName").value = student.name;
@@ -810,9 +722,7 @@ function openStudentEditor(student) {
     $("#studentRoll").value = student.roll;
     $("#studentProgram").value = student.dept;
     $("#studentBatch").value = student.batch;
-    $("#studentSection").value = currentSections.find((section) => section.id === student.section_id)?.name || student.section;
   }
-  populateStudentSections();
   editor.hidden = false;
   $("#studentName").focus();
 }
@@ -831,36 +741,14 @@ $("#studentForm").addEventListener("submit", async (event) => {
     roll: $("#studentRoll").value,
     program: $("#studentProgram").value,
     batch: $("#studentBatch").value,
-    section_id: $("#studentSection").value,
   };
-  const section = currentSections.find((item) =>
-    item.id === formData.section_id ||
-    (item.name === formData.section_id &&
-      item.program === formData.program.trim() &&
-      item.batch === formData.batch.trim()),
-  );
-  if (formData.section_id && !section) {
-    showToast("Enter or choose a current section matching the program and batch.");
-    $("#studentSection").focus();
-    return;
-  }
-  if (studentId && !section) {
-    showToast("Choose a current section when editing a student.");
-    $("#studentSection").focus();
-    return;
-  }
-  formData.section_id = section ? section.id : "";
   const result = studentId
     ? await AttendIQSupabase.updateStudent({ id: studentId, ...formData })
-    : await AttendIQSupabase.createUser({ ...formData, password: $("#studentPassword").value, role: "student", section: section ? section.name : "" });
+    : await AttendIQSupabase.createUser({ ...formData, password: $("#studentPassword").value, role: "student" });
   if (!result.ok) return showToast(result.error);
   closeStudentEditor();
   await loadAdminStudents();
-  showToast(studentId ? "Student details updated." : section ? "Student account and enrollment created." : "Student account created without section enrollment.");
-});
-
-["#studentProgram", "#studentBatch"].forEach((selector) => {
-  $(selector).addEventListener("input", populateStudentSections);
+  showToast(studentId ? "Student details updated." : "Student account created and grouped under the current college semester.");
 });
 
 // Faculty create/edit/archive controls use the linked account and faculty record.
@@ -913,6 +801,20 @@ $("#facultyForm").addEventListener("submit", async (event) => {
   closeFacultyEditor();
   await Promise.all([loadAdminFaculty(), loadUsers()]);
   showToast(facultyId ? "Faculty record updated." : "Faculty account created.");
+});
+
+$("#currentSemesterForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button = $("#currentSemesterSave");
+  button.disabled = true;
+  const result = await AttendIQSupabase.setCurrentSemester({
+    year: $("#currentAcademicYear").value,
+    semester: $("#currentSemesterNumber").value,
+  });
+  button.disabled = false;
+  if (!result.ok) return showToast(result.error);
+  await Promise.all([loadAdminStudents(), loadAdminCourses()]);
+  showToast("Current college semester updated.");
 });
 
   $("#facultyCancel").addEventListener("click", closeFacultyEditor);
@@ -973,23 +875,27 @@ $("#subjectForm").addEventListener("submit", async (event) => {
 function populateOfferingSelectors() {
   const subjectSelect = $("#offeringSubject");
   const semesterSelect = $("#offeringSemester");
-  const sectionSelect = $("#offeringSection");
   const teacherSelect = $("#offeringTeacher");
   const previous = {
     subject: subjectSelect.value,
     semester: semesterSelect.value,
-    section: sectionSelect.value,
     teacher: teacherSelect.value,
   };
-  subjectSelect.innerHTML = courses.filter((subject) => subject.active !== false)
+  const currentSemester = currentSemesters.find((semester) => semester.is_current);
+  subjectSelect.innerHTML = courses.filter((subject) =>
+    subject.active !== false && subject.semester === currentSemester?.number
+  )
     .map((subject) => `<option value="${h(subject.code)}">${h(subject.code)} · ${h(subject.name)}</option>`).join("");
-  semesterSelect.innerHTML = currentSemesters.map((semester) => `<option value="${h(semester.id)}">${h(semester.name)}</option>`).join("");
-  sectionSelect.innerHTML = currentSections.map((section) => `<option value="${h(section.id)}">${h(section.program)} · ${h(section.batch)} · ${h(section.name)}</option>`).join("");
-  teacherSelect.innerHTML = faculty.filter((member) => member.profile_id).map((member) => `<option value="${h(member.profile_id)}">${h(member.name)}</option>`).join("");
+  teacherSelect.innerHTML = faculty.filter((member) => member.profile_id).map((member) => {
+    const count = teacherWorkload(member.profile_id);
+    const leaveLabel = member.status === "on_leave" ? " · On leave" : "";
+    return `<option value="${h(member.profile_id)}">${h(member.name)} · ${count} active ${count === 1 ? "assignment" : "assignments"}${leaveLabel}</option>`;
+  }).join("");
   if (previous.subject) subjectSelect.value = previous.subject;
-  if (previous.semester) semesterSelect.value = previous.semester;
-  if (previous.section) sectionSelect.value = previous.section;
+  semesterSelect.value = previous.semester ||
+    String(currentSemesters.find((semester) => semester.is_current)?.number || "");
   if (previous.teacher) teacherSelect.value = previous.teacher;
+  updateOfferingTeacherWorkload();
 }
 
 function openOfferingEditor(offering) {
@@ -997,36 +903,50 @@ function openOfferingEditor(offering) {
   const editor = $("#offeringEditor");
   const form = $("#offeringForm");
   form.reset();
+  $("#offeringSemester").value = String(currentSemesters.find((semester) => semester.is_current)?.number || "");
   $("#offeringId").value = offering ? offering.id : "";
   $("#offeringFormTitle").textContent = offering ? "Edit course offering" : "Assign course offering";
   $("#offeringSave").textContent = offering ? "Save offering" : "Create offering";
   if (offering) {
     $("#offeringSubject").value = offering.subject_code;
-    $("#offeringSemester").value = offering.semester_id;
-    $("#offeringSection").value = offering.section_id;
+    const subject = offeringSubject(offering);
+    const semester = offeringSemester(offering) || currentSemesters.find((item) => item.id === offering.semester_id);
+    $("#offeringSemester").value = String(semester?.number || subject?.semester || "");
     $("#offeringTeacher").value = offering.teacher_id || "";
     $("#offeringStatus").value = offering.status === "archived" ? "archived" : "active";
-    ["offeringSubject", "offeringSemester", "offeringSection"].forEach((id) => { $("#" + id).disabled = true; });
+    ["offeringSubject", "offeringSemester"].forEach((id) => { $("#" + id).disabled = true; });
   } else {
-    ["offeringSubject", "offeringSemester", "offeringSection"].forEach((id) => { $("#" + id).disabled = false; });
+    ["offeringSubject", "offeringSemester"].forEach((id) => { $("#" + id).disabled = false; });
   }
   editor.hidden = false;
+  updateOfferingTeacherWorkload();
   $("#offeringTeacher").focus();
 }
 
 function closeOfferingEditor() {
   $("#offeringEditor").hidden = true;
   $("#offeringForm").reset();
-  ["offeringSubject", "offeringSemester", "offeringSection"].forEach((id) => { $("#" + id).disabled = false; });
+  ["offeringSubject", "offeringSemester"].forEach((id) => { $("#" + id).disabled = false; });
 }
 
 $("#offeringForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const id = $("#offeringId").value.trim();
+  const semesterNumber = Number($("#offeringSemester").value);
+  if (!Number.isInteger(semesterNumber) || semesterNumber < 1 || semesterNumber > 8) {
+    showToast("Enter a whole semester number from 1 to 8.");
+    $("#offeringSemester").focus();
+    return;
+  }
+  const semester = currentSemesters.find((item) => item.number === semesterNumber && item.is_current);
+  if (!semester && !id) {
+    showToast(`Semester ${semesterNumber} is not available in the current academic records.`);
+    $("#offeringSemester").focus();
+    return;
+  }
   const formData = {
     subject_code: $("#offeringSubject").value,
-    semester_id: $("#offeringSemester").value,
-    section_id: $("#offeringSection").value,
+    semester_id: semester?.id || offerings.find((offering) => offering.id === id)?.semester_id,
     teacher_id: $("#offeringTeacher").value,
     status: $("#offeringStatus").value,
   };
@@ -1036,9 +956,10 @@ $("#offeringForm").addEventListener("submit", async (event) => {
   if (!result.ok) return showToast(result.error);
   closeOfferingEditor();
   await loadAdminCourses();
-  showToast(id ? "Course offering updated." : "Course offering created.");
+  showToast(id ? "Course offering updated." : "Course offering created for the selected semester.");
 });
 
+$("#offeringTeacher").addEventListener("change", updateOfferingTeacherWorkload);
 
 function populateEventSelectors() {
   const yearSelect = $("#eventAcademicYear");
@@ -1108,10 +1029,12 @@ $("#eventCancel").addEventListener("click", closeEventEditor);
 function populateScheduleSelectors() {
   const offeringSelect = $("#scheduleOffering");
   const previous = offeringSelect.value;
-  offeringSelect.innerHTML = offerings.filter((offering) => offering.status !== "archived").map((offering) => {
+  offeringSelect.innerHTML = offerings.filter((offering) =>
+    offering.status !== "archived" && offeringIsInCurrentSemester(offering)
+  ).map((offering) => {
     const subject = offeringSubject(offering) || { code: offering.subject_code, name: "" };
-    const section = offeringSection(offering) || {};
-    return `<option value="${h(offering.id)}">${h(subject.code || offering.subject_code)} · ${h(section.program || "")} ${h(section.batch || "")} ${h(section.name || "")}</option>`;
+    const semester = offeringSemester(offering) || currentSemesters.find((item) => item.id === offering.semester_id);
+    return `<option value="${h(offering.id)}">${h(subject.code || offering.subject_code)} · ${h(subject.program || "")} · ${h(semester?.name || "Semester")}</option>`;
   }).join("");
   if (previous) offeringSelect.value = previous;
 }
@@ -1229,10 +1152,30 @@ $("#menuButton").addEventListener("click", () => {
   const open = $("#sidebar").classList.toggle("open");
   $("#menuButton").setAttribute("aria-expanded", String(open));
 });
+$("#resetCancel").addEventListener("click", () => $("#resetDialog").close());
+$("#resetForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const email = $("#resetEmail").value.trim().toLowerCase();
+  if (!activeAdminEmail || email !== activeAdminEmail) {
+    return showToast("The reset email must match the signed-in administrator account.");
+  }
+  const button = event.submitter;
+  if (button) button.disabled = true;
+  const result = await AttendIQSupabase.resetApplicationData(
+    email,
+    $("#resetPassword").value,
+    $("#resetConfirmation").value.trim(),
+  );
+  if (button) button.disabled = false;
+  if (!result.ok) return showToast(result.error);
+  $("#resetDialog").close();
+  showToast("Application data reset completed. Reloading...");
+  setTimeout(() => window.location.reload(), 900);
+});
 $("#studentSearch").addEventListener("input", (event) =>
   renderStudents(event.target.value),
 );
-["#studentProgramFilter", "#studentBatchFilter", "#studentSemesterFilter", "#studentSectionFilter", "#studentStatusFilter"].forEach((selector) => {
+["#studentProgramFilter", "#studentBatchFilter", "#studentSemesterFilter", "#studentStatusFilter"].forEach((selector) => {
   $(selector).addEventListener("change", () =>
     renderStudents($("#studentSearch").value),
   );
@@ -1263,11 +1206,6 @@ document.addEventListener("click", async (event) => {
   const action = event.target.closest("[data-action]");
   if (action) {
     const target = action.dataset.action;
-    if (target === "enrollment") {
-      openTab("students");
-      setStudentView("enrollments");
-      openEnrollmentEditor();
-    }
     if (target === "student") {
       openTab("students");
       openStudentEditor();
@@ -1311,15 +1249,15 @@ document.addEventListener("click", async (event) => {
       }
     }
     if (target === "notify") openNotificationComposer();
-    if (target === "reset") showToast("Reset requires backend confirmation.");
+    if (target === "reset") {
+      if (window.AttendIQDemoMode === true) return showToast("Application reset is available only in live mode.");
+      $("#resetForm").reset();
+      $("#resetEmail").value = activeAdminEmail;
+      $("#resetDialog").showModal();
+      $("#resetPassword").focus();
+    }
     if (target === "archive")
       showToast("Archive requires backend confirmation.");
-  }
-  const editEnrollmentButton = event.target.closest("[data-edit-enrollment]");
-  if (editEnrollmentButton) {
-    const student = enrollmentStudents.find((item) => item.id === editEnrollmentButton.dataset.editEnrollment);
-    if (student) openEnrollmentEditor(student);
-    return;
   }
   const editButton = event.target.closest("[data-edit-student]");
   if (editButton) {
@@ -1534,7 +1472,6 @@ $("#signOut").addEventListener("click", async (event) => {
     loadAdminFaculty(),
     loadAdminLeaves(),
     loadAdminStudents(),
-    loadEnrollmentStudents(),
     loadAdminCourses(),
   ]);
   });

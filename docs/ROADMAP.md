@@ -7,6 +7,11 @@
 - Existing core flows: authentication, role redirects, attendance marking, student dashboard, leave review, settings, and CSV exports.
 - All ten frontend JavaScript files pass `node --check`.
 - The hosted Supabase project is connected. The current repository revision is the source of truth for this roadmap.
+- The source and hosted backend use one college-wide current semester and
+  program-based course access. Migration `20260930000200` is applied; admins can
+  select a year from 2020 onward and semester 1-8, with later years created on
+  demand. Post-migration schema lint remains unverified because direct CLI
+  database authentication is unavailable.
 
 ## Phase 0 — Foundation and decisions
 
@@ -19,7 +24,10 @@ Phase 0 is intentionally non-functional. It establishes the development rules be
 1. **Frontend technology** — remain plain HTML, CSS, and JavaScript. Do not migrate the browser application to TypeScript or add a frontend build step.
 2. **Edge Functions** — remain Deno-compatible TypeScript. Each function gets its own `deno.json` so dependencies and compiler settings stay isolated.
 3. **Current attendance formula** — preserve the existing behavior during the migration: `Present` contributes to the attendance percentage; `Absent` and `Late` do not. `Late` remains visible as a separate status. This rule must be centralized before the new reporting model is implemented.
-4. **Academic hierarchy** — use `academic year → semester → section → course offering`. Students enroll in sections, and teachers are assigned through course offerings rather than permanently to a global subject.
+4. **Academic relationships** — use one college-wide current semester.
+   Students access offerings through their program and that semester; batches
+   remain roster information. Legacy sections and enrollments are retained as
+   historical records, not as current access controls.
 5. **Historical records** — do not hard-delete students, teachers, subjects, or semesters once attendance history exists. Add archive/status fields and preserve audit history.
 6. **Authorization** — the database is the final authority. Students, teachers, and administrators must have relationship-aware RLS, not only frontend visibility rules.
 7. **Production fallback** — the localStorage store is demo-only. It must not silently authenticate production users or store plaintext passwords in the normal application.
@@ -49,13 +57,15 @@ Do not start Phase 1 until:
 **Status: complete**
 
 Phase 1 is the security and data-integrity foundation. Teacher access is
-relationship-aware and currently limited to the teacher's assigned program;
-section-level course offerings remain the next prerequisite.
+relationship-aware. The latest local migration narrows teacher/student access
+to current-semester offerings and the students' program.
 
 1. Make student-account creation also create and link a `students` record.
 2. Make faculty/account creation maintain the correct domain record.
 3. Replace broad authenticated-user student access with student/teacher/admin RLS.
-4. Scope teacher subjects, students, attendance, and leave requests to the current academic relationship. Phase 1 uses the assigned program; Phase 2 narrows this to sections and course offerings.
+4. Scope teacher subjects, students, attendance, and leave requests to the
+   current academic relationship. The hosted baseline used section enrollments;
+   the latest local migration switches this to program and current semester.
 5. Replace unsafe database-value interpolation in `innerHTML` with safe DOM rendering.
 6. Remove silent production fallback to local authentication.
 7. Add server-side upload validation for leave documents.
@@ -103,17 +113,21 @@ The completed vertical slices are:
 - `20260924001000_phase3_academic_calendar_schedule.sql`
 - `20260924001100_phase3_schedule_integrity.sql` (relationship-aware schedule reads and stable slot uniqueness)
 
-1. **Student create/edit/archive — complete.** The admin portal can create a
-   linked student login, student record, and current enrollment; edit directory
-   details and current section; and archive a student without deleting history.
+1. **Student create/edit/archive — complete.** The admin portal creates a
+   linked student login and directory record using program, batch, and TU roll;
+   students share the college's current semester. Archiving preserves history.
 2. **Faculty create/edit/archive — complete.** The admin portal creates linked
    teacher accounts and faculty records, edits directory metadata and Auth email,
    and archives faculty while preserving the faculty record and history. The
    privileged `admin-update-faculty` function keeps Auth, profiles, and faculty
    records synchronized.
 3. **Subject create/edit/archive — complete.** The admin portal manages the subject catalog with permanent subject codes, editable metadata, credits and course type, plus archive/restore actions. Existing attendance and course-offering history is preserved.
-4. **Course offering creation and teacher assignment — complete.** The admin portal assigns subjects to current sections and faculty members, with archive/restore support.
-5. **Student enrollment management — complete.** Administrators can transfer a student to another current section or archive the current enrollment while preserving historical attendance and leave records.
+4. **Course offering creation and teacher assignment — complete.** The admin
+   portal assigns each subject/semester to a faculty member; current offerings
+   are shared by every batch in that program.
+5. **Student enrollment management — replaced by semester grouping.** New
+   students do not receive section enrollments; existing enrollment records are
+   archived, not deleted.
 6. **Academic calendar and schedule management — complete.** Administrators can create, edit, archive, and restore date-based academic events and recurring course-offering schedules.
 
 Each slice must include database migration, RLS, JavaScript adapter method, HTML form, validation, success/error states, tests, and documentation. No SQL should be required for normal administration.
@@ -132,11 +146,11 @@ operations in `shared/supabase-store.js`:
 - Student: `getMyStudentProfile`, `getMySubjects`, `getMyAttendance`, and
   `getMyLeaves`
 - Teacher attendance writes now include the selected `course_offering_id`.
-- New leave submissions now include the student's active `section_id`.
+- New leave submissions are independent of section/enrollment records.
 - Administrator methods remain institution-wide by design.
 
 **Exit gate passed:** live role checks confirm the teacher sees assigned
-offerings, section students, related attendance and leave requests; the student
+offerings, current-semester program students, related attendance and leave requests; the student
 sees only their own academic relationships and records; the admin retains full
 visibility; and anonymous requests return zero protected rows. The frontend
 JavaScript, Edge Functions, and repository diff checks pass.
@@ -149,8 +163,9 @@ The hosted database now contains `attendance_sessions`, the optional
 `attendance.attendance_session_id` link, and the `create_attendance_session`,
 `close_attendance_session`, and `save_attendance_session` RPCs. Session writes
 are restricted to an assigned teacher (or administrator), validate the scheduled
-weekday, validate active enrollment, and save all marks in one operation. Session
-reads are relationship-scoped for teachers and enrolled students. The teacher
+weekday, validate active students in the assigned program/current semester, and
+save all marks in one operation. Session reads are relationship-scoped for
+teachers and current-semester students. The teacher
 portal now loads assigned schedules, opens a session, locks the roster controls
 until the session is open, saves session-linked marks, and closes the session.
 The student portal now loads enrolled course schedules, session-linked
@@ -193,4 +208,3 @@ Password recovery, static validation, CI checks, and environment-controlled Edge
 5. Update this checklist when a phase is accepted.
 6. Keep the frontend plain JavaScript unless a new requirement explicitly changes the implementation target.
 7. Treat RLS, server-side validation, and storage policies as part of every feature—not as a later security task.
-

@@ -40,7 +40,7 @@ plain HTML, CSS, and JavaScript.
 - Teacher attendance marking backed by students, subjects, course offerings,
   and attendance, including AD/BS dates and database-enforced uniqueness
 - Teacher session-based attendance workflow: assigned schedule selection, open/closed
-  session status, enrolled-roster marking, and session-scoped saves
+  session status, program-roster marking for the current semester, and session-scoped saves
 - Student dashboard and attendance log computed from the signed-in student's
   own marks, with subject percentages and threshold warnings
 - Leave workflow: student submission with optional private document upload,
@@ -50,10 +50,11 @@ plain HTML, CSS, and JavaScript.
   Bikram Sambat dates, and Nepali roll numbers
 - Supabase schema with row-level security, demo seeds, a private document
   storage bucket, and admin-only account-management edge functions
-- Academic data model for years, semesters, sections, enrollments, and course
-  offerings, with existing demo records linked into the current structure
-- Administrator student CRUD: create a linked student login and enrollment,
-  edit student/section details, and archive students while preserving history
+- Academic data model keeps legacy sections and enrollments for historical
+  continuity; current course access is based on student program and the single
+  college-wide current semester
+- Administrator student CRUD: create a linked login using program, batch, and
+  TU roll number; students share the centrally managed current semester
 - Relationship-scoped teacher and student queries for offerings, rosters,
   attendance, and leave requests
 - Scheduled attendance sessions with relationship-scoped RLS, atomic session
@@ -68,24 +69,35 @@ plain HTML, CSS, and JavaScript.
   for the login screen and all portals
 - A password-reset link returns to this login page. Use **Forgot password?** to request
   the email; the recovery screen then updates the password through Supabase Auth.
-- The hosted project has all migrations through
-  `20260924001302_phase6_8_function_sync.sql` applied. The linked database lint passes.
+- The hosted project has migrations through
+  `20260930000200_use_program_and_current_semester.sql` applied. The latest
+  migration was applied successfully, but a post-migration linked schema lint
+  could not run because direct CLI database authentication is unavailable.
 
 ## Supabase status
 
-The hosted project `yvvgvteijtxnuwtncfio` is connected. All repository migrations
-through `20260924001302_phase6_8_function_sync.sql` are applied to the hosted
-database, and the linked database lint passes. The project includes Phase 1
-security, Phase 2 academic relationships, and the complete Phase 3 administrator
-student, faculty, subject, course-offering, enrollment, academic-calendar, and
-class-schedule administration slices. The `admin-create-user`,
+The hosted project `yvvgvteijtxnuwtncfio` has migration
+`20260930000200_use_program_and_current_semester.sql` applied. It seeds
+Gregorian years 2020-2026 and semesters 1-8, with 2026 Semester 1 current;
+administrators can create later years and switch the current semester from
+Settings, which creates the selected year and all eight semesters on demand.
+Initial term date bounds span the whole Gregorian year. The live catalog
+currently contains only BCA Semester 4 subjects and no course offerings, so
+Semester 1 course access stays empty until the college adds matching subjects
+and offerings. The latest migration was applied successfully, but post-migration
+schema lint could not run because direct CLI database authentication is
+unavailable. The
+project includes Phase 1 security, Phase 2 academic relationships, and the
+complete Phase 3 administrator student, faculty, subject, course-offering,
+enrollment, academic-calendar, and class-schedule administration slices. The
+`admin-create-user`,
 `admin-update-faculty`, `admin-delete-user`, and `upload-leave-document` Edge
 Functions are deployed, and `shared/supabase.js` contains only the public
 publishable key. Phase 5 adds `attendance_sessions`, teacher-assignment checks
 for opening sessions, atomic session attendance RPCs, relationship-aware RLS,
 and adapter methods for teacher/student session reads. The teacher portal now
 connects the schedule → open session → mark roster → save → close flow; the
-student portal loads its enrolled course schedules, database notifications,
+student portal loads its program/current-semester course schedules, database notifications,
 leave history, signed document links, and real monthly attendance trend. Phase 6
 adds server-validated leave overlap protection, reviewer notes/timestamps,
 student cancellation, and notifications. Phase 8 metrics and charts use the
@@ -221,8 +233,8 @@ attendance records. The admin portal manages academic events and recurring class
 schedules in **Settings**.
 
 The student portal loads the signed-in student's attendance dashboard, attendance
-log, subject percentages, threshold warning, enrolled class schedule, leave
-history, signed document links, notifications, and CSV export from Supabase.
+log, subject percentages, threshold warning, current-semester class schedule,
+leave history, signed document links, notifications, and CSV export from Supabase.
 
 The teacher portal loads the assigned roster, subjects, schedules, daily
 attendance marking, semester reports, leave review, notifications-ready data, and

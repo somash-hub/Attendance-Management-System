@@ -125,7 +125,7 @@
             </div>
             <div>
               <span class="context-label">Scope</span>
-              <strong>All programs · All sections</strong>
+              <strong>All programs · Current semester</strong>
             </div>
           </div>
 
@@ -134,7 +134,7 @@
             <div class="metric-grid">
               <article class="metric-card">
                 <span class="metric-icon blue">♙</span><strong id="totalStudents">0</strong
-                ><small>Total Students</small><em id="studentScopeCopy">Current enrollments</em>
+                ><small>Total Students</small><em id="studentScopeCopy">Current student directory</em>
               </article>
               <article class="metric-card">
                 <span class="metric-icon purple">♧</span><strong id="facultyCount">0</strong
@@ -250,32 +250,27 @@
               <div class="toolbar">
                 <div>
                   <h2>Student Directory</h2>
-                  <p>Manage enrolled students and attendance status</p>
+                  <p>Students are grouped automatically by program and the current college semester.</p>
                 </div>
                 <button class="button button-primary" type="button" data-action="student">＋ Add student</button>
-                <button class="button button-secondary" type="button" data-action="enrollment">Manage enrollment</button>
-              </div>
-              <div class="file-tabs" role="tablist" aria-label="Student management views">
-                <button class="file-tab active" type="button" role="tab" aria-selected="true" aria-controls="studentDirectoryView" data-student-view="directory">Directory</button>
-                <button class="file-tab" type="button" role="tab" aria-selected="false" aria-controls="studentEnrollmentView" data-student-view="enrollments">Enrollments</button>
               </div>
               <div class="student-editor" id="studentEditor" hidden>
                 <div class="card-heading">
                   <div>
                     <h2 id="studentFormTitle">Add student</h2>
-                    <p id="studentFormCopy">Create a linked login, student record, and current enrollment.</p>
+                    <p id="studentFormCopy">Enter the student's program, batch, and official TU roll number. The current college semester is applied automatically.</p>
                   </div>
                 </div>
                 <form id="studentForm" class="date-grid student-form">
                   <input id="studentId" type="hidden" />
-                  <label>Full name<input id="studentName" type="text" required /></label>
-                  <label>Email<input id="studentEmail" type="email" required /></label>
-                  <label>Roll number<input id="studentRoll" type="text" required /></label>
-                  <label>Program<input id="studentProgram" type="text" value="BSc CSIT" required /></label>
-                  <label>Batch<input id="studentBatch" type="text" value="2079" required /></label>
-                  <label>Section<input id="studentSection" type="text" list="studentSectionOptions" autocomplete="off" /><datalist id="studentSectionOptions"></datalist><small>Optional. Type a section or choose a current section matching the program and batch.</small></label>
+                  <label>Full name<input id="studentName" type="text" placeholder="e.g. Aarya Sharma" required /></label>
+                  <label>Email<input id="studentEmail" type="email" placeholder="e.g. student001@kct.edu.np" required /></label>
+                  <label>Official TU roll number<input id="studentRoll" type="text" placeholder="e.g. 2079CSIT042" required /><small>Copy the roll number from the student's TU registration record. It must be unique.</small></label>
+                  <label>Program<input id="studentProgram" type="text" value="BSc CSIT" placeholder="e.g. BSc CSIT" required /><small>Enter the program name as used by your college, for example BSc CSIT or BCA.</small></label>
+                  <label>Batch<input id="studentBatch" type="text" value="2079" placeholder="e.g. 2080" required /><small>Enter the student's admission batch/year.</small></label>
+                  <label>Current semester<input id="studentSemester" type="text" readonly /><small>Set centrally by the college; this semester applies to all students.</small></label>
                   <label id="studentPasswordField"
-                    >Login password<input id="studentPassword" type="password" required minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" title="Use at least 8 characters with uppercase, lowercase, number, and symbol."
+                    >Login password<input id="studentPassword" type="password" placeholder="8+ chars with uppercase, lowercase, number, symbol" required minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" title="Use at least 8 characters with uppercase, lowercase, number, and symbol."
                   /><small>At least 8 characters with uppercase, lowercase, number, and symbol.</small></label>
                   <div class="student-form-actions">
                     <button class="button button-primary" id="studentSave" type="submit">Create student</button>
@@ -305,11 +300,6 @@
                 ><select id="studentSemesterFilter">
                   <option value="">All semesters</option>
                 </select
-                ><label class="visually-hidden" for="studentSectionFilter"
-                  >Filter students by section</label
-                ><select id="studentSectionFilter">
-                  <option value="">All sections</option>
-                </select
                 ><label class="visually-hidden" for="studentStatusFilter"
                   >Filter students by status</label
                 ><select id="studentStatusFilter">
@@ -327,7 +317,6 @@
                       <th>Program</th>
                       <th>Batch</th>
                       <th>Semester</th>
-                      <th>Section</th>
                       <th>Attendance</th>
                       <th>Status</th>
                       <th>Action</th>
@@ -336,18 +325,6 @@
                   <tbody id="studentRows"></tbody>
                 </table>
               </div>
-              </div>
-              <div id="studentEnrollmentView" class="student-view" role="tabpanel" hidden>
-              <div class="student-editor" id="enrollmentEditor" hidden>
-                <div class="card-heading"><div><h2 id="enrollmentFormTitle">Manage enrollment</h2><p>Move a student between current sections or archive their current enrollment.</p></div></div>
-                <form id="enrollmentForm" class="date-grid student-form">
-                  <input id="enrollmentStudentId" type="hidden" />
-                  <label>Student<select id="enrollmentStudent" required></select></label>
-                  <label>Current section<select id="enrollmentSection" required></select></label>
-                  <div class="student-form-actions"><button class="button button-primary" id="enrollmentSave" type="submit">Save enrollment</button><button class="button button-secondary" id="enrollmentArchive" type="button">Archive enrollment</button><button class="button button-secondary" id="enrollmentCancel" type="button">Cancel</button></div>
-                </form>
-              </div>
-              <div class="table-wrap enrollment-table"><table><thead><tr><th>Student</th><th>Roll number</th><th>Current section</th><th>Enrollment status</th><th>Action</th></tr></thead><tbody id="enrollmentRows"></tbody></table></div>
               </div>
             </div>
           </section>
@@ -381,14 +358,14 @@
                 </div>
                 <form id="facultyForm" class="date-grid faculty-form">
                   <input id="facultyId" type="hidden" />
-                  <label>Full name<input id="facultyName" type="text" required /></label>
-                  <label>Email<input id="facultyEmail" type="email" required /></label>
-                  <label>Faculty ID<input id="facultyCode" type="text" required /></label>
-                  <label>Department<input id="facultyDepartment" type="text" value="BSc CSIT" required /></label>
-                  <label>Program<input id="facultyProgram" type="text" value="BSc CSIT" required /></label>
+                  <label>Full name<input id="facultyName" type="text" placeholder="e.g. Suman Adhikari" required /></label>
+                  <label>Email<input id="facultyEmail" type="email" placeholder="e.g. suman.adhikari@kct.edu.np" required /></label>
+                  <label>Faculty ID<input id="facultyCode" type="text" placeholder="e.g. FAC-001" required /></label>
+                  <label>Department<input id="facultyDepartment" type="text" value="BSc CSIT" placeholder="e.g. Computer Science" required /></label>
+                  <label>Program<input id="facultyProgram" type="text" value="BSc CSIT" placeholder="e.g. BSc CSIT" required /></label>
                   <label>Designation<input id="facultyDesignation" type="text" placeholder="e.g. Assistant Professor" /></label>
                   <label>Status<select id="facultyStatus" required><option value="active">Active</option><option value="on_leave">On leave</option></select></label>
-                  <label id="facultyPasswordField">Login password<input id="facultyPassword" type="password" required minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" title="Use at least 8 characters with uppercase, lowercase, number, and symbol." /><small>At least 8 characters with uppercase, lowercase, number, and symbol.</small></label>
+                  <label id="facultyPasswordField">Login password<input id="facultyPassword" type="password" placeholder="8+ chars with uppercase, lowercase, number, symbol" required minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" title="Use at least 8 characters with uppercase, lowercase, number, and symbol." /><small>At least 8 characters with uppercase, lowercase, number, and symbol.</small></label>
                   <div class="faculty-form-actions"><button class="button button-primary" id="facultySave" type="submit">Create faculty</button><button class="button button-secondary" id="facultyCancel" type="button">Cancel</button></div>
                 </form>
               </div>
@@ -421,7 +398,7 @@
                 <div class="assignment-intro"><p>Every active or archived course offering is shown as a separate assignment, so one teacher can appear on multiple rows.</p></div>
                 <div class="table-wrap">
                   <table>
-                    <thead><tr><th>Teacher</th><th>Program</th><th>Batch</th><th>Semester</th><th>Section</th><th>Subject</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Teacher</th><th>Program</th><th>Semester</th><th>Subject</th><th>Status</th></tr></thead>
                     <tbody id="facultyAssignmentRows"></tbody>
                   </table>
                 </div>
@@ -429,7 +406,7 @@
             </div>
           </section>
 
-          <!-- Subject catalog management. Teacher-to-section assignment is managed separately. -->
+          <!-- Subject catalog management. Teacher assignments are scoped by program and semester. -->
           <section class="tab-panel" data-panel="courses">
             <div class="card">
               <div class="toolbar">
@@ -518,13 +495,13 @@
               <div id="courseOfferingsView" class="course-view" role="tabpanel" hidden>
               <div class="subsection-heading offering-heading">
                 <h3>Course offerings</h3>
-                <p>Assign subjects to sections and teaching staff.</p>
+                <p>Assign subjects and teachers by program and semester.</p>
               </div>
               <div class="student-editor" id="offeringEditor" hidden>
                 <div class="card-heading">
                   <div>
                     <h2 id="offeringFormTitle">Assign course offering</h2>
-                    <p id="offeringFormCopy">Connect a subject to a section and assign its teacher.</p>
+                    <p id="offeringFormCopy">Connect a subject and teacher for a semester.</p>
                   </div>
                   <div id="courseSchedulesView" class="course-view" role="tabpanel" hidden>
                     <div class="subsection-heading">
@@ -551,7 +528,7 @@
                     </div>
                     <div class="table-wrap class-schedule-table">
                       <table>
-                        <thead><tr><th>Subject</th><th>Section</th><th>Day and time</th><th>Room</th><th>Status</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Subject</th><th>Semester</th><th>Day and time</th><th>Room</th><th>Status</th><th>Actions</th></tr></thead>
                         <tbody id="scheduleRows"></tbody>
                       </table>
                     </div>
@@ -560,16 +537,15 @@
                 <form id="offeringForm" class="date-grid student-form">
                   <input id="offeringId" type="hidden" />
                   <label>Subject<select id="offeringSubject" required></select></label>
-                  <label>Semester<select id="offeringSemester" required></select></label>
-                  <label>Section<select id="offeringSection" required></select></label>
-                  <label>Teacher<select id="offeringTeacher" required></select></label>
+                  <label>Semester<input id="offeringSemester" type="number" min="1" max="8" step="1" placeholder="1-8" required /><small>Enter a semester number from 1 to 8.</small></label>
+                  <label>Teacher<select id="offeringTeacher" required></select><small id="offeringTeacherWorkload" class="field-hint">Select a teacher to view their current assignments.</small></label>
                   <label>Status<select id="offeringStatus" required><option value="active">Active</option><option value="archived">Archived</option></select></label>
                   <div class="student-form-actions"><button class="button button-primary" id="offeringSave" type="submit">Create offering</button><button class="button button-secondary" id="offeringCancel" type="button">Cancel</button></div>
                 </form>
               </div>
               <div class="table-wrap offering-table">
                 <table>
-                  <thead><tr><th>Subject</th><th>Section</th><th>Teacher</th><th>Status</th><th>Actions</th></tr></thead>
+                  <thead><tr><th>Subject</th><th>Semester</th><th>Teacher</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody id="offeringRows"></tbody>
                 </table>
               </div>
@@ -701,13 +677,13 @@
                     >Roll number<input id="newUserRoll" type="text" placeholder="e.g. 2082CSIT001"
                   /></label>
                   <label data-account-field="student" hidden
+                    >Program<input id="newUserProgram" type="text" value="BSc CSIT" placeholder="e.g. BSc CSIT or BCA"
+                  /></label>
+                  <label data-account-field="student" hidden
                     >Batch<input id="newUserBatch" type="text" placeholder="e.g. 2082"
                   /></label>
                   <label data-account-field="teacher" hidden
                     >Faculty ID<input id="newFacultyId" type="text" placeholder="e.g. FAC006"
-                  /></label>
-                  <label data-account-field="student" hidden
-                    >Section<input id="newUserSection" type="text" value="A"
                   /></label>
                   <button class="button button-primary" type="submit">
                     ＋ Create account
@@ -734,6 +710,15 @@
                   </div>
                   <button class="button button-secondary" type="button" data-action="event">＋ Add event</button>
                 </div>
+                <div class="subsection-heading">
+                  <h3>Current college semester</h3>
+                  <p>All student and course access follows this one college-wide semester. Years from 2020 onward are created as needed.</p>
+                </div>
+                <form id="currentSemesterForm" class="date-grid student-form">
+                  <label>Gregorian year<input id="currentAcademicYear" type="number" min="2020" max="9999" step="1" required /></label>
+                  <label>Semester<select id="currentSemesterNumber" required><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option><option value="7">Semester 7</option><option value="8">Semester 8</option></select></label>
+                  <div class="student-form-actions"><button class="button button-primary" id="currentSemesterSave" type="submit">Set current semester</button></div>
+                </form>
                 <div class="student-editor" id="eventEditor" hidden>
                   <div class="card-heading">
                     <div>
@@ -770,10 +755,9 @@
                 </div>
                 <div class="danger-action">
                   <div>
-                    <strong>Reset attendance data</strong
+                    <strong>Reset application data</strong
                     ><small
-                      >Clears attendance records for the current
-                      semester.</small
+                      >Deletes live application records and preserves the three documented demo accounts.</small
                     >
                   </div>
                   <button type="button" data-action="reset">Reset</button>
@@ -802,5 +786,22 @@
       </div>
     </div>
     <div class="toast" id="toast" role="status"></div>
+    <dialog id="resetDialog" class="modal-dialog">
+      <form id="resetForm" method="dialog">
+        <div class="card-heading">
+          <div>
+            <h2>Confirm application reset</h2>
+            <p>Re-authenticate the currently signed-in administrator. Your password is sent only to Supabase Auth, never to the reset function.</p>
+          </div>
+        </div>
+        <label>Signed-in administrator email<input id="resetEmail" type="email" autocomplete="username" readonly required /><small>Must match the account currently signed in to this Admin Portal.</small></label>
+        <label>Administrator password<input id="resetPassword" type="password" autocomplete="current-password" required /></label>
+        <label>Type RESET to confirm<input id="resetConfirmation" type="text" required /></label>
+        <div class="student-form-actions">
+          <button class="button button-primary" type="submit">Wipe application data</button>
+          <button class="button button-secondary" id="resetCancel" type="button">Cancel</button>
+        </div>
+      </form>
+    </dialog>
   </body>
 </html>

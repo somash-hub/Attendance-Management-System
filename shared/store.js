@@ -10,11 +10,10 @@
   var SESSION_KEY = "attendiq.session";
   var SETTINGS_KEY = "attendiq.settings";
   var SUBJECTS_KEY = "attendiq.subjects";
-  var SECTIONS_KEY = "attendiq.sections";
   var OFFERINGS_KEY = "attendiq.offerings";
   var EVENTS_KEY = "attendiq.academic-events";
   var SCHEDULES_KEY = "attendiq.class-schedules";
-  var DEMO_DATASET_VERSION = "tu-bachelors-150-v1";
+  var DEMO_DATASET_VERSION = "tu-bachelors-150-v2";
 
   // TU requires 80% attendance per subject; administrators can adjust it.
   var DEFAULT_THRESHOLD = 80;
@@ -88,16 +87,12 @@
     { id: "sem-7", name: "Semester 7", number: 7, is_current: true },
   ];
 
-  var DEMO_SECTIONS = [
-    { id: "section-a", academic_year_id: "year-2082", semester_id: "sem-7", program: "BSc CSIT", batch: "2079", name: "A", is_current: true },
-  ];
-
   var DEMO_OFFERINGS = [
-    { id: "offering-csc419", subject_code: "CSC419", semester_id: "sem-7", section_id: "section-a", teacher_id: "u-teacher", status: "active" },
-    { id: "offering-csc420", subject_code: "CSC420", semester_id: "sem-7", section_id: "section-a", teacher_id: "u-teacher", status: "active" },
-    { id: "offering-csc421", subject_code: "CSC421", semester_id: "sem-7", section_id: "section-a", teacher_id: "u-teacher", status: "active" },
-    { id: "offering-csc422", subject_code: "CSC422", semester_id: "sem-7", section_id: "section-a", teacher_id: "u-teacher", status: "active" },
-    { id: "offering-csc425", subject_code: "CSC425", semester_id: "sem-7", section_id: "section-a", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc419", subject_code: "CSC419", semester_id: "sem-7", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc420", subject_code: "CSC420", semester_id: "sem-7", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc421", subject_code: "CSC421", semester_id: "sem-7", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc422", subject_code: "CSC422", semester_id: "sem-7", teacher_id: "u-teacher", status: "active" },
+    { id: "offering-csc425", subject_code: "CSC425", semester_id: "sem-7", teacher_id: "u-teacher", status: "active" },
   ];
 
   var DEMO_ACADEMIC_YEARS = [
@@ -123,9 +118,28 @@
     var faculty = read(FACULTY_KEY, null) || DEMO_FACULTY.map(function (member) { return Object.assign({}, member); });
     var subjects = read(SUBJECTS_KEY, null) || DEMO_SUBJECTS.map(function (subject) { return Object.assign({}, subject); });
     var semesters = read("attendiq.semesters", null) || DEMO_SEMESTERS.map(function (semester) { return Object.assign({}, semester); });
-    var sections = read(SECTIONS_KEY, null) || DEMO_SECTIONS.map(function (section) { return Object.assign({}, section); });
     var offerings = read(OFFERINGS_KEY, null) || DEMO_OFFERINGS.map(function (offering) { return Object.assign({}, offering); });
     var schedules = read(SCHEDULES_KEY, null) || DEMO_SCHEDULES.map(function (schedule) { return Object.assign({}, schedule); });
+
+    users.forEach(function (user) {
+      if (user.role === "student") {
+        delete user.section;
+        delete user.section_id;
+      }
+    });
+    offerings.forEach(function (offering) {
+      delete offering.section_id;
+      var semester = semesters.find(function (item) { return item.id === offering.semester_id; });
+      if (semester && !semester.is_current && String(offering.id || "").indexOf("tu-offering-") === 0) {
+        offering.status = "archived";
+      }
+    });
+    schedules.forEach(function (schedule) {
+      var offering = offerings.find(function (item) { return item.id === schedule.course_offering_id; });
+      if (offering && offering.status === "archived" && String(schedule.id || "").indexOf("tu-schedule-") === 0) {
+        schedule.status = "archived";
+      }
+    });
     var programs = [
       { code: "CSIT", name: "BSc CSIT", semesters: 8, subjects: ["Programming Fundamentals", "Data Structures", "Computer Architecture", "Database Management"] },
       { code: "BCA", name: "BCA", semesters: 8, subjects: ["Computer Fundamentals", "Web Technology", "Software Engineering", "Object Oriented Programming"] },
@@ -194,10 +208,6 @@
     programs.forEach(function (program) {
       for (var sem = 1; sem <= program.semesters; sem += 1) {
         var semesterId = "tu-sem-" + sem;
-        var sectionId = "tu-section-" + program.code.toLowerCase() + "-" + sem;
-        if (!sections.some(function (section) { return section.id === sectionId; })) {
-          sections.push({ id: sectionId, academic_year_id: "year-2082", semester_id: semesterId, program: program.name, batch: "208" + (2 - Math.floor((sem - 1) / 2)), name: "A", is_current: true });
-        }
         program.subjects.forEach(function (subjectName, subjectOffset) {
           var code = program.code + String(sem).padStart(2, "0") + String(subjectOffset + 1).padStart(2, "0");
           if (!subjects.some(function (subject) { return subject.code === code; })) {
@@ -205,8 +215,10 @@
           }
           var offeringId = "tu-offering-" + code.toLowerCase();
           if (!offerings.some(function (offering) { return offering.id === offeringId; })) {
-            offerings.push({ id: offeringId, subject_code: code, semester_id: semesterId, section_id: sectionId, teacher_id: "u-demo-teacher-" + ((subjectIndex % teachers.length) + 1), status: "active" });
-            schedules.push({ id: "tu-schedule-" + code.toLowerCase(), course_offering_id: offeringId, day_of_week: ((subjectIndex % 6) + 1), start_time: (8 + (subjectIndex % 5)) + ":00", end_time: (9 + (subjectIndex % 5)) + ":00", room: program.code + "-" + (101 + (subjectIndex % 10)), status: "active" });
+            var isCurrentSemester = semesters.some(function (item) { return item.id === semesterId && item.is_current; });
+            var status = isCurrentSemester ? "active" : "archived";
+            offerings.push({ id: offeringId, subject_code: code, semester_id: semesterId, teacher_id: "u-demo-teacher-" + ((subjectIndex % teachers.length) + 1), status: status });
+            schedules.push({ id: "tu-schedule-" + code.toLowerCase(), course_offering_id: offeringId, day_of_week: ((subjectIndex % 6) + 1), start_time: (8 + (subjectIndex % 5)) + ":00", end_time: (9 + (subjectIndex % 5)) + ":00", room: program.code + "-" + (101 + (subjectIndex % 10)), status: status });
           }
           subjectIndex += 1;
         });
@@ -219,7 +231,6 @@
       var semester = (i % program.semesters) + 1;
       var studentId = "u-tu-student-" + String(i + 1).padStart(3, "0");
       if (!users.some(function (user) { return user.id === studentId; })) {
-        var sectionId = "tu-section-" + program.code.toLowerCase() + "-" + semester;
         studentNumber += 1;
         users.push({
           id: studentId,
@@ -231,8 +242,6 @@
           roll: "TU-" + program.code + "-" + String(i + 1).padStart(3, "0"),
           program: program.name,
           batch: "208" + (2 - Math.floor((semester - 1) / 2)),
-          section: "A",
-          section_id: sectionId,
         });
       }
     }
@@ -240,7 +249,6 @@
     write(FACULTY_KEY, faculty);
     write(SUBJECTS_KEY, subjects);
     write("attendiq.semesters", semesters);
-    write(SECTIONS_KEY, sections);
     write(OFFERINGS_KEY, offerings);
     write(SCHEDULES_KEY, schedules);
     write("attendiq.demo-dataset-version", DEMO_DATASET_VERSION);
@@ -338,12 +346,8 @@
         email: user.email,
         program: user.program || "BSc CSIT",
         batch: user.batch || "2079",
-        section: user.section || "",
         active: true,
         archived_at: null,
-        enrollments: user.section_id
-          ? [{ id: "enrollment-" + user.id, section_id: user.section_id, status: "active" }]
-          : [],
       };
     });
   }
@@ -358,9 +362,7 @@
     user.roll = String(value.roll || "").trim();
     user.program = String(value.program || "BSc CSIT").trim();
     user.batch = String(value.batch || "").trim();
-    user.section_id = String(value.section_id || "").trim();
-    user.section = String(value.section || "A").trim();
-    if (!user.name || !user.email || !user.roll || !user.batch || !user.section_id) {
+    if (!user.name || !user.email || !user.roll || !user.batch) {
       return { ok: false, error: "Complete every student field before saving." };
     }
     if (!write(USERS_KEY, users)) return { ok: false, error: "Browser storage is unavailable, so the student was not updated." };
@@ -569,6 +571,10 @@
   function createClassSchedule(value) {
     var schedule = value || {};
     if (!schedule.course_offering_id || schedule.day_of_week === "" || !schedule.start_time || !schedule.end_time || schedule.end_time <= schedule.start_time) return { ok: false, error: "Choose an active offering, weekday, and valid start/end times." };
+    var offering = getOfferings(true).find(function (item) { return item.id === schedule.course_offering_id && item.status !== "archived"; });
+    if (!offering) return { ok: false, error: "Choose an active course offering before creating a class schedule." };
+    var semester = getSemesters().find(function (item) { return item.id === offering.semester_id && item.is_current; });
+    if (!semester) return { ok: false, error: "Choose an active course offering in the current semester." };
     var schedules = getClassSchedules(true);
     var created = { id: "schedule-" + Date.now().toString(36), course_offering_id: schedule.course_offering_id, day_of_week: Number(schedule.day_of_week), start_time: schedule.start_time, end_time: schedule.end_time, room: String(schedule.room || "").trim(), status: "active" };
     schedules.push(created);
@@ -595,7 +601,31 @@
   }
 
   function getAcademicYears() {
-    return DEMO_ACADEMIC_YEARS.map(function (year) { return Object.assign({}, year); });
+    var years = DEMO_ACADEMIC_YEARS.map(function (year) { return Object.assign({}, year); });
+    var semesters = read("attendiq.semesters", null) || DEMO_SEMESTERS;
+    var generatedYears = {};
+    semesters.forEach(function (semester) {
+      var match = /^year-(\d{4})$/.exec(String(semester.academic_year_id || ""));
+      if (!match) return;
+      var yearNumber = Number(match[1]);
+      if (!generatedYears[yearNumber]) {
+        generatedYears[yearNumber] = {
+          id: semester.academic_year_id,
+          name: String(yearNumber),
+          start_date: yearNumber + "-01-01",
+          end_date: yearNumber + "-12-31",
+          is_current: false,
+        };
+      }
+      if (semester.is_current) {
+        years.forEach(function (year) { year.is_current = false; });
+        generatedYears[yearNumber].is_current = true;
+      }
+    });
+    Object.keys(generatedYears).forEach(function (yearNumber) {
+      years.push(generatedYears[yearNumber]);
+    });
+    return years;
   }
 
   function getSemesters() {
@@ -604,16 +634,43 @@
     return semesters.map(function (semester) { return Object.assign({}, semester); });
   }
 
-
-  function getSections() {
-    ensureDemoAcademicDataset();
-    var sections = read(SECTIONS_KEY, null);
-    if (!Array.isArray(sections)) {
-      sections = DEMO_SECTIONS.map(function (section) { return Object.assign({}, section); });
-      write(SECTIONS_KEY, sections);
+  function setCurrentSemester(year, semesterNumber) {
+    var yearNumber = Number(year);
+    var number = Number(semesterNumber);
+    if (!Number.isInteger(yearNumber) || yearNumber < 2020 || yearNumber > 9999 ||
+        !Number.isInteger(number) || number < 1 || number > 8) {
+      return { ok: false, error: "Choose a year from 2020 onward and a semester from 1 to 8." };
     }
-    return sections.filter(function (section) { return section.is_current !== false; });
+    var semesters = read("attendiq.semesters", null) || DEMO_SEMESTERS.map(function (semester) {
+      return Object.assign({}, semester);
+    });
+    semesters.forEach(function (semester) { semester.is_current = false; });
+    var selected;
+    for (var index = 1; index <= 8; index += 1) {
+      var yearSemester = semesters.find(function (item) {
+        return item.number === index && item.academic_year_id === "year-" + yearNumber;
+      });
+      if (!yearSemester) {
+        yearSemester = {
+          id: "sem-" + yearNumber + "-" + index,
+          academic_year_id: "year-" + yearNumber,
+          name: "Semester " + index,
+          number: index,
+          start_date: yearNumber + "-01-01",
+          end_date: yearNumber + "-12-31",
+          is_current: false,
+        };
+        semesters.push(yearSemester);
+      }
+      if (index === number) selected = yearSemester;
+    }
+    selected.is_current = true;
+    if (!write("attendiq.semesters", semesters)) {
+      return { ok: false, error: "Browser storage is unavailable, so the current semester was not changed." };
+    }
+    return { ok: true, semester: selected };
   }
+
 
   function getOfferings(includeArchived) {
     ensureDemoAcademicDataset();
@@ -629,14 +686,11 @@
 
   function validateOffering(value) {
     var offering = value || {};
-    if (!offering.subject_code || !offering.semester_id || !offering.section_id || !offering.teacher_id) {
-      return "Subject, semester, section, and teacher are required.";
+    if (!offering.subject_code || !offering.semester_id || !offering.teacher_id) {
+      return "Subject, semester, and teacher are required.";
     }
     if (!getSubjectRecords().some(function (subject) { return subject.code === offering.subject_code && subject.active !== false; })) {
       return "Choose an active subject.";
-    }
-    if (!getSections().some(function (section) { return section.id === offering.section_id && section.semester_id === offering.semester_id; })) {
-      return "The selected section does not belong to the semester.";
     }
     if (!getFaculty().some(function (member) { return member.profile_id === offering.teacher_id; })) {
       return "Choose an active faculty account.";
@@ -648,15 +702,23 @@
     var offering = value || {};
     var error = validateOffering(offering);
     if (error) return { ok: false, error: error };
+    var semester = getSemesters().find(function (item) {
+      return item.id === offering.semester_id && item.is_current;
+    });
+    var subject = getSubjectRecords().find(function (item) {
+      return item.code === offering.subject_code;
+    });
+    if (!semester || !subject || subject.semester !== semester.number) {
+      return { ok: false, error: "Choose an active subject in the college's current semester." };
+    }
     var offerings = getOfferings(true);
-    if (offerings.some(function (item) { return item.subject_code === offering.subject_code && item.semester_id === offering.semester_id && item.section_id === offering.section_id; })) {
-      return { ok: false, error: "That subject is already assigned to this section." };
+    if (offerings.some(function (item) { return item.subject_code === offering.subject_code && item.semester_id === offering.semester_id && item.status !== "archived"; })) {
+      return { ok: false, error: "That subject already has an offering in this semester." };
     }
     var created = {
       id: "offering-" + Date.now().toString(36),
       subject_code: offering.subject_code,
       semester_id: offering.semester_id,
-      section_id: offering.section_id,
       teacher_id: offering.teacher_id,
       status: "active",
     };
@@ -671,8 +733,22 @@
     var offerings = getOfferings(true);
     var current = offerings.find(function (item) { return item.id === offering.id; });
     if (!current) return { ok: false, error: "Course offering not found." };
-    var error = validateOffering({ subject_code: offering.subject_code || current.subject_code, semester_id: offering.semester_id || current.semester_id, section_id: offering.section_id || current.section_id, teacher_id: offering.teacher_id || current.teacher_id });
+    var error = validateOffering({ subject_code: offering.subject_code || current.subject_code, semester_id: offering.semester_id || current.semester_id, teacher_id: offering.teacher_id || current.teacher_id });
     if (error) return { ok: false, error: error };
+    if (offering.status !== "archived") {
+      var semester = getSemesters().find(function (item) {
+        return item.id === current.semester_id && item.is_current;
+      });
+      var subject = getSubjectRecords().find(function (item) {
+        return item.code === current.subject_code && item.active !== false;
+      });
+      if (!semester || !subject || subject.semester !== semester.number) {
+        return { ok: false, error: "Only offerings in the college's current semester can be active." };
+      }
+    }
+    if (offerings.some(function (item) { return item.id !== current.id && item.subject_code === current.subject_code && item.semester_id === current.semester_id && item.status !== "archived" && offering.status !== "archived"; })) {
+      return { ok: false, error: "That subject already has an offering in this semester." };
+    }
     current.teacher_id = offering.teacher_id || current.teacher_id;
     current.status = offering.status === "archived" ? "archived" : "active";
     if (!write(OFFERINGS_KEY, offerings)) return { ok: false, error: "Browser storage is unavailable, so the course offering was not updated." };
@@ -747,8 +823,6 @@
       roll: String(input.roll || "").trim(),
       program: String(input.program || "BSc CSIT").trim(),
       batch: String(input.batch || "").trim(),
-      section: String(input.section || "").trim(),
-      section_id: String(input.section_id || "").trim(),
     };
     var faculty = null;
     if (input.role === "teacher") {
@@ -923,7 +997,7 @@
     archiveSubject: archiveSubject,
     getAcademicYears: getAcademicYears,
     getSemesters: getSemesters,
-    getSections: getSections,
+    setCurrentSemester: setCurrentSemester,
     getOfferings: getOfferings,
     createOffering: createOffering,
     updateOffering: updateOffering,

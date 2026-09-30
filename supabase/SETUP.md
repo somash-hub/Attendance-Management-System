@@ -3,8 +3,10 @@
 Project reference: `yvvgvteijtxnuwtncfio`
 Everything in this folder is **re-runnable** — the schema drops and recreates
 its named policies before enabling them, so policy changes can be applied
-again safely. The hosted project has all migrations through
-`20260924001302_phase6_8_function_sync.sql` and all four Edge Functions applied.
+again safely. The hosted project has migrations through
+`20260930000200_use_program_and_current_semester.sql` applied, and the
+`admin-create-user` Edge Function has been redeployed with section-free student
+creation.
 
 ## 1. Create the three demo accounts
 
@@ -41,6 +43,7 @@ Apply the migrations in order from `supabase/migrations/`:
 14. `20260924001300_phase6_8_notifications_and_leave_safeguards.sql`
 15. `20260924001301_phase6_8_rls_correction.sql`
 16. `20260924001302_phase6_8_function_sync.sql`
+17. `20260930000200_use_program_and_current_semester.sql`
 
 Use separate SQL Editor queries, or paste them in order and run each query.
 
@@ -65,25 +68,28 @@ It creates:
   row level security policies
 - Teacher attendance access restricted to assigned subjects, and student leave
   submissions forced to begin as pending
-- Relationship-aware access now uses current sections and course offerings;
-  teachers can read students and academic records connected to their assigned
-  offerings, while students can read their own academic relationships
+- Migration `20260930000200` replaces active section-based access with student
+  program plus one college-wide current semester, while retaining archived
+  enrollment history. It seeds Gregorian years 2020-2026 and semesters 1-8,
+  with 2026 Semester 1 current; administrators can select a later year and
+  semester in Settings, creating the year and all eight semesters on demand.
+  Initial year/semester date bounds span the whole Gregorian year.
 - Administrator student CRUD RPCs support editing and archiving students while
-  preserving attendance and leave history; new student logins receive a current
-  enrollment through the `admin-create-user` Edge Function
+  preserving attendance and leave history; the local semester-model migration
+  archives existing enrollments without deleting them
 - Administrator faculty CRUD is available through the admin portal; faculty
   account metadata is synchronized by `admin-update-faculty`, and archiving
   preserves the faculty record while removing the linked login
 - Administrator subject catalog CRUD is implemented in the admin portal; subject
   codes are permanent, and archive/restore preserves historical attendance and
   course-offering references
-- Administrator course-offering and enrollment operations are implemented in the
-  admin portal; transfers and enrollment archival preserve historical records
+- Course offerings are shared by students in the matching program and current
+  semester; section enrollment operations are no longer used for current access
 - Administrator academic-calendar events and recurring class schedules are
   managed in **Settings**; archive/restore preserves their history and does not
   delete attendance records
-- Phase 4 adapter methods scope teacher and student reads to assigned course
-  offerings, sections, enrollments, attendance, and leave requests
+- The local adapter scopes teacher and student reads to current-semester
+  offerings, program rosters, attendance, and leave requests
 - Phase 5 adds scheduled attendance sessions with teacher-assignment checks,
   atomic session attendance saving, relationship-aware RLS, and a lint follow-up
 - Phase 6 adds leave overlap protection, reviewer comments/timestamps, student
@@ -180,7 +186,7 @@ select count(*) from public.attendance_sessions; -- 0 until a teacher opens a se
 select count(*) from public.notifications;       -- decision notifications appear after leave review
 ```
 
-## Access rules at a glance
+## Hosted baseline access rules (before the pending semester migrations)
 
 | Table                 | Student                         | Teacher                              | Admin |
 | --------------------- | ------------------------------- | ------------------------------------ | ----- |
