@@ -40,7 +40,8 @@ plain HTML, CSS, and JavaScript.
 - Teacher attendance marking backed by students, subjects, course offerings,
   and attendance, including AD/BS dates and database-enforced uniqueness
 - Teacher session-based attendance workflow: assigned schedule selection, open/closed
-  session status, program-roster marking for the current semester, and session-scoped saves
+  session status, program-roster marking for the current semester, session-scoped saves,
+  and edits to existing sessions from the dashboard
 - Student dashboard and attendance log computed from the signed-in student's
   own marks, with subject percentages and threshold warnings
 - Leave workflow: student submission with optional private document upload,
@@ -79,7 +80,7 @@ plain HTML, CSS, and JavaScript.
 - A password-reset link returns to this login page. Use **Forgot password?** to request
   the email; the recovery screen then updates the password through Supabase Auth.
 - The hosted project has migrations through
-  `20261001000200_route_leave_requests_by_subject.sql` applied. Leave requests
+  `20261001000400_update_closed_attendance_sessions.sql` applied. Leave requests
   can target one current subject or all current subjects, with teacher review
   limited to assigned offerings.
 
@@ -90,13 +91,14 @@ The hosted project `yvvgvteijtxnuwtncfio` has migrations
 `20260930000300_fix_current_semester_rpc_lint.sql` and
 `20260930000400_assign_semester_per_student.sql` and
 `20261001000100_require_teacher_for_class_schedule.sql` and
-`20261001000200_route_leave_requests_by_subject.sql` applied. They seed
+`20261001000200_route_leave_requests_by_subject.sql`,
+`20261001000300_connect_attendance_and_leave_settings.sql`, and
+`20261001000400_update_closed_attendance_sessions.sql` applied. They seed
 Gregorian years 2020-2026 and semesters 1-8, with 2026 active and all eight
 semesters available. Administrators select Semester 1-8 separately for each
 student and can create later years in Settings. Initial term date bounds span
-the whole Gregorian year. The live database has six active teacher-assigned
-course offerings and no class schedules yet, so administrators can add the
-weekly meeting times in Course Management → Class Schedules. The
+the whole Gregorian year. The live database has active teacher-assigned course
+offerings and class schedules managed in Course Management → Class Schedules. The
 project includes Phase 1 security, Phase 2 academic relationships, and the
 complete Phase 3 administrator student, faculty, subject, course-offering,
 enrollment, academic-calendar, and class-schedule administration slices. The
@@ -106,14 +108,13 @@ Functions are deployed, and `shared/supabase.js` contains only the public
 publishable key. Phase 5 adds `attendance_sessions`, teacher-assignment checks
 for opening sessions, atomic session attendance RPCs, relationship-aware RLS,
 and adapter methods for teacher/student session reads. The teacher portal now
-connects the schedule → open session → mark roster → save → close flow; the
+connects the schedule → open session → mark roster → save → close flow and lets
+assigned teachers update attendance from existing open or closed sessions; the
 student portal loads its program/semester course schedules, database notifications,
 leave history, signed document links, and real monthly attendance trend. Phase 6
 adds server-validated leave overlap protection, reviewer notes/timestamps,
 student cancellation, and notifications. Phase 8 metrics and charts use the
-same current attendance records as the directory/report views. The current
-hosted database currently has no active class schedules, so an administrator
-must create one before a teacher can open a live session.
+same current attendance records as the directory/report views.
 
 The frontend calls the backend through `shared/supabase-store.js`; a configured
 client never silently falls back to localStorage after a request error. The

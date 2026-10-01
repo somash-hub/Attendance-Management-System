@@ -253,3 +253,33 @@ test("mass notification does not report success without Supabase", async () => {
   assert.equal(result.ok, false);
   assert.equal(result.error, "Mass notifications are unavailable without a Supabase connection.");
 });
+
+test("attendance updates save the edited marks to the selected existing session", async () => {
+  let request;
+  globalThis.AttendIQDb = {
+    rpc: async (name, args) => {
+      request = { name, args };
+      return { data: 2, error: null };
+    },
+  };
+
+  const result = await globalThis.AttendIQSupabase.saveAttendanceSession({
+    session_id: "session-1",
+    records: [
+      { student_id: "student-1", status: "Present" },
+      { student_id: "student-2", status: "Absent" },
+    ],
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(request, {
+    name: "save_attendance_session",
+    args: {
+      p_session_id: "session-1",
+      p_records: [
+        { student_id: "student-1", status: "Present" },
+        { student_id: "student-2", status: "Absent" },
+      ],
+    },
+  });
+});
