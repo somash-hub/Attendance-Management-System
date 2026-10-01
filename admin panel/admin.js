@@ -594,7 +594,7 @@ $("#notificationForm").addEventListener("submit", async (event) => {
   });
   if (!result.ok) return showToast(result.error);
   closeNotificationComposer();
-  showToast("Notification sent.");
+  showToast("Notification sent to " + result.data.sent + " users.");
 });
 
 // Update dashboard counts from the same current records used by the

@@ -167,3 +167,89 @@ test("notifications are queried only for the signed-in user's profile", async ()
   assert.equal(result.ok, true);
   assert.equal(notificationUserFilter, "teacher-1");
 });
+
+test("mass notification inserts an announcement for every matching role", async () => {
+  let audienceRole;
+  let inserted;
+  globalThis.AttendIQDb = {
+    from: (table) => {
+      const query = {
+        select: () => query,
+        eq: (column, value) => {
+          assert.equal(table, "profiles");
+          assert.equal(column, "role");
+          audienceRole = value;
+          return query;
+        },
+        insert: (rows) => {
+          assert.equal(table, "notifications");
+          inserted = rows;
+          return Promise.resolve({ data: null, error: null });
+        },
+        then: (resolve) => Promise.resolve({
+          data: [{ id: "student-1", role: "student" }, { id: "student-2", role: "student" }],
+          error: null,
+        }).then(resolve),
+      };
+      return query;
+    },
+  };
+
+  const result = await globalThis.AttendIQSupabase.sendMassNotification({
+    audience: "student",
+    title: "Holiday",
+    message: "Tomorrow is a holiday.",
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.data, { sent: 2 });
+  assert.equal(audienceRole, "student");
+  assert.deepEqual(inserted, [
+    {
+      user_id: "student-1",
+      notification_type: "announcement",
+      title: "Holiday",
+      message: "Tomorrow is a holiday.",
+    },
+    {
+      user_id: "student-2",
+      notification_type: "announcement",
+      title: "Holiday",
+      message: "Tomorrow is a holiday.",
+    },
+  ]);
+});
+
+test("mass notification rejects invalid audience before querying Supabase", async () => {
+  let calls = 0;
+  globalThis.AttendIQDb = {
+    from: () => {
+      calls += 1;
+      return {};
+    },
+  };
+
+  const result = await globalThis.AttendIQSupabase.sendMassNotification({
+    audience: "visitor",
+    title: "Holiday",
+    message: "Tomorrow is a holiday.",
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "Choose a valid notification audience.");
+  assert.equal(calls, 0);
+});
+
+test("mass notification does not report success without Supabase", async () => {
+  delete globalThis.AttendIQDb;
+  globalThis.AttendIQDemoMode = false;
+
+  const result = await globalThis.AttendIQSupabase.sendMassNotification({
+    audience: "all",
+    title: "Holiday",
+    message: "Tomorrow is a holiday.",
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "Mass notifications are unavailable without a Supabase connection.");
+});

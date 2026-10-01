@@ -1339,11 +1339,50 @@
 
   function sendMassNotification(input) {
     var value = input || {};
-    if (!String(value.title || "").trim() || !String(value.message || "").trim()) {
+    var audience = String(value.audience || "all");
+    var title = String(value.title || "").trim();
+    var message = String(value.message || "").trim();
+    if (!title || !message) {
       return Promise.resolve(failure("Title and message are required.", client() ? "supabase" : "local"));
     }
-    if (!client()) return Promise.resolve(success({ audience: value.audience || "all" }, "local"));
-    return Promise.resolve(failure("Mass notifications require the notification delivery Edge Function to be deployed.", "supabase"));
+    if (title.length > 120 || message.length > 1000) {
+      return Promise.resolve(failure("Title must be 120 characters or fewer and message must be 1000 characters or fewer.", client() ? "supabase" : "local"));
+    }
+    if (["all", "student", "teacher"].indexOf(audience) === -1) {
+      return Promise.resolve(failure("Choose a valid notification audience.", client() ? "supabase" : "local"));
+    }
+    if (!client()) {
+      return Promise.resolve(failure(
+        "Mass notifications are unavailable without a Supabase connection.",
+        root.AttendIQDemoMode === true ? "local" : "supabase",
+      ));
+    }
+
+    var profilesQuery = client().from("profiles").select("id, role");
+    if (audience !== "all") profilesQuery = profilesQuery.eq("role", audience);
+    return remote(function () {
+      return profilesQuery;
+    }, "The notification audience could not be loaded.").then(function (profilesResult) {
+      if (!profilesResult.ok) return profilesResult;
+      var recipients = profilesResult.data || [];
+      if (!recipients.length) return failure("There are no users in the selected audience.", "supabase");
+
+      var notifications = recipients.map(function (profile) {
+        return {
+          user_id: profile.id,
+          notification_type: "announcement",
+          title: title,
+          message: message,
+        };
+      });
+      return remote(function () {
+        return client().from("notifications").insert(notifications);
+      }, "The notification could not be delivered.").then(function (insertResult) {
+        return insertResult.ok
+          ? success({ sent: notifications.length }, "supabase")
+          : insertResult;
+      });
+    });
   }
 
   function markNotificationsRead(ids) {
