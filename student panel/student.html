@@ -13,6 +13,7 @@
     <script src="../shared/store.js" defer></script>
     <!-- The async Supabase adapter is the only frontend module for backend calls. -->
     <script src="../shared/supabase-store.js" defer></script>
+    <script src="../shared/attendance.js" defer></script>
     <!-- Shared CSV download helper for report exports. -->
     <script src="../shared/safe-dom.js" defer></script>
     <script src="../shared/csv.js" defer></script>
@@ -92,7 +93,7 @@
             </article>
             <article>
               <i class="blue">✓</i><strong id="presentCount">171</strong
-              ><small>Present</small><em>classes attended</em>
+              ><small>Attended</small><em>includes late arrivals</em>
             </article>
             <article>
               <i class="red">×</i><strong id="absentCount">29</strong

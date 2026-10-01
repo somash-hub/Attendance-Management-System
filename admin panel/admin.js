@@ -512,13 +512,13 @@ function loadAdminStudents() {
     currentSemesters = semestersResult.data;
     const totals = {};
     attendanceResult.data.forEach(function (row) {
-      const entry = totals[row.student_id] || { total: 0, present: 0 };
+      const entry = totals[row.student_id] || { total: 0, attended: 0 };
       entry.total += 1;
-      if (row.status === "Present") entry.present += 1;
+      if (AttendIQAttendance.countsAsAttended(row.status)) entry.attended += 1;
       totals[row.student_id] = entry;
     });
     students = studentsResult.data.map(function (student) {
-      const entry = totals[student.id] || { total: 0, present: 0 };
+      const entry = totals[student.id] || { total: 0, attended: 0 };
       return {
         id: student.id,
         name: student.name,
@@ -527,7 +527,7 @@ function loadAdminStudents() {
         dept: student.program,
         batch: student.batch,
         semester: student.semester,
-        attendance: entry.total ? Math.round((entry.present / entry.total) * 100) : 0,
+        attendance: entry.total ? Math.round((entry.attended / entry.total) * 100) : 0,
       };
     });
     setFilterOptions("#studentProgramFilter", students.map((student) => student.dept), "All programs");

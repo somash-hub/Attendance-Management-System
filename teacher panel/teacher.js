@@ -431,15 +431,16 @@ function loadTeacherReports() {
     }
     const totals = {};
     result.data.forEach(function (row) {
-      const entry = totals[row.student_id] || { total: 0, present: 0, absent: 0, late: 0 };
+      const entry = totals[row.student_id] || { total: 0, present: 0, attended: 0, absent: 0, late: 0 };
       entry.total += 1;
+      if (AttendIQAttendance.countsAsAttended(row.status)) entry.attended += 1;
       if (row.status === "Present") entry.present += 1;
       if (row.status === "Absent") entry.absent += 1;
       if (row.status === "Late") entry.late += 1;
       totals[row.student_id] = entry;
     });
     reportRows = markingStudents.map(function (student) {
-      const entry = totals[student.id] || { total: 0, present: 0, absent: 0, late: 0 };
+      const entry = totals[student.id] || { total: 0, present: 0, attended: 0, absent: 0, late: 0 };
       return {
         id: student.id,
         name: student.name,
@@ -448,7 +449,7 @@ function loadTeacherReports() {
         present: entry.present,
         absent: entry.absent,
         late: entry.late,
-        percent: entry.total ? Math.round((entry.present / entry.total) * 100) : 0,
+        percent: entry.total ? Math.round((entry.attended / entry.total) * 100) : 0,
       };
     });
     students = reportRows.map(function (row) { return [row.name, row.roll, row.percent, "present", row.id]; });

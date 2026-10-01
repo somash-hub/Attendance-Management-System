@@ -37,6 +37,8 @@ plain HTML, CSS, and JavaScript.
 - Student email-domain validation using the college domain `@kct.edu.np`
 - Administrator-controlled attendance threshold persisted in the `settings`
   table (defaults to 80%, the TU requirement, and can be adjusted in Settings)
+- Present and Late marks count as attended toward percentages; Late remains
+  separately visible and students still below threshold receive a warning
 - Teacher attendance marking backed by students, subjects, course offerings,
   and attendance, including AD/BS dates and database-enforced uniqueness
 - Teacher session-based attendance workflow: assigned schedule selection, open/closed
@@ -80,7 +82,7 @@ plain HTML, CSS, and JavaScript.
 - A password-reset link returns to this login page. Use **Forgot password?** to request
   the email; the recovery screen then updates the password through Supabase Auth.
 - The hosted project has migrations through
-  `20261001000400_update_closed_attendance_sessions.sql` applied. Leave requests
+  `20261001000500_count_late_as_attended.sql` applied. Leave requests
   can target one current subject or all current subjects, with teacher review
   limited to assigned offerings.
 
@@ -93,7 +95,8 @@ The hosted project `yvvgvteijtxnuwtncfio` has migrations
 `20261001000100_require_teacher_for_class_schedule.sql` and
 `20261001000200_route_leave_requests_by_subject.sql`,
 `20261001000300_connect_attendance_and_leave_settings.sql`, and
-`20261001000400_update_closed_attendance_sessions.sql` applied. They seed
+`20261001000400_update_closed_attendance_sessions.sql`, and
+`20261001000500_count_late_as_attended.sql` applied. They seed
 Gregorian years 2020-2026 and semesters 1-8, with 2026 active and all eight
 semesters available. Administrators select Semester 1-8 separately for each
 student and can create later years in Settings. Initial term date bounds span
@@ -110,7 +113,9 @@ for opening sessions, atomic session attendance RPCs, relationship-aware RLS,
 and adapter methods for teacher/student session reads. The teacher portal now
 connects the schedule → open session → mark roster → save → close flow and lets
 assigned teachers update attendance from existing open or closed sessions; the
-student portal loads its program/semester course schedules, database notifications,
+Present and Late statuses count toward attendance percentages, while Late stays
+distinct in records and below-threshold warnings advise students to attend on
+time. The student portal loads its program/semester course schedules, database notifications,
 leave history, signed document links, and real monthly attendance trend. Phase 6
 adds server-validated leave overlap protection, reviewer notes/timestamps,
 student cancellation, and notifications. Phase 8 metrics and charts use the

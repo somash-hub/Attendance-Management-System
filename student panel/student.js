@@ -227,9 +227,9 @@ function weekdayName(value) {
 function renderDashboard(attendanceRows, subjects) {
   var totals = {};
   attendanceRows.forEach(function (row) {
-    var entry = totals[row.subject_code] || { total: 0, present: 0 };
+    var entry = totals[row.subject_code] || { total: 0, attended: 0 };
     entry.total += 1;
-    if (row.status === "Present") entry.present += 1;
+    if (AttendIQAttendance.countsAsAttended(row.status)) entry.attended += 1;
     totals[row.subject_code] = entry;
   });
 
@@ -237,36 +237,36 @@ function renderDashboard(attendanceRows, subjects) {
     return [subject.code, subject.name];
   }));
   subjectAttendance = subjects.map(function (subject) {
-    var entry = totals[subject.code] || { total: 0, present: 0 };
-    var percent = entry.total ? Math.round((entry.present / entry.total) * 100) : 0;
-    return [subject.code, subject.name, percent, entry.present, entry.total];
+    var entry = totals[subject.code] || { total: 0, attended: 0 };
+    var percent = entry.total ? Math.round((entry.attended / entry.total) * 100) : 0;
+    return [subject.code, subject.name, percent, entry.attended, entry.total];
   });
 
   var totalClasses = attendanceRows.length;
-  var presentCount = attendanceRows.filter(function (row) { return row.status === "Present"; }).length;
+  var attendedCount = attendanceRows.filter(function (row) { return AttendIQAttendance.countsAsAttended(row.status); }).length;
   var absentCount = attendanceRows.filter(function (row) { return row.status === "Absent"; }).length;
   var months = {};
   attendanceRows.forEach(function (row) {
     var month = String(row.date_ad || "").slice(0, 7);
     if (!month) return;
-    var entry = months[month] || { total: 0, present: 0 };
+    var entry = months[month] || { total: 0, attended: 0 };
     entry.total += 1;
-    if (row.status === "Present") entry.present += 1;
+    if (AttendIQAttendance.countsAsAttended(row.status)) entry.attended += 1;
     months[month] = entry;
   });
   var monthKeys = Object.keys(months).sort().slice(-5);
   $("#trendChart").innerHTML = monthKeys.map(function (month) {
     var entry = months[month];
-    var percent = entry.total ? Math.round((entry.present / entry.total) * 100) : 0;
+    var percent = entry.total ? Math.round((entry.attended / entry.total) * 100) : 0;
     return `<b style="height:${Math.max(4, percent)}%"></b>`;
   }).join("") || "<small>No trend data available.</small>";
   $("#trendMonths").innerHTML = monthKeys.map(function (month) {
     return `<span>${h(month.slice(5))}</span>`;
   }).join("");
 
-  $("#overallPercent").textContent = (totalClasses ? Math.round((presentCount / totalClasses) * 100) : 0) + "%";
-  $("#overallClasses").textContent = presentCount + " / " + totalClasses + " classes";
-  $("#presentCount").textContent = presentCount;
+  $("#overallPercent").textContent = (totalClasses ? Math.round((attendedCount / totalClasses) * 100) : 0) + "%";
+  $("#overallClasses").textContent = attendedCount + " / " + totalClasses + " classes attended";
+  $("#presentCount").textContent = attendedCount;
   $("#absentCount").textContent = absentCount;
   $("#subjectCount").textContent = subjectAttendance.length;
 

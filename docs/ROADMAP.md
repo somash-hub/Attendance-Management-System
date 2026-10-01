@@ -23,7 +23,7 @@ Phase 0 is intentionally non-functional. It establishes the development rules be
 
 1. **Frontend technology** — remain plain HTML, CSS, and JavaScript. Do not migrate the browser application to TypeScript or add a frontend build step.
 2. **Edge Functions** — remain Deno-compatible TypeScript. Each function gets its own `deno.json` so dependencies and compiler settings stay isolated.
-3. **Current attendance formula** — preserve the existing behavior during the migration: `Present` contributes to the attendance percentage; `Absent` and `Late` do not. `Late` remains visible as a separate status. This rule must be centralized before the new reporting model is implemented.
+3. **Current attendance formula** — `Present` and `Late` count as attended for attendance percentages; `Absent` does not. `Late` remains visible as a separate status, and students below the configured threshold continue to receive warnings. The frontend rule is centralized in `shared/attendance.js`.
 4. **Academic relationships** — each student has an individual semester from
    1-8. Students access offerings through their program and semester; batches
    remain roster information. Legacy sections and enrollments are retained as
