@@ -36,7 +36,7 @@ a {
 
 .container {
   margin: 0 auto;
-  width: min(1152px, calc(100% - 48px));
+  width: calc(100% - 64px);
 }
 
 .section {
@@ -440,31 +440,6 @@ h1 span {
   margin-top: 2px;
 }
 
-/* Stats */
-.stats-band {
-  background: var(--indigo-dark);
-  color: white;
-  padding: 44px 0;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  text-align: center;
-}
-
-.stats-grid strong {
-  display: block;
-  font-family: "DM Serif Display", Georgia, serif;
-  font-size: 42px;
-  font-weight: 400;
-}
-
-.stats-grid span {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 12px;
-}
-
 /* Shared content cards */
 .section-heading {
   margin: 0 auto 54px;
@@ -485,7 +460,6 @@ h1 span {
 
 .feature-grid,
 .portal-grid,
-.review-grid,
 .steps-grid {
   display: grid;
   gap: 20px;
@@ -639,53 +613,7 @@ h1 span {
   margin-top: 18px;
 }
 
-/* Reviews and CTA */
-.reviews-section {
-  background: var(--indigo-dark);
-  color: white;
-}
-
-.dark-heading h2 {
-  color: white;
-}
-.dark-heading .eyebrow {
-  color: #b9b8ff;
-}
-
-.review-grid blockquote {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 25px;
-}
-
-.stars {
-  color: var(--yellow);
-  font-size: 14px;
-  letter-spacing: 2px;
-}
-
-.review-grid blockquote p {
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 13px;
-  line-height: 1.7;
-  margin: 18px 0 24px;
-}
-
-.review-grid footer b,
-.review-grid footer span {
-  display: block;
-}
-
-.review-grid footer b {
-  font-size: 13px;
-}
-.review-grid footer span {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 11px;
-  margin-top: 3px;
-}
-
+/* CTA */
 .cta-section {
   position: relative;
   text-align: center;
@@ -745,7 +673,7 @@ h1 span {
 /* Responsive layout */
 @media (max-width: 800px) {
   .container {
-    width: min(100% - 32px, 620px);
+    width: calc(100% - 32px);
   }
 
   .desktop-nav,
@@ -840,18 +768,8 @@ h1 span {
     padding: 78px 0;
   }
 
-  .stats-grid {
-    gap: 25px 10px;
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .stats-grid strong {
-    font-size: 34px;
-  }
-
   .feature-grid,
   .portal-grid,
-  .review-grid,
   .steps-grid {
     grid-template-columns: 1fr;
   }
